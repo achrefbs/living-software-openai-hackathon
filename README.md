@@ -89,6 +89,7 @@ No account, payment, or proprietary data will be required. The runnable testing 
 - [Build and Codex collaboration log](BUILD_LOG.md)
 - [Product and engineering decisions](DECISIONS.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Product map](docs/PRODUCT_MAP.md)
 - [Judging criteria map](docs/JUDGING_MAP.md)
 - [Demo plan](docs/DEMO_PLAN.md)
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
