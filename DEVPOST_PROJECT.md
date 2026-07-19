@@ -3,11 +3,13 @@
 - **Project:** Living Software
 - **Draft slug:** `living-software-x69rd1`
 - **Draft URL:** <https://devpost.com/software/living-software-x69rd1>
+- **Repository:** <https://github.com/achrefbs/living-software-openai-hackathon>
+- **Draft version:** 2
 - **Created:** July 19, 2026
 - **State:** Draft; not submitted
 
-The draft was created with the entrant-approved name, tagline, and the accurate baseline technologies `Codex` and `GPT-5.6`.
+The draft contains the working name, tagline, repository link, a clearly labeled work-in-progress description, and the accurate baseline technologies `Codex` and `GPT-5.6`.
 
-The final project description has intentionally not been generated or published. Devpost's latest guidance asks entrants to use their own voice rather than submit an AI-written description unchanged. The description, complete built-with list, repository URL, demo URL, testing instructions, category, country, submitter type, and real `/feedback` Session ID will be added only after they are accurate.
+The final project narrative is not locked. Before submission, the entrant must review it in their own voice and replace the work-in-progress language with demonstrated claims. The complete built-with list, demo URL, testing instructions, category, country, submitter type, and real `/feedback` Session ID will be finalized only after they are accurate.
 
 No tool or agent may submit this project without the entrant's explicit instruction after the full submission checklist passes.

@@ -44,6 +44,37 @@ Replace this only with the real ID from the task where the majority of core func
 - Devpost rules snapshot: July 19, 2026.
 - Validation command: `npm run check`.
 
+## 2026-07-19 - Public repository and Devpost draft linked
+
+**Scope**
+
+- Created the public GitHub repository from the audited local baseline without generated starter files.
+- Pushed `main` and the annotated `build-week-start` eligibility tag.
+- Linked the public repository to the existing Living Software Devpost draft.
+
+**How Codex accelerated the work**
+
+- Carried the verified local history into the remote repository without rewriting the provenance boundary.
+- Independently checked the local history, tag, tests, tracked filenames, and likely secret patterns before publication.
+
+**How GPT-5.6 was used**
+
+- GPT-5.6 powered the Codex workflow that configured, published, and remotely verified the challenge baseline.
+
+**Entrant direction and working decisions**
+
+- The repository is public and MIT-licensed for straightforward judge access.
+- The Devpost description remains explicitly labeled as work in progress until the demonstrated product claims are final.
+- The project remains a draft and has not been submitted to the hackathon.
+
+**Evidence**
+
+- Public repository: <https://github.com/achrefbs/living-software-openai-hackathon>
+- Remote HEAD: `ff33c05b498f0bf3030c74da2f94f44c8a466b88`.
+- Baseline tag: `build-week-start` at `3bfd744f7e8d43ebe34730af0adcdb2c0b27d6cf`.
+- Devpost draft: <https://devpost.com/software/living-software-x69rd1> (version 2).
+- Validation: `npm test`, `git fsck --full`, and GitHub connector commit verification.
+
 ---
 
 ## Entry template
