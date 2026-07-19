@@ -30,12 +30,12 @@ Replace this only with the real ID from the task where the majority of core func
 - GPT-5.6 powered the Codex reasoning used for the compliance audit and repository initialization.
 - No runtime model integration is claimed in this entry; that will be documented when implemented and tested.
 
-**Human decisions**
+**Entrant direction and working decisions**
 
-- Selected Living Software as the likely project direction.
-- Retained the name "Living Software" and the thesis "Software that earns the right to evolve."
-- Chose a governed mutation loop rather than autonomous self-modification.
-- Required a compliant, fresh challenge repository before implementation begins.
+- The entrant selected Living Software as the likely project direction.
+- "Living Software" and "Software that earns the right to evolve." are the current working name and thesis from the accepted concept brief; confirm the final wording before submission.
+- A governed rather than autonomous mutation loop is the current product guardrail; confirm or revise it during implementation.
+- The entrant explicitly required a compliant, fresh challenge repository before implementation begins.
 
 **Evidence**
 
