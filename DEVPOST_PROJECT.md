@@ -1,14 +1,14 @@
 # Devpost project state
 
 - **Project:** Living Software
-- **Draft slug:** `living-software-x69rd1`
-- **Draft URL:** <https://devpost.com/software/living-software-x69rd1>
+- **Project slug:** `living-software-x69rd1`
+- **Project URL:** <https://devpost.com/software/living-software-x69rd1>
 - **Repository:** <https://github.com/achrefbs/living-software-openai-hackathon>
-- **Draft version:** 2
+- **Project version:** 2
 - **Created:** July 19, 2026
-- **State:** Draft; not submitted
+- **State:** Published standalone project page; not submitted to OpenAI Build Week
 
-The draft contains the working name, tagline, repository link, a clearly labeled work-in-progress description, and the accurate baseline technologies `Codex` and `GPT-5.6`.
+The project page contains the working name, tagline, repository link, a clearly labeled work-in-progress description, and the accurate baseline technologies `Codex` and `GPT-5.6`.
 
 The final project narrative is not locked. Before submission, the entrant must review it in their own voice and replace the work-in-progress language with demonstrated claims. The complete built-with list, demo URL, testing instructions, category, country, submitter type, and real `/feedback` Session ID will be finalized only after they are accurate.
 

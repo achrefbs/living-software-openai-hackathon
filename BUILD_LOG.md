@@ -44,13 +44,13 @@ Replace this only with the real ID from the task where the majority of core func
 - Devpost rules snapshot: July 19, 2026.
 - Validation command: `npm run check`.
 
-## 2026-07-19 - Public repository and Devpost draft linked
+## 2026-07-19 - Public repository and Devpost project linked
 
 **Scope**
 
 - Created the public GitHub repository from the audited local baseline without generated starter files.
 - Pushed `main` and the annotated `build-week-start` eligibility tag.
-- Linked the public repository to the existing Living Software Devpost draft.
+- Linked the public repository to the Living Software Devpost project page.
 
 **How Codex accelerated the work**
 
@@ -65,14 +65,14 @@ Replace this only with the real ID from the task where the majority of core func
 
 - The repository is public and MIT-licensed for straightforward judge access.
 - The Devpost description remains explicitly labeled as work in progress until the demonstrated product claims are final.
-- The project remains a draft and has not been submitted to the hackathon.
+- Devpost published the standalone project page after its required fields were completed; it has not been submitted to the hackathon.
 
 **Evidence**
 
 - Public repository: <https://github.com/achrefbs/living-software-openai-hackathon>
-- Remote HEAD: `ff33c05b498f0bf3030c74da2f94f44c8a466b88`.
+- First verified remote HEAD before the publication-record commits: `ff33c05b498f0bf3030c74da2f94f44c8a466b88`.
 - Baseline tag: `build-week-start` at `3bfd744f7e8d43ebe34730af0adcdb2c0b27d6cf`.
-- Devpost draft: <https://devpost.com/software/living-software-x69rd1> (version 2).
+- Devpost project page: <https://devpost.com/software/living-software-x69rd1> (version 2; no hackathon submission).
 - Validation: `npm test`, `git fsck --full`, and GitHub connector commit verification.
 
 ---
