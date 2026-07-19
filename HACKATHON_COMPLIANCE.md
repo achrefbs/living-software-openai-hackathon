@@ -8,6 +8,7 @@ This record was checked against the live Devpost Hackathons plugin on **July 19,
 - **Devpost slug:** `openai`
 - **Status:** Submissions open
 - **Entrant registration:** Confirmed
+- **Devpost project draft:** [Living Software](https://devpost.com/software/living-software-x69rd1) (`living-software-x69rd1`)
 - **Submission deadline:** Tuesday, July 21, 2026 at 5:00 PM PT (Wednesday, July 22 at 02:00 Europe/Madrid)
 - **Planned category:** Developer Tools
 - **Rules:** <https://openai.devpost.com/rules>

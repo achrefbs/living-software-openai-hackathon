@@ -39,7 +39,8 @@ Replace this only with the real ID from the task where the majority of core func
 
 **Evidence**
 
-- Initial repository commit: to be recorded after commit.
+- Initial repository commit: `3bfd744` (`chore: establish Build Week compliance baseline`).
+- Eligibility marker: annotated tag `build-week-start`.
 - Devpost rules snapshot: July 19, 2026.
 - Validation command: `npm run check`.
 
