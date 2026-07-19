@@ -1,0 +1,16 @@
+{
+  "name": "living-software-openai-hackathon",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A governed software-evolution experiment for OpenAI Build Week 2026.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10"
+  },
+  "scripts": {
+    "check": "node scripts/check-compliance.mjs",
+    "test": "npm run check",
+    "submit:check": "node scripts/check-compliance.mjs --submission"
+  }
+}
