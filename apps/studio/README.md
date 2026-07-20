@@ -1,99 +1,58 @@
 # Living Studio
 
-Host-agnostic interface for Living Software. Its five-stage journey is:
+Living Studio is the visual companion to the terminal-first Living Software lifecycle:
 
 - Product Map
 - Workflow Explorer
 - Opportunity Feed
 - Evolution Review
 - Receipts
+- optional Current vs Proposed comparison
 
-An additional read-only **Current vs Proposed** comparison is available from
-Evolution Review after a draft exists. It can embed the unchanged host and an
-isolated exact-postimage preview side by side. The comparison has no approval,
-apply, or rollback controls.
+The CLI can install, prepare, inspect, approve, apply and roll back without Studio. Studio makes the same evidence, GPT-authored proposal, static proof, lifecycle status and receipts easier to understand.
 
-Studio has two read-only inputs. At startup it validates
-`.local/studio-snapshot.json` with the public `living.studio-snapshot/v1`
-contract; if that file is absent, it uses the clearly labeled neutral fixture
-in `src/data/studio-fixture.json`. Evolution Review also strictly parses and
-projects the committed sanitized `living.gpt56-proof/v2` artifact. An invalid
-input fails closed.
-
-## Run the neutral fixture
-
-From the repository root:
+## Run
 
 ```bash
+# neutral fixture
 npm run dev:studio
-```
 
-Open <http://localhost:3000>. The root redirects to the active dataset.
-
-## Load a captured host analysis
-
-First capture synthetic evidence in an installed supported host. Then, from the
-repository root, run:
-
-```bash
+# captured supported host
 npm run studio:sync -- --root <instrumented-next-app>
-npm run dev:studio
+npm run dev --workspace @living-software/studio -- --port 3001
 ```
 
-The sync command builds the CLI, verifies the evidence chain through `living
-snapshot --root`, rejects observed or mixed evidence, validates the minimized
-snapshot, and atomically writes only
-`apps/studio/.local/studio-snapshot.json`. The entire `.local` directory is
-gitignored; no CRM snapshot is committed. Restart Studio after replacing the
-snapshot.
+The sync command verifies and minimizes the host snapshot, then atomically writes Git-ignored `.local/studio-snapshot.json` and its exact connection binding. Re-run sync after new evidence; Studio is not continuous live ingestion.
 
-For a captured-host demo, set `LIVING_STUDIO_HOST_URL` to the unchanged host
-and `LIVING_STUDIO_PREVIEW_URL` to a separately running postimage preview, then
-open `/apps/<app-id>/compare`. The preview origin must expose a strict
-`living.preview-identity/v1` response at `GET /api/living-preview`. Studio
-shows the frames only when that evolution ID and runtime-computed postimage hash
-match the governed draft and the connected target still matches its preimage.
-From the repository root, `npm run preview:crm -- --root <crm> --out <new-path>`
-creates this isolated source tree without editing the CRM. The preview is
-display-only; it is not lifecycle approval or evidence that the connected host
-was activated.
+## Connected evolution
 
-The captured view is a static export, not a live host connection. It contains a
-versioned Product Manifest, minimized workflow cases and variants, a Metric
-Report, evidence-chain metadata, and an optional deterministic Opportunity. It
-contains no raw event metadata, model interpretation, capability contract,
-artifact, approval, activation, rollback, or governed lifecycle receipts.
+For an exact captured-host connection, Evolution Review can use the loopback-only development broker to invoke the explicitly selected Codex CLI or Responses API provider and the same governed lifecycle engine used by the CLI.
+
+A prepared evolution displays:
+
+- the deterministic workflow trigger and supporting evidence;
+- GPT-5.6's evidence interpretation;
+- the exact GPT-authored one-file proposal and edit preview;
+- provider/run provenance;
+- static proof checks and exact hashes;
+- the human approval gate and current receipt state.
+
+GPT receives at most three manifest-bound UI candidates / 96 KB, has no host tools, and may propose only one existing UI file with one to eight exact edits. It cannot approve or apply the proposal. Approval requires the exact artifact and proof hashes; application and rollback remain engine-owned.
+
+## Current vs Proposed
+
+The comparison route can show the unchanged host and an isolated exact-postimage preview side by side. It has no mutation controls. Frames render only when the connected preimage and preview evolution/postimage identities match the current governed state. Viewing or interacting with a preview is not approval, application or runtime proof.
+
+## Boundary
+
+Studio never imports or executes host source. Browser requests cannot choose arbitrary filesystem roots. Neutral/unmatched fixtures remain read-only. Captured-host actions require exact app, snapshot, manifest, opportunity, event-set, evolution, revision, artifact and proof identities appropriate to each transition.
+
+Applying source does not prove the running app rebuilt successfully, and Living does not automatically measure a post-change workflow.
 
 ## Verify
-
-From the repository root:
 
 ```bash
 npm run studio:check
 ```
 
-Or inside this workspace:
-
-```bash
-npm test
-npm run typecheck
-npm run build
-```
-
-## State previews
-
-Use the **Preview states** menu in the top bar to inspect current data, empty,
-disconnected, and invalid-data states on any surface. These explicit query
-previews remain available for both fixture and captured datasets.
-
-## Boundary
-
-Studio never imports or executes host code and does not accept a filesystem path
-from a browser request. The separate CLI owns host-root access, evidence-chain
-verification, minimization, and snapshot creation. Studio makes no live model
-call. The committed proof projection omits raw event IDs and alias mappings and
-remains separate from the active dataset unless app, manifest, opportunity, and
-event-set identities all match. The local Evolution Review broker is the only
-captured-host surface with governed mutation commands. The comparison route is
-GET-only; even an exact related draft or visible preview cannot approve,
-activate, populate lifecycle state, or unlock controls.
+Use the Preview states menu to inspect current, empty, disconnected and invalid-data states.

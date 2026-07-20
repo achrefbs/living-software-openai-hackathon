@@ -1,56 +1,48 @@
+import { isDeepStrictEqual } from "node:util";
+
 import { z } from "zod";
 
 import {
   gpt56EvolutionBriefSchema,
+  identifierSchema,
   intelligenceProvenanceSchema,
+  isoDateTimeSchema,
   opportunitySchema,
   productManifestSchema,
-  identifierSchema,
-  isoDateTimeSchema,
   relativePathSchema,
   sha256Schema,
 } from "@living-software/contracts";
 
 import { hashJson } from "./canonical.js";
+import {
+  MODEL_PATCH_PROOF_CHECK_IDS,
+  sourcePatchProposalSchema,
+} from "./model-patch.js";
 
-export const SOURCE_EVOLUTION_ADAPTER = {
-  id: "next-crm-lead-review-navigation",
-  version: "v1",
-  key: "next-crm-lead-review-navigation/v1",
+export const SOURCE_EVOLUTION_POLICY = {
+  id: "bounded-model-ui-patch",
+  version: "v2",
+  key: "bounded-model-ui-patch/v2",
 } as const;
 
-export const SOURCE_EVOLUTION_TARGET_PATH =
-  "src/app/leads/[id]/page.tsx" as const;
-
-export const SOURCE_EVOLUTION_HOOKS = [
-  "lead-review-navigation",
-  "previous-lead-button",
-  "lead-review-position",
-  "next-lead-button",
-] as const;
-
 export const SOURCE_EVOLUTION_PROHIBITIONS = [
-  "network",
-  "process",
+  "network-authority",
+  "process-authority",
   "secret-access",
-  "arbitrary-code",
-  "model-generated-code",
   "dynamic-code",
+  "server-authority",
   "git",
   "multi-file",
+  "new-file",
   "symlink",
+  "dependency-change",
 ] as const;
 
 export const SOURCE_EVOLUTION_TESTS = [
-  "adapter.exact",
   "binding.exact",
-  "target.single-file",
-  "target.preimage-hash",
-  "patch.deterministic",
-  "ui.hooks-exact",
-  "navigation.host-derived",
-  "authority.model-free",
-  "prohibitions.static",
+  "target.manifest-sourced",
+  ...MODEL_PATCH_PROOF_CHECK_IDS,
+  "authority.engine-owned",
   "rollback.exact-postimage",
 ] as const;
 
@@ -80,37 +72,108 @@ export type SourceEvolutionApplication = z.infer<
   typeof sourceEvolutionApplicationSchema
 >;
 
-export const sourceEvolutionModelProvenanceSchema =
-  intelligenceProvenanceSchema;
+const sourceCandidateIdentitySchema = z
+  .object({
+    path: relativePathSchema,
+    preimageHash: sha256Schema,
+  })
+  .strict();
 
-export type SourceEvolutionModelProvenance = z.infer<
-  typeof sourceEvolutionModelProvenanceSchema
+const intelligenceTokenUsageSchema = z
+  .object({
+    inputTokens: z.number().int().nonnegative(),
+    cachedInputTokens: z.number().int().nonnegative(),
+    outputTokens: z.number().int().nonnegative(),
+    reasoningOutputTokens: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export const sourcePatchModelProvenanceSchema = z
+  .object({
+    provider: z.literal("openai"),
+    transport: z.enum(["responses-api", "codex-cli"]),
+    boundaryRequestedModel: z.literal("gpt-5.6"),
+    transportRequestedModel: z.enum(["gpt-5.6", "gpt-5.6-terra"]),
+    actualResponseModel: z.string().min(1).max(256).nullable(),
+    responseId: z.string().min(1).max(256).nullable(),
+    codexThreadId: z.string().min(1).max(256).nullable(),
+    responseStoreRequested: z.union([z.literal(false), z.null()]),
+    localSessionPersisted: z.union([z.literal(false), z.null()]),
+    tokenUsage: intelligenceTokenUsageSchema.nullable(),
+    sourceCandidates: z.array(sourceCandidateIdentitySchema).min(1).max(3),
+  })
+  .strict()
+  .superRefine((provenance, context) => {
+    const paths = provenance.sourceCandidates.map((candidate) => candidate.path);
+    if (new Set(paths).size !== paths.length) {
+      context.addIssue({
+        code: "custom",
+        path: ["sourceCandidates"],
+        message: "Source candidate paths must be unique",
+      });
+    }
+    if (provenance.transport === "codex-cli") {
+      if (
+        provenance.transportRequestedModel !== "gpt-5.6-terra" ||
+        provenance.actualResponseModel !== null ||
+        provenance.responseId !== null ||
+        provenance.codexThreadId === null ||
+        provenance.responseStoreRequested !== null ||
+        provenance.localSessionPersisted !== false ||
+        provenance.tokenUsage === null
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["transport"],
+          message: "Codex CLI source-patch provenance is contradictory",
+        });
+      }
+    } else if (
+      provenance.transportRequestedModel !== "gpt-5.6" ||
+      provenance.actualResponseModel === null ||
+      !/^gpt-5\.6(?:$|[-_])/u.test(provenance.actualResponseModel) ||
+      provenance.responseId === null ||
+      provenance.codexThreadId !== null ||
+      provenance.responseStoreRequested !== false ||
+      provenance.localSessionPersisted !== null
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["transport"],
+        message: "Responses API source-patch provenance is contradictory",
+      });
+    }
+  });
+
+export type SourcePatchModelProvenance = z.infer<
+  typeof sourcePatchModelProvenanceSchema
 >;
 
 export const sourceEvolutionContractSchema = z
   .object({
-    schemaVersion: z.literal("living.source-evolution-contract/v1"),
-    adapter: z
+    schemaVersion: z.literal("living.source-evolution-contract/v2"),
+    policy: z
       .object({
-        id: z.literal(SOURCE_EVOLUTION_ADAPTER.id),
-        version: z.literal(SOURCE_EVOLUTION_ADAPTER.version),
-        key: z.literal(SOURCE_EVOLUTION_ADAPTER.key),
+        id: z.literal(SOURCE_EVOLUTION_POLICY.id),
+        version: z.literal(SOURCE_EVOLUTION_POLICY.version),
+        key: z.literal(SOURCE_EVOLUTION_POLICY.key),
       })
       .strict(),
     target: z
       .object({
-        path: z.literal(SOURCE_EVOLUTION_TARGET_PATH),
+        path: relativePathSchema,
         allowedFileCount: z.literal(1),
-        mutationMode: z.literal("exact-source-transform"),
+        mutationMode: z.literal("exact-model-edit-program"),
       })
       .strict(),
-    requiredHooks: exactOrderedList(SOURCE_EVOLUTION_HOOKS),
     prohibitions: exactOrderedList(SOURCE_EVOLUTION_PROHIBITIONS),
     deterministicTests: exactOrderedList(SOURCE_EVOLUTION_TESTS),
     generation: z
       .object({
-        kind: z.literal("deterministic-adapter"),
-        modelOutputAccepted: z.literal(false),
+        kind: z.literal("model-proposed-bounded-edits"),
+        modelOutputAcceptedAsProposal: z.literal(true),
+        modelApplicationAuthority: z.literal(false),
+        filesystemAuthorityOwnedByEngine: z.literal(true),
         arbitraryCodeAccepted: z.literal(false),
         gitInvocationAllowed: z.literal(false),
       })
@@ -147,13 +210,13 @@ export type SourceEvolutionContract = z.infer<
 
 export const sourceEvolutionArtifactSchema = z
   .object({
-    schemaVersion: z.literal("living.source-evolution-artifact/v1"),
+    schemaVersion: z.literal("living.source-evolution-artifact/v2"),
     artifactId: identifierSchema,
-    adapter: z
+    policy: z
       .object({
-        id: z.literal(SOURCE_EVOLUTION_ADAPTER.id),
-        version: z.literal(SOURCE_EVOLUTION_ADAPTER.version),
-        key: z.literal(SOURCE_EVOLUTION_ADAPTER.key),
+        id: z.literal(SOURCE_EVOLUTION_POLICY.id),
+        version: z.literal(SOURCE_EVOLUTION_POLICY.version),
+        key: z.literal(SOURCE_EVOLUTION_POLICY.key),
       })
       .strict(),
     contractHash: sha256Schema,
@@ -166,25 +229,29 @@ export const sourceEvolutionArtifactSchema = z
         opportunityHash: sha256Schema,
         briefId: identifierSchema,
         briefHash: sha256Schema,
-        modelProvenanceHash: sha256Schema,
+        briefModelProvenanceHash: sha256Schema,
+        patchProposalId: identifierSchema,
+        patchProposalHash: sha256Schema,
+        patchModelProvenanceHash: sha256Schema,
       })
       .strict(),
-    interpretation: z
+    generation: z
       .object({
-        briefRole: z.literal("evidence-interpretation-only"),
-        implementsBrief: z.literal(false),
-        adapterCandidateBasis: z.literal("deterministic-opportunity-and-host"),
+        proposalOrigin: z.literal("gpt-5.6"),
+        proposalRole: z.literal("untrusted-bounded-source-proposal"),
+        compiler: z.literal("exact-anchor-engine/v1"),
+        modelAppliedSource: z.literal(false),
       })
       .strict(),
     target: z
       .object({
-        path: z.literal(SOURCE_EVOLUTION_TARGET_PATH),
+        path: relativePathSchema,
         allowedFileCount: z.literal(1),
         preimageHash: sha256Schema,
         postimageHash: sha256Schema,
       })
       .strict(),
-    transform: z.literal("next-crm-lead-review-navigation/v1"),
+    transform: z.literal("bounded-exact-anchor-edits/v1"),
     contentHash: sha256Schema,
   })
   .strict()
@@ -213,13 +280,13 @@ const proofCheckSchema = z
 
 export const sourceEvolutionProofSchema = z
   .object({
-    schemaVersion: z.literal("living.source-evolution-proof/v1"),
+    schemaVersion: z.literal("living.source-evolution-proof/v2"),
     proofId: identifierSchema,
     contractHash: sha256Schema,
     artifactHash: sha256Schema,
     target: z
       .object({
-        path: z.literal(SOURCE_EVOLUTION_TARGET_PATH),
+        path: relativePathSchema,
         preimageHash: sha256Schema,
         postimageHash: sha256Schema,
       })
@@ -288,31 +355,26 @@ const sourceEvolutionRollbackSchema = z
 
 export const sourceEvolutionStateSchema = z
   .object({
-    schemaVersion: z.literal("living.source-evolution-state/v1"),
+    schemaVersion: z.literal("living.source-evolution-state/v2"),
     evolutionId: identifierSchema,
     app: sourceEvolutionApplicationSchema,
     status: z.enum(["prepared", "approved", "applied", "rolled-back"]),
-    bindings: z
-      .object({
-        appHash: sha256Schema,
-        manifestHash: sha256Schema,
-        manifestInputHash: sha256Schema,
-        opportunityId: identifierSchema,
-        opportunityHash: sha256Schema,
-        briefId: identifierSchema,
-        briefHash: sha256Schema,
-        modelProvenanceHash: sha256Schema,
-      })
-      .strict(),
+    bindings: sourceEvolutionArtifactSchema.shape.bindings,
     contract: sourceEvolutionContractSchema,
     inputs: z
       .object({
         manifest: productManifestSchema,
         opportunity: opportunitySchema,
         brief: gpt56EvolutionBriefSchema,
+        patchProposal: sourcePatchProposalSchema,
       })
       .strict(),
-    modelProvenance: sourceEvolutionModelProvenanceSchema,
+    modelProvenance: z
+      .object({
+        brief: intelligenceProvenanceSchema,
+        patch: sourcePatchModelProvenanceSchema,
+      })
+      .strict(),
     artifact: sourceEvolutionArtifactSchema,
     proof: sourceEvolutionProofSchema,
     source: z
@@ -363,29 +425,33 @@ export const sourceEvolutionStateSchema = z
       });
     }
 
+    const proposalHash = hashJson(state.inputs.patchProposal);
+    const targetCandidate = state.modelProvenance.patch.sourceCandidates.find(
+      (candidate) => candidate.path === state.inputs.patchProposal.target.path,
+    );
     if (
-      state.bindings.appHash !== state.artifact.bindings.appHash ||
-      state.bindings.manifestHash !== state.artifact.bindings.manifestHash ||
-      state.bindings.manifestInputHash !==
-        state.artifact.bindings.manifestInputHash ||
-      state.bindings.opportunityId !==
-        state.artifact.bindings.opportunityId ||
-      state.bindings.opportunityHash !==
-        state.artifact.bindings.opportunityHash ||
-      state.bindings.briefId !== state.artifact.bindings.briefId ||
-      state.bindings.briefHash !== state.artifact.bindings.briefHash ||
-      state.bindings.modelProvenanceHash !==
-        state.artifact.bindings.modelProvenanceHash ||
+      state.bindings.appHash !== hashJson(state.app) ||
+      state.bindings.manifestHash !== state.inputs.manifest.contentHash ||
       state.bindings.manifestInputHash !== hashJson(state.inputs.manifest) ||
+      state.bindings.opportunityId !== state.inputs.opportunity.opportunityId ||
       state.bindings.opportunityHash !== hashJson(state.inputs.opportunity) ||
+      state.bindings.briefId !== state.inputs.brief.briefId ||
       state.bindings.briefHash !== hashJson(state.inputs.brief) ||
-      state.bindings.modelProvenanceHash !==
-        hashJson(state.modelProvenance)
+      state.bindings.briefModelProvenanceHash !==
+        hashJson(state.modelProvenance.brief) ||
+      state.bindings.patchProposalId !==
+        state.inputs.patchProposal.proposalId ||
+      state.bindings.patchProposalHash !== proposalHash ||
+      state.bindings.patchModelProvenanceHash !==
+        hashJson(state.modelProvenance.patch) ||
+      targetCandidate?.preimageHash !==
+        state.inputs.patchProposal.target.preimageHash ||
+      !isDeepStrictEqual(state.bindings, state.artifact.bindings)
     ) {
       context.addIssue({
         code: "custom",
         path: ["bindings"],
-        message: "State and artifact input bindings must match exactly",
+        message: "State, model runs, proposal, and artifact bindings must match exactly",
       });
     }
 
@@ -393,13 +459,16 @@ export const sourceEvolutionStateSchema = z
       state.contract.contentHash !== state.artifact.contractHash ||
       state.proof.contractHash !== state.contract.contentHash ||
       state.proof.artifactHash !== state.artifact.contentHash ||
+      state.contract.target.path !== state.artifact.target.path ||
+      state.artifact.target.path !== state.proof.target.path ||
+      state.artifact.target.path !== state.inputs.patchProposal.target.path ||
       state.proof.target.preimageHash !== state.artifact.target.preimageHash ||
       state.proof.target.postimageHash !== state.artifact.target.postimageHash
     ) {
       context.addIssue({
         code: "custom",
         path: ["proof"],
-        message: "Contract, artifact, and proof hashes must form one exact chain",
+        message: "Contract, target, artifact, and proof must form one exact chain",
       });
     }
   });
@@ -413,7 +482,7 @@ export const sourceEvolutionSummarySchema = z
     evolutionId: identifierSchema,
     appId: identifierSchema,
     status: z.enum(["prepared", "approved", "applied", "rolled-back"]),
-    targetPath: z.literal(SOURCE_EVOLUTION_TARGET_PATH),
+    targetPath: relativePathSchema,
     artifactHash: sha256Schema,
     proofHash: sha256Schema,
     updatedAt: isoDateTimeSchema,

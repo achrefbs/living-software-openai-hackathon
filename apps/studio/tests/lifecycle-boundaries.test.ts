@@ -363,6 +363,36 @@ test("no-opportunity UI keeps rollback reachable and describes bounded-diff reco
     "current snapshot identity must be rejected before a model transport is constructed",
   );
   assert.ok(routeSource.includes("snapshotHash: input.snapshotHash"));
+  const briefDraft = routeSource.indexOf(
+    "intelligence.draftEvolutionBrief",
+    providerConstruction,
+  );
+  const candidateCollection = routeSource.indexOf(
+    "collectSourceCandidates",
+    briefDraft,
+  );
+  const patchDraft = routeSource.indexOf(
+    "intelligence.draftSourcePatch",
+    candidateCollection,
+  );
+  const genericPreparation = routeSource.indexOf(
+    "prepareSourceEvolution",
+    patchDraft,
+  );
+  assert.ok(
+    briefDraft > providerConstruction &&
+      candidateCollection > briefDraft &&
+      patchDraft > candidateCollection &&
+      genericPreparation > patchDraft,
+    "Studio must interpret evidence, collect bounded source, draft edits, then prepare the governed evolution",
+  );
+  assert.doesNotMatch(routeSource, /compileLeadReviewNavigation/u);
+  assert.doesNotMatch(routeSource, /SOURCE_EVOLUTION_TARGET_PATH/u);
+  assert.match(routeSource, /sourcePatchProposalSchema\.parse\(patchRun\.proposal\)/u);
+  assert.match(routeSource, /intelligenceProvenanceSchema\.parse\(/u);
+  assert.match(routeSource, /sourcePatchModelProvenanceSchema\.parse\(/u);
+  assert.match(routeSource, /briefModelProvenance,/u);
+  assert.match(routeSource, /patchModelProvenance,/u);
   assert.match(
     routeSource,
     /action !== "rollback" && body\.opportunityId === null/u,

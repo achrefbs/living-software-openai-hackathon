@@ -2,382 +2,237 @@
 
 > Software that earns the right to evolve.
 
-Living Software is an OpenAI Build Week **Developer Tools** project. It installs a bounded discovery and observation layer into a supported application, derives a source-linked product map, captures privacy-safe workflow and layout evidence, and turns that evidence into deterministic workflow and metric reports. Living verifies an exact evidence bundle locally, then GPT-5.6 may use its bounded, privacy-minimized projection to interpret the opportunity for human review. GPT-5.6 never supplies executable source or activation authority. The current governed loop can independently compile one deterministic CRM adapter, require exact-hash operator approval, apply that approved source change, and restore the exact preimage.
+Living Software is an OpenAI Build Week **Developer Tools** project. Install it in a supported application, exercise the product normally, and ask it to improve what it observed. Living maps the product, records privacy-minimized workflow and layout evidence, detects repeated friction, and gives GPT-5.6 a bounded opportunity to propose a source change. A human must review and approve the exact artifact before Living can write it.
 
-The current automatic adapter supports **TypeScript Next.js App Router 15.3+ repositories that use `src/app`**. Arbitrary Node applications and other frameworks are not current claims.
+GPT-5.6 authors the proposed patch; it does not receive a terminal, filesystem, browser, network tool, or permission to apply it. Living selects at most three manifest-bound UI source candidates (96 KB total), accepts a proposal for one existing UI file with one to eight exact anchor/replacement edits, and subjects it to deterministic static guards. The engine—not the model—owns hashes, receipts, source writes, no-overwrite transition checks, and rollback.
 
-The standalone reference CRM and its synthetic-user simulator live in separate repositories. Neither is a dependency of this repository. The independent proof completed supported installation, runtime capture, privacy checks, and byte-preserving removal.
+Current automatic support is deliberately bounded to **TypeScript Next.js App Router 15.3+ repositories that use `src/app`**. This is not a universal Node.js or arbitrary-framework installer.
+
+The reference CRM and its synthetic workflow simulator are separate projects. Neither is a dependency of this repository.
+
+## The product in four commands
+
+From this repository, after `npm install` and `npm run build:cli`:
+
+```bash
+# 1. Discover the app and install observation files
+npm run living -- install --root <next-app> --synthetic
+
+# 2. Exercise the running app, then let GPT-5.6 interpret and author a proposal
+npm run living -- improve --root <next-app> --provider codex
+
+# 3. Review the displayed proposal, then explicitly approve and apply that exact artifact
+npm run living -- approve --root <next-app> --evolution <id> --actor <operator> --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+
+# 4. Restore the exact preimage if needed
+npm run living -- rollback --root <next-app> --evolution <id> --actor <operator>
+```
+
+Use `--provider api` instead of `--provider codex` to select the Responses API explicitly. The API path requires `OPENAI_API_KEY` in the runtime environment. There is no automatic provider fallback.
+
+`living status --root <next-app>` reports installation and evolution state. Add `--json` to any terminal-first command for canonical machine-readable output.
+
+`approve --apply` is intentionally explicit: it records human approval of the current contract, artifact, and proof hashes and then applies that same approved postimage. To separate those actions, omit `--apply`, then run:
+
+```bash
+npm run living -- apply --root <next-app> --evolution <id>
+```
 
 ## What works now
 
-- Versioned, strict JSON contracts for discovery, installation, observation, metrics, workflow evidence, opportunities, capability drafts, host interfaces, receipts, and Studio messages.
-- A bounded, non-executing TypeScript/Next.js source scanner that produces a source-linked Product Manifest, observation runtime map, and metric catalog.
-- Root-mode CLI commands for `map`, dry-run-first `init`, `doctor`, `analyze`, privacy-minimized `snapshot`, and dry-run-first `uninstall`.
-- A create-only, hash-guarded installation transaction. Existing integration files are never overwritten, modified generated files are preserved on uninstall, and `package.json` is not edited.
-- A self-contained Next.js browser observer and same-origin local collector. The observer captures routes, actions, performance, friction signals, and precise CSS-pixel geometry; the collector writes a hash-linked single-process evidence log under `.living/data/releases/<manifest-hash>/events.ndjson` so releases cannot be mixed.
-- Deterministic workflow projection, technical metric analysis, and an optional threshold-based opportunity detector.
-- A neutral, descriptor-driven fixture CLI and offline replay retained as a stable test path.
-- Living Studio with Product Map, Workflows, Opportunities, Evolutions, and Receipts routes plus empty, disconnected, and invalid-data previews. Neutral fixture and unmatched-proof views remain read-only. An explicitly synced, synthetic captured-host snapshot may expose a loopback-only local evolution broker after Studio verifies its companion connection file and exact app, snapshot, manifest, opportunity, and event-set identity.
-- A GPT-5.6 intelligence package with explicit Codex CLI and Responses API transports. Both verify evidence hashes, minimize model context, require a strict structured `EvolutionBrief`, revalidate references, require human review, and forbid activation. The live demo defaults to the authenticated Codex CLI for Build Week and can be switched to the API later without changing the application validation boundary.
-- A bounded source-evolution package for `next-crm-lead-review-navigation/v1`. It accepts only a deterministic backtracking opportunity and the installed host's exact `src/app/leads/[id]/page.tsx` preimage, compiles Previous/Next lead navigation without model-generated code, emits a static proof and exact hashes, requires operator approval of those hashes, applies only to that preimage, and rolls back only the exact installed postimage.
+- Bounded, non-executing discovery of a supported Next.js application into a source-linked Product Manifest, observation runtime map, and metric catalog.
+- Create-only, hash-journaled installation of a self-contained browser observer and same-origin local collector.
+- Privacy-minimized route, action, performance, friction, viewport, visibility, scroll, and CSS-pixel geometry capture.
+- Hash-linked, manifest-scoped local evidence plus deterministic workflow projection, technical metrics, and the current threshold-based backtracking opportunity.
+- A terminal-first lifecycle: `install`, `improve`, `status`, `approve`, `apply`, and `rollback`.
+- Explicit Codex CLI and Responses API GPT-5.6 transports with strict structured outputs and no automatic fallback.
+- An evidence-bound `EvolutionBrief`, followed by a separate GPT-authored source-patch proposal.
+- Read-only source projection limited to at most three eligible files, 64 KB per file and 96 KB total, selected only from source provenance on affected manifest nodes.
+- One-file patch compilation with one to eight exact, unique, non-overlapping anchor replacements; exact preimage/postimage hashes; static authority and diff guards; an append-only receipt chain; human approval requiring the exact artifact and proof hashes; capture-verify/no-overwrite application; crash recovery; and exact-postimage rollback.
+- Living Studio surfaces for Product Map, Workflows, Opportunities, Evolution Review, Receipts, and optional Current vs Proposed comparison.
+- A neutral fixture and offline replay for credential-free deterministic verification.
 
-The current slice does **not** claim support for arbitrary files, arbitrary code generation, automatic activation, or frameworks beyond the documented Next.js discovery boundary. Applying source is not runtime verification: the operator must still observe the host after its normal rebuild or hot reload. Measurement-after-change is not implemented, and a rolled-back evolution is terminal for the same evidence bundle; a new attempt requires newly captured evidence.
+## Honest limits
+
+- Source discovery and installation currently support TypeScript Next.js App Router applications using `src/app`.
+- The current automatic proposal trigger is the configured backtracking opportunity. Other captured friction and layout metrics remain evidence; they are not all converted into proposals automatically.
+- Patch candidates are existing `.ts`, `.tsx`, `.js`, `.jsx`, or `.css` UI files below `src/app` or `src/components`. API routes, route handlers, tests, configuration, symlinks, new files, multiple files, and dependency changes are excluded.
+- Static guards reject declared server, network, process, secret, dynamic-code, raw-HTML, script, Git, and dependency authority. Passing those guards does not prove the model's idea is correct, accessible, secure in every semantic sense, or buildable.
+- Applying source records an exact source transition; it is not proof that the running application hot-reloaded successfully. The operator must build or reload and inspect the host.
+- Living does not automatically capture a second cohort and measure whether an applied change improved the workflow. Post-change measurement remains future work.
+- The local collector and loopback Studio broker are development proof surfaces, not production multi-tenant telemetry infrastructure.
 
 ## Setup
 
 ### Verified platform
 
 - Windows 11
-- Node.js 22 or newer (the current proof runtime is Node.js 24.14.1)
+- Node.js 22 or newer (current proof runtime: Node.js 24.14.1)
 - npm 10 or newer
 
 Other operating systems have not yet been verified.
 
-### Quick start
-
-Install dependencies, build the CLI, and map the included neutral descriptor:
+Install and build:
 
 ```bash
 npm install
 npm run build:cli
+```
+
+Map the included neutral descriptor:
+
+```bash
 npm run living -- map --fixture samples/neutral-host/host-fixture.json
 ```
 
-The legacy fixture command is deterministic and read-only. For the complete offline neutral proof:
+For the complete offline neutral proof:
 
 ```bash
 npm run demo:neutral
 ```
 
-## Install into a supported Next.js repository
+### Advanced installation controls
 
-Use an absolute or repository-relative path in place of `<next-app>`:
+The terminal-first `install` command applies the declared create-only observation files. For a preview-first installation, use the compatibility commands:
 
 ```bash
-# Static discovery only
 npm run living -- map --root <next-app>
-
-# Preview the create-only installation; dry-run is the default
 npm run living -- init --root <next-app> --synthetic
-
-# Apply only after reviewing the preview
 npm run living -- init --root <next-app> --synthetic --apply
-
-# Validate discovery, generated bindings, and the install journal
 npm run living -- doctor --root <next-app> --synthetic
 ```
 
-Run the host normally and exercise its public UI. Living's generated same-origin route records evidence locally. Then analyze the captured evidence:
-
-```bash
-npm run living -- analyze --root <next-app>
-```
-
-Preview and execute removal separately:
+Removal remains dry-run-first:
 
 ```bash
 npm run living -- uninstall --root <next-app>
 npm run living -- uninstall --root <next-app> --apply
 ```
 
-Installation creates only the documented integration artifacts; generated browser and collector code is self-contained and does not add a host dependency. See [Automatic discovery and observation](docs/AUTOMATIC_DISCOVERY.md) for the exact file set, capture boundary, evidence format, and rollback behavior.
+Uninstall removes only unchanged generated files recorded in the install journal. It preserves modified integration files and captured evidence for review.
 
-## Privacy boundary
+## How the GPT-authored patch boundary works
 
-Normal observation may record route templates, mapped action identities, performance and friction signals, viewport facts, visibility, scroll burden, and bounded CSS-pixel geometry. It excludes text, input values, keystrokes, query strings and hashes, DOM or HTML, cookies, headers, screenshots, request bodies, and persistent user or cross-tab identifiers.
+1. Living validates the installed app, current manifest, evidence chain, detected opportunity, and exact supporting event set.
+2. GPT-5.6 produces a strict evidence-bound `EvolutionBrief`.
+3. Living maps the brief's affected product nodes back to eligible source provenance and reads at most three existing UI candidates, capped at 96 KB total.
+4. A second GPT-5.6 request sees only that brief and bounded candidate projection. It selects one candidate and returns one to eight exact anchor/replacement edits under a strict schema.
+5. Living treats that output as untrusted. It checks target eligibility, exact preimage hash, unique non-overlapping anchors, replacement authority patterns, postimage and diff bounds, and exact evidence/model bindings.
+6. A passing proposal is stored as `prepared`; the host source is still unchanged.
+7. A human approves the exact contract, artifact, proof, and revision. Only then may Living's engine write the exact postimage.
+8. Rollback restores the exact preimage only while the target still equals the applied postimage.
 
-The current collector is a same-origin, single-process local proof surface. It is not a production, authenticated, multi-instance telemetry service.
+GPT can invent the UI improvement inside that envelope; no CRM-specific navigation patch is embedded in the engine or prompt.
 
-## Sample data
+## Living Studio
 
-The neutral fixtures under `samples/neutral-host` contain no real identities, messages, customers, credentials, or production telemetry. The separate CRM simulator data is outside this repository and is synthetic.
+The CLI is the primary product surface. Studio visualizes the same captured product map, workflows, opportunity, GPT proposal, proof, and receipts.
 
-## Current captured CRM proof
-
-The current synchronized proof rescanned the separate CRM from **34 supported application files**. Its source digest is `sha256:609342b5a2d495b7bc99824a33ef2070ebb374fbef5cbdca21dbee94642ced2d`; its manifest content hash is `sha256:63d3da3f26c4eaca269f7063e75ea3db0657e7aa7d735df69ab5e6050091e265`. Discovery produced **144 nodes, 180 edges, 92 runtime locators, and 212 metric definitions**, with zero provenance from `sim`, `scripts`, `tests`, `e2e`, or generated integration files.
-
-This capture is **synthetic-only**. Living recorded 32 hash-linked records containing **135 captured events**, projected **three cases and three variants**, and detected `opportunity.backtracking.5218e55a67e8`. All three cases crossed the configured threshold, producing **18 backtracking revisits**, an affected ratio of 1.0, and deterministic confidence 0.90. The exact supporting subset contains 46 events and has event-set hash `sha256:ce97cfd6e349cd95534e3d0fa77411f2738d8b8ff65dd5ac7f42d576db0b18a5`.
-
-The gitignored Studio snapshot and connection bind that exact app, manifest,
-opportunity, event set, and snapshot. The captured CRM now has one prepared,
-four-receipt source-evolution state with a passing static proof. Approval,
-application, and rollback remain absent, and the target still equals its exact
-preimage. Earlier five-case capture evidence remains recorded in
-[BUILD_LOG.md](BUILD_LOG.md) as history; it is not the current Studio input.
-
-## Testing
-
-```bash
-npm run typecheck
-npm run test
-npm run demo:neutral
-```
-
-The explicit live proof path currently defaults to an authenticated Codex CLI session:
-
-```bash
-npm run demo:gpt56
-# equivalent explicit form
-npm run demo:gpt56:cli
-```
-
-To preserve a sanitized, create-only proof from a clean commit:
-
-```bash
-npm run proof:gpt56:cli
-```
-
-The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) was
-recorded from clean source commit
-`4c1480f220fb88283a63e160d9dc6da8c6fa82d5`. It binds the exact request,
-schema, and synthetic evidence hashes to a locally validated draft. Provenance
-records the `gpt-5.6-terra` transport request, Codex thread ID, and token
-usage; `actualResponseModel` remains `null` because the CLI did not
-authoritatively report that field.
-
-The future API-key path is an explicit toggle with no automatic fallback:
-
-```bash
-set OPENAI_API_KEY=<runtime-secret>
-npm run demo:gpt56:api
-```
-
-The runner verifies the exact synthetic bundle locally and sends only its bounded projection. Codex CLI runs use an isolated read-only temporary workspace, ephemeral session files, an explicit disable list for every installed host-capable feature surface, strict schema and stream/file caps, and fail-closed rejection of any surfaced event beyond reasoning and the final message. The API path uses `store: false` and a bounded output-token request. Both results pass the same local schema, citation, evidence-scope, and governance checks. The CLI reports a thread ID and token usage, not an API response ID or authoritative actual-response-model field. Live calls are not part of the offline judge path.
-
-To inspect Studio:
-
-```bash
-npm run dev:studio
-```
-
-Open <http://localhost:3000>. With no local capture, Studio reads the labeled
-neutral fixture in `apps/studio/src/data/studio-fixture.json`. To render a
-verified synthetic host capture instead:
+After capturing evidence:
 
 ```bash
 npm run studio:sync -- --root <next-app>
 npm run dev --workspace @living-software/studio -- --port 3001
 ```
 
-The sync command writes a gitignored, minimized
-`apps/studio/.local/studio-snapshot.json` and its exact
-`studio-connection.json` binding. Studio rejects a mismatched pair. Evolution
-Review projects the committed `living.gpt56-proof/v2` artifact through the
-public strict contract in the neutral fixture path. During a connected CRM
-decision flow, Studio hides that unrelated proof so it cannot be mistaken for
-the active proposal; it remains display-only and grants no lifecycle authority.
+Open `http://127.0.0.1:3001`. The sync step writes a validated, minimized, Git-ignored snapshot and exact local connection. Re-run it after new evidence; Studio is not continuous live ingestion in this MVP.
 
-For the bounded captured-host loop, start the host normally and optionally give
-Studio a human-facing link to the lead under review:
+The connected Evolution Review can invoke the same explicit provider choices and lifecycle engine through a loopback-only development broker. The CLI remains sufficient for install, proposal, status, approval, application, and rollback. A Current vs Proposed view is display-only and does not grant approval or mutation authority.
 
-```powershell
-$env:LIVING_STUDIO_HOST_URL="http://127.0.0.1:3000/leads/lead-01"
-$env:LIVING_STUDIO_PREVIEW_URL="http://127.0.0.1:3002/leads/lead-01"
-npm run dev --workspace @living-software/studio -- --port 3001
+## Privacy boundary
+
+Normal observation may record route templates, mapped action identities, performance and friction signals, viewport facts, visibility, scroll burden, and bounded CSS-pixel geometry. It excludes text, input values, keystrokes, query strings and hashes, DOM or HTML, cookies, headers, screenshots, request bodies, and persistent user or cross-tab identifiers.
+
+The intelligence request excludes raw event IDs, source provenance unrelated to affected nodes, event metadata, release data, and user/session/subject identifiers. The patch request necessarily contains the bounded candidate source text; use it only on code the operator is authorized to send to the selected OpenAI transport.
+
+## Sample data
+
+Fixtures under `samples/neutral-host` contain no real identities, messages, customers, credentials, or production telemetry. The separate CRM simulator uses synthetic records. Simulator conclusions are never an input to Living's discovery or detector.
+
+The current synthetic CRM capture demonstrates that the observation system can independently derive 18 backtracking revisits across three workflows from 135 captured events. That evidence is a detector proof, not a claim that every application has the same problem or needs the same patch.
+
+## Testing
+
+```bash
+npm run check
+npm run typecheck
+npm run test
+npm run demo:neutral
 ```
 
-Open `http://127.0.0.1:3001/apps/<app-id>/evolutions` and use the controls in
-order:
+The tests cover strict model schemas, malicious source instructions, candidate path and size boundaries, exact edit compilation, prohibited authority, evidence/model binding, lifecycle transitions, crash recovery, exact-hash application, and rollback. Model calls are not required for the offline test suite.
 
-1. **Prepare** calls the explicitly selected GPT-5.6 transport (authenticated
-   Codex CLI or Responses API) for an evidence-bound interpretation. In a
-   separate deterministic step, Living compiles its only eligible adapter and
-   a static proof without editing the host.
-2. **Approve** requires an operator label and confirmation of the exact
-   artifact and proof hashes shown in Studio. The label is audit metadata, not
-   authenticated identity, and model output cannot satisfy this step.
-3. **Apply to CRM source** writes only the approved
-   `src/app/leads/[id]/page.tsx` postimage when the on-disk bytes still match
-   the approved preimage. This records source application, not runtime success.
-4. Reload the host after its normal hot reload or rebuild and verify the new
-   Previous/Next controls manually.
-5. **Roll back exact source** restores only the approved preimage while the
-   target still matches the exact installed postimage. Rollback also requires
-   an operator receipt label, including after a Studio reload.
+Optional live intelligence paths:
 
-Evolution Review puts the truthful trigger boundary and the phase-specific
-next action above the interpretation and technical proof. In the current MVP,
-observation runs automatically while the instrumented CRM is exercised, but
-`living analyze` and `studio:sync` are explicit operator commands. Prepare,
-Approve, Apply, and Rollback are separate human-triggered commands.
+```bash
+# Saved Codex authentication
+npm run demo:gpt56:cli
 
-Create the optional isolated preview from the prepared ledger without editing
-the CRM:
-
-```powershell
-npm run preview:crm -- --root ..\crm-workflow-lab --out C:\tmp\living-crm-preview
-Set-Location C:\tmp\living-crm-preview
-npm install
-npm run build
-npm run start -- --hostname 127.0.0.1 --port 3002
+# Explicit Responses API selection
+set OPENAI_API_KEY=<runtime-secret>
+npm run demo:gpt56:api
 ```
 
-The generator requires clean tracked CRM files, copies only Git-tracked files
-to a new nonexistent output path, verifies the connected preimage, writes the
-exact prepared postimage, and generates an identity route that recomputes the
-target SHA-256 on every request. It never edits the connected CRM and never
-deletes or overwrites an existing preview directory.
-
-After **Prepare**, open
-`http://127.0.0.1:3001/apps/<app-id>/compare` to inspect the unchanged host and
-an optional isolated postimage server side by side. The left frame is the real
-host named by `LIVING_STUDIO_HOST_URL`; the right frame is a separate process
-named by `LIVING_STUDIO_PREVIEW_URL`. Studio reads lifecycle identity and
-renders both URLs only when the preview's strict `GET /api/living-preview`
-identity matches the current evolution ID and postimage hash. Missing, stale,
-or modified target postimages fail closed. Studio also re-hashes the connected target and
-hides both frames unless it still matches the prepared preimage. The comparison
-page has no mutation controls. Starting or viewing a preview does not approve
-the artifact, edit the connected host, or prove runtime activation. Only the
-exact **Approve** then **Apply to CRM source** path above can change the
-connected source.
-
-Current local checkpoint (July 20, 2026): the authenticated Codex CLI Prepare
-step completed for the synthetic CRM capture as thread
-`019f7fc2-e97a-74f2-8705-ea02ef4bb517`. Studio produced prepared evolution
-`evolution.source.7f3455d8686daf440c10fcdf`, artifact
-`sha256:09261a230f93d5f34a53871000b902ffe2ec72aed812ed177619b57e0b334e3e`,
-and static proof
-`sha256:e215a0ae94b8cf259e339129810c8d878ca9254fb6769f3c16a9ae96e9860757`.
-The proof passed, but approval and application remain null and the CRM target
-still matches preimage
-`sha256:e37b5c1bb7fe8665fd2d4dd313859e5cfa86256d1040afd07ade3117dfb1d5ab`.
-An isolated server on port 3002 renders the exact prepared postimage
-`sha256:d9ad4fa089148098d345fc5588b0eb12b91e9c7ca94996e9392f7cb2785624af`
-for comparison only; the connected CRM on port 3000 remains the preimage.
-This gitignored local state is a reproducible demo checkpoint, not a committed
-substitute for the separate sanitized neutral proof artifact.
-
-The broker binds to loopback and is enabled by default only in development.
-`LIVING_STUDIO_EVOLUTION_ENABLED=1` is an explicit outside-development
-override, not a deployment recommendation. A rolled-back lifecycle cannot be
-prepared again for the same evidence. Recapture and resync to start from new
-evidence. Living does not yet measure the post-change workflow automatically.
-
-## Current architecture
-
-```text
-supported Next.js source  -> static discovery -> manifest + observation map + metrics
-explicit --apply          -> generated observer + same-origin collector + hash journal
-public UI activity        -> privacy-safe, hash-linked local evidence
-local evidence            -> deterministic workflows + technical metrics + opportunity
-synthetic local analysis  -> validated snapshot + exact connection -> Living Studio
-exact opportunity         -> GPT-5.6 interpretation -> proposal only
-same exact evidence       -> deterministic one-file adapter -> artifact + static proof
-operator approves hashes  -> exact source apply -> separate manual runtime verification
-exact installed postimage -> explicit operator rollback -> exact preimage
-committed neutral proof   -> separate Studio model-run panel -> no authority
-```
-
-The automatic evidence path can now export a privacy-minimized, synthetic-only
-snapshot and connection for Studio. This is not continuous live-event
-ingestion: new host evidence requires another analysis and sync. The committed
-neutral GPT-5.6 proof remains a separate display artifact. The local broker
-accepts a captured-host command only after fail-closed app, snapshot, manifest,
-opportunity, event-set, evolution, revision, artifact, and proof identity
-checks appropriate to that transition.
-
-The detector also carries the exact supporting subset across the collector and
-CLI boundary. For the current CRM capture, 46 of 135 captured events support
-the opportunity. Control and unrelated events are excluded from model context;
-the full set, tampered counts, or a stale visible snapshot are rejected before
-the model transport is constructed.
-
-The trust boundary is deliberate: the installer can create only its declared
-integration files, deterministic code owns evidence integrity and the only
-source transform, and GPT-5.6 can interpret evidence but cannot generate the
-patch, grant permissions, approve, or activate it. Operator-approved source
-application is recorded separately from runtime verification. Rollback is
-exact, and automatic post-change measurement remains future work.
-
-## How Codex and GPT-5.6 are being used
-
-Codex has been used for rules review, architecture, discovery and lifecycle
-contracts, implementation, adversarial review, testing, documentation, and
-integration. For the current slice, Codex implemented the exact connection
-boundary, local broker, deterministic one-file adapter, receipt chain,
-compare-and-swap lifecycle transitions, source transaction recovery, and
-Studio controls. The entrant chose the narrow CRM workflow, the separation of
-model interpretation from source compilation, the exact-hash approval gate,
-and explicit rollback. Entrant decisions remain recorded in
-[DECISIONS.md](DECISIONS.md).
-
-`@living-software/intelligence` targets the GPT-5.6 family through one of two explicit transports. The Build Week command currently uses saved Codex CLI authentication and pins `gpt-5.6-terra` (GPT-5.6 Terra), medium reasoning, an isolated read-only temporary workspace, ignored user/project instructions, an explicit disable list for installed host-capable features, ephemeral session files, strict output schema, bounded streams/files, and fail-closed JSONL inspection. The Responses API transport remains available and requests `gpt-5.6` with strict Structured Outputs, `store: false`, no requested tools, and `OPENAI_API_KEY` read only at send time. There is no automatic fallback between them. Both consume the same bounded, privacy-minimized context and apply the same deterministic validation after generation. Provenance records both the logical GPT-5.6 boundary and the exact transport-requested model. GPT-5.6 explains the evidence-bound opportunity, risks, limits, and success criteria; it does not choose or generate the source patch. These controls establish schema and reference integrity, not semantic truth.
-
-Never commit an API key or Codex authentication files.
-
-## Hackathon provenance
-
-This repository contains the Build Week implementation created after the submission period opened on **July 13, 2026 at 9:00 AM PT**. An older private research prototype informed the thesis but no source was copied into this repository. See [PRIOR_WORK.md](PRIOR_WORK.md) and [BUILD_LOG.md](BUILD_LOG.md).
-
-The required `/feedback` Session ID from the task containing the majority of core functionality is still pending.
+The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) demonstrates the earlier structured evidence-interpretation boundary. A live source proposal must be reproduced from the submission commit; a preserved interpretation alone is not proof of source application or runtime success.
 
 ## Judge path
 
-The independent reference host is public at
-[achrefbs/crm-workflow-lab](https://github.com/achrefbs/crm-workflow-lab).
-The tested clean-host revision is `843331c`. Clone it as a sibling of this
-repository; generated Living instrumentation is intentionally absent from the
-CRM commit and is created only by the explicit installer:
+From the Living repository:
 
 ```bash
-git clone https://github.com/achrefbs/crm-workflow-lab.git ../crm-workflow-lab
-git -C ../crm-workflow-lab checkout 843331c
-npm --prefix ../crm-workflow-lab install
-npm --prefix ../crm-workflow-lab exec -- playwright install chromium
-
 npm install
-npm run build:packages
+npm run build:cli
 npm run test
-npm run living -- init --root ../crm-workflow-lab --synthetic --apply
-npm run living -- doctor --root ../crm-workflow-lab --synthetic
+npm run living -- install --root ../crm-workflow-lab --synthetic
 ```
 
-Start the installed CRM in one terminal:
+Start the separate CRM and exercise it using ordinary browser activity or its independent synthetic simulator. Then run:
 
 ```bash
-npm --prefix ../crm-workflow-lab run dev
-```
-
-Drive the current three-case synthetic friction proof in another terminal:
-
-```bash
-npm --prefix ../crm-workflow-lab run sim:ui -- --scenario friction --cases 3 --seed 202 --target http://127.0.0.1:3000
-```
-
-Then analyze, bind the exact snapshot to Studio, and start the local UI:
-
-```bash
-npm run living -- analyze --root ../crm-workflow-lab
+npm run living -- improve --root ../crm-workflow-lab --provider codex
+npm run living -- status --root ../crm-workflow-lab
 npm run studio:sync -- --root ../crm-workflow-lab
 npm run dev --workspace @living-software/studio -- --port 3001
 ```
 
-Open `http://127.0.0.1:3001/apps/crm-workflow-lab/evolutions`. Preparing an
-interpretation requires either the authenticated Codex CLI or an explicitly
-selected Responses API key. The operator must review the model interpretation,
-independent
-deterministic diff, static proof, and exact hashes before approval. Source
-application is never automatic; verify the CRM runtime separately, exercise
-exact rollback, and finally remove generated observation files with
-`npm run living -- uninstall --root ../crm-workflow-lab --apply` if desired.
+Review the exact model-authored edits, target, proof, hashes, and Studio comparison. Use the evolution ID printed by `improve`:
 
-This source judge path still builds the relevant packages locally. A separate
-prebuilt distribution that avoids rebuilding is not implemented, so the final
-submission gate remains open.
+```bash
+npm run living -- approve --root ../crm-workflow-lab --evolution <id> --actor judge-demo --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+```
+
+Reload or rebuild the CRM and verify the visible result. Then exercise the exact rollback:
+
+```bash
+npm run living -- rollback --root ../crm-workflow-lab --evolution <id> --actor judge-demo
+```
+
+Use `--provider api` only with an entrant-supplied runtime API key. Never claim runtime success or improvement measurement without showing that separate evidence.
+
+The required no-rebuild distribution and fresh-clone verification remain submission gates until recorded in [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
+
+## How Codex and GPT-5.6 are being used
+
+Codex was used for rules review, architecture, implementation, testing, security hardening, documentation, and integration. Entrant decisions and material sessions are recorded in [DECISIONS.md](DECISIONS.md) and [BUILD_LOG.md](BUILD_LOG.md).
+
+GPT-5.6 has two material runtime roles:
+
+1. interpret an exact, privacy-minimized workflow opportunity as a structured `EvolutionBrief`;
+2. inspect a small manifest-bound source projection and author the exact one-file edit proposal shown to the human.
+
+GPT-5.6 cannot approve, apply, roll back, invoke tools, or bypass the deterministic engine. Codex CLI and Responses API transports use the same application validation boundary and preserve provider-specific provenance.
 
 ## Documentation
 
 - [Automatic discovery and observation](docs/AUTOMATIC_DISCOVERY.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Security and trust model](SECURITY.md)
 - [Hackathon compliance](HACKATHON_COMPLIANCE.md)
 - [Prior-work boundary](PRIOR_WORK.md)
 - [Build and Codex collaboration log](BUILD_LOG.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Product map](docs/PRODUCT_MAP.md)
 - [Judging evidence map](docs/JUDGING_MAP.md)
 - [Demo plan](docs/DEMO_PLAN.md)
 - [Submission checklist](docs/SUBMISSION_CHECKLIST.md)
-- [Security and trust model](SECURITY.md)
 
 ## License
 

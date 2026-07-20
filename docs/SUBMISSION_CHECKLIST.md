@@ -9,7 +9,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] MIT license added.
 - [x] Public repository linked from the Devpost project.
 - [x] Standalone CRM and simulator kept outside the challenge dependency graph.
-- [x] README distinguishes implemented automatic discovery from future lifecycle work.
+- [x] README distinguishes the implemented generic GPT-authored lifecycle from runtime verification, post-change measurement, and future platform support.
 - [ ] Fresh-clone verification completed against the exact submission commit.
 - [ ] Windows 11 / Node.js 22-or-newer judge instructions reconfirmed; current Node.js 24.14.1 proof recorded and any additional platforms tested before claiming support.
 - [ ] Judge path that does not require rebuilding from scratch implemented and verified.
@@ -30,19 +30,22 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Normal observation excludes text, input values, keystrokes, query strings and hashes, DOM or HTML, cookies, headers, request bodies, screenshots, and persistent user/cross-tab identifiers.
 - [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
 - [x] Neutral sample data is explicitly synthetic.
-- [x] Studio distinguishes its active fixture/static snapshot from the separately committed GPT-5.6 proof, makes no live model call, and requires exact app, manifest, opportunity, and event-set identity before labeling a run related.
-- [x] Strict proof validation, mismatch handling, safe projection, and non-rendering of raw event IDs and evidence aliases are tested.
+- [x] Studio distinguishes neutral/unmatched read-only views from an exactly bound captured-host connection; its loopback-only development broker and the CLI use the same governed lifecycle, and Current vs Proposed remains display-only.
+- [x] Strict proof validation, mismatch handling, privacy-minimized proof projection, and non-rendering of raw event IDs and evidence aliases are tested.
 - [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
-- [x] One CRM-bound deterministic change has a verified side-by-side preview, exact-hash proof, separate human approval/application controls, and rollback gating.
+- [x] The fixed CRM navigation adapter is removed from the active engine; offline tests accept materially different GPT-authored proposals and source targets.
+- [ ] A live generic GPT-authored proposal is recorded from the exact submission commit.
+- [ ] The final proposal is approved with both exact artifact and proof hashes, applied through Living, and verified in the running CRM.
+- [ ] Exact rollback is executed and the restored CRM plus complete receipt chain are verified.
 - [x] Connected Evolution Review explains the automatic/manual trigger boundary and hides unrelated neutral proof during the active decision flow.
 - [ ] Every final claim tied to the submission commit.
 
 ## Codex and GPT-5.6 evidence
 
 - [x] Codex collaboration is documented chronologically.
-- [x] GPT-5.6 package uses strict structured output and offline mock tests.
-- [x] Neutral detector evidence is wired into an explicit live GPT-5.6 runner with local reference validation.
-- [x] Material live GPT-5.6 product use demonstrated with a validated neutral-evidence `EvolutionBrief` and saved proof.
+- [x] Both GPT-5.6 runtime roles use strict structured outputs and offline transport/validation tests.
+- [x] Deterministic detector evidence is wired into explicit Codex CLI and Responses API providers with local reference validation and no automatic fallback.
+- [x] An authenticated GPT-5.6 Terra interpretation run is preserved as historical transport evidence; it is not claimed as proof of the current generic patch/apply path.
 - [ ] Real `/feedback` Session ID from the task containing the majority of core functionality recorded.
 - [ ] Key entrant product, engineering, and design decisions finalized.
 
@@ -58,7 +61,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 ## Demo video
 
 - [ ] Public YouTube video is under three minutes.
-- [ ] Video shows automatic discovery/observation, explicit analysis/sync, the exact before/after CRM change, and separate Prepare/Approve/Apply boundaries without implying continuous Studio ingestion or autonomous rewriting.
+- [ ] Video shows install/observation, a live generic GPT-authored proposal, exact artifact/proof-hash approval and application, the verified CRM result, and rollback without implying continuous Studio ingestion or automatic measurement.
 - [ ] Audio explains what was built and how Codex and GPT-5.6 were used.
 - [ ] No unlicensed media, private data, or unsupported product claims appear.
 - [ ] Link works without login.

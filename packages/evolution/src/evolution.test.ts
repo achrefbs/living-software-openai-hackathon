@@ -3,7 +3,6 @@ import {
   mkdtemp,
   mkdir,
   readFile,
-  readdir,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -12,15 +11,15 @@ import path from "node:path";
 import test from "node:test";
 
 import type {
+  EvolutionReceipt,
   Gpt56EvolutionBrief,
   IntelligenceProvenance,
-  EvolutionReceipt,
   Opportunity,
   ProductManifest,
 } from "@living-software/contracts";
 
+import { hashBytes } from "./canonical.js";
 import {
-  SOURCE_EVOLUTION_TARGET_PATH,
   SourceEvolutionError,
   applySourceEvolution,
   approveSourceEvolution,
@@ -31,12 +30,10 @@ import {
   type PrepareSourceEvolutionInput,
   type SourceEvolutionApplication,
   type SourceEvolutionState,
+  type SourcePatchModelProvenance,
+  type SourcePatchProposal,
 } from "./index.js";
-import {
-  setSourceEvolutionFaultInjectorForTests,
-  type SourceEvolutionFaultPoint,
-} from "./lifecycle.js";
-
+import { setSourceEvolutionFaultInjectorForTests } from "./lifecycle.js";
 
 const MANIFEST_HASH = `sha256:${"a".repeat(64)}` as const;
 const EVENT_HASH = `sha256:${"b".repeat(64)}` as const;
@@ -44,38 +41,44 @@ const CONFIG_HASH = `sha256:${"c".repeat(64)}` as const;
 const REVISION = "revision-test-1";
 const AT = "2026-07-20T12:00:00.000Z";
 
-const PREIMAGE = `"use client";
+type Variant = "lead-navigation" | "priority-card";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useCrm } from "@/lib/store-provider";
-import { contactFullName } from "@/lib/types";
-import { cn } from "@/lib/utils";
+const VARIANTS = {
+  "lead-navigation": {
+    targetPath: "src/app/leads/page.tsx",
+    nodeId: "route.leads",
+    opportunityId: "opportunity.lead-navigation",
+    briefId: "brief.lead-navigation",
+    proposalId: "proposal.lead-navigation",
+    signalKind: "backtracking" as const,
+    metric: "workflow.revisits",
+    preimage: `"use client";
 
-export default function LeadDetailPage() {
-  const params = useParams<{ id: string }>();
-  const leadId = params.id;
-
-  const lead = useCrm((state) => state.leads.find((item) => item.id === leadId));
-  const contact = useCrm((state) => state.contacts.find((item) => item.id === lead?.contactId));
-  const name = contact ? contactFullName(contact) : "Lead";
-
-  return (
-    <div data-testid="page-lead-detail">
-      <Link
-        href="/leads"
-        data-testid="back-to-leads"
-      >
-        Leads
-      </Link>
-
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-        <h1>{name}</h1>
-      </div>
-    </div>
-  );
+export default function LeadsPage() {
+  return <main><h1>Leads</h1><p>Review the current pipeline.</p></main>;
 }
-`;
+`,
+    anchor: "<h1>Leads</h1>",
+    replacement:
+      '<nav aria-label="Lead review"><button>Previous</button><strong>Leads</strong><button>Next</button></nav>',
+  },
+  "priority-card": {
+    targetPath: "src/components/LeadCard.tsx",
+    nodeId: "component.lead-card",
+    opportunityId: "opportunity.priority-card",
+    briefId: "brief.priority-card",
+    proposalId: "proposal.priority-card",
+    signalKind: "rework-loop" as const,
+    metric: "workflow.priority_rechecks",
+    preimage: `export function LeadCard({ name }: { name: string }) {
+  return <article className="lead-card"><h2>{name}</h2></article>;
+}
+`,
+    anchor: '<article className="lead-card">',
+    replacement:
+      '<article className="lead-card lead-card-priority" data-priority="high">',
+  },
+} as const;
 
 function app(): SourceEvolutionApplication {
   return {
@@ -88,15 +91,16 @@ function app(): SourceEvolutionApplication {
   };
 }
 
-function provenance(pathName: string) {
+function sourceProvenance(sourcePath: string) {
   return {
     origin: "scanned" as const,
     confidence: 1,
-    sources: [{ path: pathName, revision: REVISION }],
+    sources: [{ path: sourcePath, revision: REVISION }],
   };
 }
 
-function manifest(): ProductManifest {
+function manifest(variant: Variant): ProductManifest {
+  const selected = VARIANTS[variant];
   return {
     schemaVersion: "living.product-manifest/v1",
     appId: "surus.crm",
@@ -105,16 +109,17 @@ function manifest(): ProductManifest {
     generators: [{ adapterId: "next-app-router", adapterVersion: "0.1.0" }],
     nodes: [
       {
-        id: "route.lead-detail",
-        kind: "route",
-        displayName: "Lead detail",
-        provenance: provenance(SOURCE_EVOLUTION_TARGET_PATH),
+        id: selected.nodeId,
+        kind: variant === "lead-navigation" ? "route" : "surface",
+        displayName:
+          variant === "lead-navigation" ? "Lead list" : "Lead card",
+        provenance: sourceProvenance(selected.targetPath),
       },
       {
-        id: "action.context-revisit",
-        kind: "action",
-        displayName: "Context revisit",
-        provenance: provenance("src/app/leads/page.tsx"),
+        id: "component.unrelated",
+        kind: "surface",
+        displayName: "Unrelated component",
+        provenance: sourceProvenance("src/components/Unrelated.tsx"),
       },
     ],
     edges: [],
@@ -122,71 +127,76 @@ function manifest(): ProductManifest {
   };
 }
 
-function opportunity(): Opportunity {
+function opportunity(variant: Variant): Opportunity {
+  const selected = VARIANTS[variant];
   return {
     schemaVersion: "living.opportunity/v1",
-    opportunityId: "opportunity.backtracking.test",
+    opportunityId: selected.opportunityId,
     appId: "surus.crm",
     manifestHash: MANIFEST_HASH,
     detectedAt: AT,
     detector: {
-      id: "detector.backtracking",
+      id: `detector.${variant}`,
       version: "1.1.0",
       configHash: CONFIG_HASH,
     },
     window: { from: AT, to: "2026-07-20T12:05:00.000Z" },
     signal: {
-      kind: "backtracking",
-      metrics: [{ name: "workflow.revisits", unit: "count", observed: 17 }],
+      kind: selected.signalKind,
+      metrics: [{ name: selected.metric, unit: "count", observed: 17 }],
     },
     evidence: {
       bundle: {
-        uri: "living://evidence/backtracking-test",
+        uri: `living://evidence/${variant}`,
         mediaType: "application/json",
         sha256: EVENT_HASH,
       },
       eventSetHash: EVENT_HASH,
-      sampleEventIds: ["event-1"],
+      sampleEventIds: [`event-${variant}`],
       subjectCount: 3,
       sessionCount: 3,
       occurrenceCount: 17,
       dataOrigin: "synthetic",
     },
-    confidence: { score: 0.74, reasonCodes: ["revisit-threshold"] },
+    confidence: { score: 0.74, reasonCodes: ["workflow-threshold"] },
   };
 }
 
-function brief(): Gpt56EvolutionBrief {
+function brief(variant: Variant): Gpt56EvolutionBrief {
+  const selected = VARIANTS[variant];
   return {
     schemaVersion: "living.evolution-brief/v1",
-    briefId: "brief.backtracking.test",
+    briefId: selected.briefId,
     appId: "surus.crm",
-    opportunityId: "opportunity.backtracking.test",
+    opportunityId: selected.opportunityId,
     manifestHash: MANIFEST_HASH,
-    title: "Reduce lead-review backtracking",
-    interpretation: "Reviewers repeatedly revisit nearby context while reviewing leads.",
+    title:
+      variant === "lead-navigation"
+        ? "Reduce lead-review backtracking"
+        : "Surface priority during lead review",
+    interpretation: "The captured workflow shows avoidable repeated review work.",
     proposedChange: {
       kind: "workflow-assist",
-      summary: "Reduce context switching during review.",
-      userValue: "Keep review momentum without granting automation authority.",
-      affectedProductNodeIds: ["action.context-revisit"],
-      excludedWork: ["No message sending", "No external access"],
+      summary: "Add one bounded client-side workflow aid.",
+      userValue: "Reduce repeated review work without automation authority.",
+      affectedProductNodeIds: [selected.nodeId],
+      excludedWork: ["No external access", "No server mutation"],
     },
     evidenceCitations: {
       eventSetHash: EVENT_HASH,
-      sampleEventIds: ["event-1"],
-      metrics: [{ name: "workflow.revisits", observed: 17 }],
+      sampleEventIds: [`event-${variant}`],
+      metrics: [{ name: selected.metric, observed: 17 }],
     },
     successCriteria: [
       {
-        metric: "workflow.revisits",
+        metric: selected.metric,
         direction: "decrease",
-        target: "Fewer revisits in the synthetic replay",
+        target: "Fewer repeats in the synthetic replay",
         measurementWindow: "Next five synthetic sessions",
       },
     ],
-    risks: ["Navigation order may not match reviewer expectation"],
-    openQuestions: ["Should ordering follow current list filters?"],
+    risks: ["The workflow aid may not help every reviewer"],
+    openQuestions: ["Should the presentation be configurable later?"],
     limitations: ["Synthetic evidence does not generalize to production"],
     evidenceScope: {
       origin: "synthetic",
@@ -201,7 +211,7 @@ function brief(): Gpt56EvolutionBrief {
   };
 }
 
-function modelProvenance(): IntelligenceProvenance {
+function briefModelProvenance(variant: Variant): IntelligenceProvenance {
   return {
     provider: "openai",
     transport: "codex-cli",
@@ -209,7 +219,7 @@ function modelProvenance(): IntelligenceProvenance {
     transportRequestedModel: "gpt-5.6-terra",
     actualResponseModel: null,
     responseId: null,
-    codexThreadId: "thread-evolution-test",
+    codexThreadId: `thread-brief-${variant}`,
     responseStoreRequested: null,
     localSessionPersisted: false,
     tokenUsage: {
@@ -218,55 +228,109 @@ function modelProvenance(): IntelligenceProvenance {
       outputTokens: 50,
       reasoningOutputTokens: 20,
     },
-    evidenceAliases: [{ alias: "evidence-001", eventId: "event-1" }],
+    evidenceAliases: [
+      { alias: "evidence-001", eventId: `event-${variant}` },
+    ],
   };
 }
 
-async function rootFixture(options?: {
-  install?: "valid" | "missing" | "mismatch";
-}): Promise<string> {
-  const root = await mkdtemp(path.join(os.tmpdir(), "living-evolution-"));
-  const target = path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/"));
+function patchProposal(variant: Variant): SourcePatchProposal {
+  const selected = VARIANTS[variant];
+  return {
+    schemaVersion: "living.source-patch-proposal/v1",
+    proposalId: selected.proposalId,
+    appId: "surus.crm",
+    opportunityId: selected.opportunityId,
+    manifestHash: MANIFEST_HASH,
+    briefId: selected.briefId,
+    summary: `Apply the ${variant} workflow aid.`,
+    rationale: "The exact evidence-bound brief supports this bounded UI edit.",
+    target: {
+      path: selected.targetPath,
+      preimageHash: hashBytes(selected.preimage),
+    },
+    edits: [{ anchor: selected.anchor, replacement: selected.replacement }],
+    governance: {
+      status: "draft",
+      humanApprovalRequired: true,
+      applicationAllowed: false,
+    },
+  };
+}
+
+function patchModelProvenance(variant: Variant): SourcePatchModelProvenance {
+  const proposal = patchProposal(variant);
+  return {
+    provider: "openai",
+    transport: "codex-cli",
+    boundaryRequestedModel: "gpt-5.6",
+    transportRequestedModel: "gpt-5.6-terra",
+    actualResponseModel: null,
+    responseId: null,
+    codexThreadId: `thread-patch-${variant}`,
+    responseStoreRequested: null,
+    localSessionPersisted: false,
+    tokenUsage: {
+      inputTokens: 140,
+      cachedInputTokens: 20,
+      outputTokens: 80,
+      reasoningOutputTokens: 30,
+    },
+    sourceCandidates: [proposal.target],
+  };
+}
+
+async function rootFixture(variant: Variant): Promise<string> {
+  const selected = VARIANTS[variant];
+  const root = await mkdtemp(path.join(os.tmpdir(), "living-evolution-v2-"));
+  const target = path.join(root, ...selected.targetPath.split("/"));
   await mkdir(path.dirname(target), { recursive: true });
-  await writeFile(target, PREIMAGE, "utf8");
-  if (options?.install !== "missing") {
-    await mkdir(path.join(root, ".living"), { recursive: true });
-    await writeFile(
-      path.join(root, ".living", "install-record.json"),
-      JSON.stringify({
-        schemaVersion: "living.install-record/v1",
-        installId: "install-test",
-        installedAt: AT,
-        appId: "surus.crm",
-        adapter: { id: "next-app-router", version: "0.1.0" },
-        manifestHash:
-          options?.install === "mismatch"
-            ? `sha256:${"d".repeat(64)}`
-            : MANIFEST_HASH,
-        mutationPolicy: "create-only",
-        files: [
-          {
-            path: ".living/config.json",
-            installedHash: `sha256:${"e".repeat(64)}`,
-          },
-        ],
-        preservedDataPaths: [".living/data"],
-      }),
-      "utf8",
-    );
-  }
+  await writeFile(target, selected.preimage, "utf8");
+  await mkdir(path.join(root, ".living"), { recursive: true });
+  await writeFile(
+    path.join(root, ".living", "install-record.json"),
+    JSON.stringify({
+      schemaVersion: "living.install-record/v1",
+      installId: "install-test",
+      installedAt: AT,
+      appId: "surus.crm",
+      adapter: { id: "next-app-router", version: "0.1.0" },
+      manifestHash: MANIFEST_HASH,
+      mutationPolicy: "create-only",
+      files: [
+        {
+          path: ".living/config.json",
+          installedHash: `sha256:${"e".repeat(64)}`,
+        },
+      ],
+      preservedDataPaths: [".living/data"],
+    }),
+    "utf8",
+  );
   return root;
 }
 
-function prepareInput(root: string): PrepareSourceEvolutionInput {
+async function sameAppRootFixture(): Promise<string> {
+  const root = await rootFixture("lead-navigation");
+  const selected = VARIANTS["priority-card"];
+  const target = path.join(root, ...selected.targetPath.split("/"));
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, selected.preimage, "utf8");
+  return root;
+}
+
+function prepareInput(root: string, variant: Variant): PrepareSourceEvolutionInput {
+  const selected = VARIANTS[variant];
   return {
     root,
     app: app(),
-    manifest: manifest(),
-    opportunity: opportunity(),
-    brief: brief(),
-    modelProvenance: modelProvenance(),
-    target: { path: SOURCE_EVOLUTION_TARGET_PATH, preimage: PREIMAGE },
+    manifest: manifest(variant),
+    opportunity: opportunity(variant),
+    brief: brief(variant),
+    briefModelProvenance: briefModelProvenance(variant),
+    patchProposal: patchProposal(variant),
+    patchModelProvenance: patchModelProvenance(variant),
+    target: { path: selected.targetPath, preimage: selected.preimage },
     clock: () => new Date(AT),
   };
 }
@@ -294,60 +358,115 @@ async function expectCode(
   );
 }
 
-function evolutionStorageFile(
+function storageFile(
   root: string,
   state: SourceEvolutionState,
-  fileName: "state.json" | "receipts.ndjson" | "mutation.lock",
+  name: "state.json" | "receipts.ndjson" | "pending-transaction.json",
 ): string {
-  return path.join(root, ...state.storage.directory.split("/"), fileName);
+  return path.join(root, ...state.storage.directory.split("/"), name);
 }
 
-async function storedReceipts(
+async function receipts(
   root: string,
   state: SourceEvolutionState,
 ): Promise<readonly EvolutionReceipt[]> {
-  return (await readFile(evolutionStorageFile(root, state, "receipts.ndjson"), "utf8"))
+  return (await readFile(storageFile(root, state, "receipts.ndjson"), "utf8"))
     .trimEnd()
     .split("\n")
     .map((line) => JSON.parse(line) as EvolutionReceipt);
 }
 
-async function overwriteStoredState(
-  root: string,
-  state: SourceEvolutionState,
-  replacement: unknown,
-): Promise<void> {
-  await writeFile(
-    evolutionStorageFile(root, state, "state.json"),
-    `${JSON.stringify(replacement)}\n`,
-    "utf8",
-  );
-}
+test("two materially different GPT proposals complete prepare, approve, apply, and rollback", async () => {
+  const postimages = new Set<string>();
+  for (const variant of ["lead-navigation", "priority-card"] as const) {
+    const selected = VARIANTS[variant];
+    const root = await rootFixture(variant);
+    const target = path.join(root, ...selected.targetPath.split("/"));
+    const prepared = await prepareSourceEvolution(prepareInput(root, variant));
 
-test("prepares an exact deterministic source artifact and proof without editing the host", async () => {
-  const root = await rootFixture();
-  const state = await prepareSourceEvolution(prepareInput(root));
-  assert.equal(state.status, "prepared");
-  assert.equal(state.receiptCount, 4);
-  assert.equal(state.inputs.brief.title, "Reduce lead-review backtracking");
-  assert.equal(state.modelProvenance.transport, "codex-cli");
-  assert.equal(state.artifact.interpretation.implementsBrief, false);
-  assert.equal(await readFile(path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")), "utf8"), PREIMAGE);
-  for (const hook of [
-    "lead-review-navigation",
-    "previous-lead-button",
-    "lead-review-position",
-    "next-lead-button",
-  ]) {
-    assert.equal(state.source.postimage.split(`data-testid="${hook}"`).length - 1, 1);
+    assert.equal(prepared.schemaVersion, "living.source-evolution-state/v2");
+    assert.match(prepared.evolutionId, /^evolution\.source\.v2\./u);
+    assert.equal(prepared.status, "prepared");
+    assert.equal(prepared.receiptCount, 5);
+    assert.equal(prepared.artifact.target.path, selected.targetPath);
+    assert.equal(prepared.inputs.patchProposal.proposalId, selected.proposalId);
+    assert.equal(prepared.modelProvenance.patch.sourceCandidates[0]?.path, selected.targetPath);
+    assert.equal(prepared.contract.generation.modelApplicationAuthority, false);
+    assert.equal(prepared.artifact.generation.proposalOrigin, "gpt-5.6");
+    assert.equal(await readFile(target, "utf8"), selected.preimage);
+    postimages.add(prepared.source.postimage);
+
+    const preparationReceipts = await receipts(root, prepared);
+    assert.deepEqual(
+      preparationReceipts.map((receipt) => receipt.kind),
+      [
+        "opportunity.detected",
+        "hypothesis.created",
+        "artifact.generated",
+        "artifact.compiled",
+        "proof.completed",
+      ],
+    );
+    assert.equal(preparationReceipts[2]?.actor.type, "model");
+    assert.equal(preparationReceipts[3]?.actor.type, "system");
+    assert.equal(
+      preparationReceipts[2]?.payload.patchModelProvenanceHash,
+      prepared.bindings.patchModelProvenanceHash,
+    );
+
+    const approved = await approveSourceEvolution(approveInput(root, prepared));
+    assert.equal(approved.status, "approved");
+    assert.equal(approved.receiptCount, 7);
+    assert.equal(await readFile(target, "utf8"), selected.preimage);
+
+    const applied = await applySourceEvolution({
+      root,
+      evolutionId: approved.evolutionId,
+      expectedRevision: approved.receiptCount,
+    });
+    assert.equal(applied.status, "applied");
+    assert.equal(applied.receiptCount, 8);
+    assert.equal(await readFile(target, "utf8"), applied.source.postimage);
+
+    const rolledBack = await rollbackSourceEvolution({
+      root,
+      evolutionId: applied.evolutionId,
+      humanId: "reviewer-1",
+      expectedRevision: applied.receiptCount,
+    });
+    assert.equal(rolledBack.status, "rolled-back");
+    assert.equal(rolledBack.receiptCount, 9);
+    assert.equal(await readFile(target, "utf8"), selected.preimage);
+    assert.equal((await getEvolutionStatus(root, rolledBack.evolutionId)).status, "rolled-back");
+    assert.equal((await listEvolutionStatuses(root))[0]?.targetPath, selected.targetPath);
+    await rm(root, { recursive: true, force: true });
   }
-  assert.equal((await getEvolutionStatus(root, state.evolutionId)).chainHead, state.chainHead);
-  assert.equal((await listEvolutionStatuses(root)).length, 1);
+  assert.equal(postimages.size, 2);
 });
 
-test("requires explicit human approval before application", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
+test("rejects a target that is not sourced by a brief-affected manifest node", async () => {
+  const root = await rootFixture("lead-navigation");
+  const input = prepareInput(root, "lead-navigation");
+  const unrelatedBrief: Gpt56EvolutionBrief = {
+    ...input.brief,
+    proposedChange: {
+      ...input.brief.proposedChange,
+      affectedProductNodeIds: ["component.unrelated"],
+    },
+  };
+  await expectCode(
+    prepareSourceEvolution({ ...input, brief: unrelatedBrief }),
+    "INVALID_INPUT",
+  );
+  assert.deepEqual(await listEvolutionStatuses(root), []);
+  await rm(root, { recursive: true, force: true });
+});
+
+test("preparation is preview-only and exact human hashes are required", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await prepareSourceEvolution(
+    prepareInput(root, "lead-navigation"),
+  );
   await expectCode(
     applySourceEvolution({
       root,
@@ -356,203 +475,29 @@ test("requires explicit human approval before application", async () => {
     }),
     "APPROVAL_REQUIRED",
   );
-});
-
-test("rejects a forged prepared-to-approved pointer before source mutation", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const receipts = await storedReceipts(root, prepared);
-  const proofReceipt = receipts.find(
-    (receipt) => receipt.kind === "proof.completed",
-  );
-  assert.ok(proofReceipt);
-  await overwriteStoredState(root, prepared, {
-    ...prepared,
-    status: "approved",
-    approval: {
-      humanId: "reviewer-1",
-      approvedAt: proofReceipt.recordedAt,
-      contractHash: prepared.contract.contentHash,
-      artifactHash: prepared.artifact.contentHash,
-      proofHash: prepared.proof.proofHash,
-      receiptHash: proofReceipt.receiptHash,
-    },
-  });
-
   await expectCode(
-    applySourceEvolution({
-      root,
-      evolutionId: prepared.evolutionId,
-      expectedRevision: prepared.receiptCount,
+    approveSourceEvolution({
+      ...approveInput(root, prepared),
+      expectedArtifactHash: `sha256:${"f".repeat(64)}`,
     }),
-    "RECEIPT_CHAIN_INVALID",
+    "APPROVAL_HASH_MISMATCH",
   );
   assert.equal(
     await readFile(
-      path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
+      path.join(root, ...VARIANTS["lead-navigation"].targetPath.split("/")),
       "utf8",
     ),
-    PREIMAGE,
+    VARIANTS["lead-navigation"].preimage,
   );
+  await rm(root, { recursive: true, force: true });
 });
 
-test("rejects approval and application pointer substitution before mutation", async () => {
-  const approvalRoot = await rootFixture();
-  const approvalPrepared = await prepareSourceEvolution(
-    prepareInput(approvalRoot),
-  );
-  const approved = await approveSourceEvolution(
-    approveInput(approvalRoot, approvalPrepared),
-  );
-  const approvalReceipts = await storedReceipts(approvalRoot, approved);
-  const contractReceipt = approvalReceipts.find(
-    (receipt) => receipt.kind === "contract.confirmed",
-  );
-  assert.ok(contractReceipt);
-  await overwriteStoredState(approvalRoot, approved, {
-    ...approved,
-    approval: {
-      ...approved.approval,
-      receiptHash: contractReceipt.receiptHash,
-    },
-  });
-  await expectCode(
-    applySourceEvolution({
-      root: approvalRoot,
-      evolutionId: approved.evolutionId,
-      expectedRevision: approved.receiptCount,
-    }),
-    "RECEIPT_CHAIN_INVALID",
-  );
-  assert.equal(
-    await readFile(
-      path.join(approvalRoot, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
-      "utf8",
-    ),
-    PREIMAGE,
-  );
-
-  const applicationRoot = await rootFixture();
-  const applicationPrepared = await prepareSourceEvolution(
-    prepareInput(applicationRoot),
-  );
-  const applicationApproved = await approveSourceEvolution(
-    approveInput(applicationRoot, applicationPrepared),
-  );
-  const applied = await applySourceEvolution({
-    root: applicationRoot,
-    evolutionId: applicationApproved.evolutionId,
-    expectedRevision: applicationApproved.receiptCount,
-  });
-  const applicationReceipts = await storedReceipts(applicationRoot, applied);
-  const approvalReceipt = applicationReceipts.find(
-    (receipt) => receipt.kind === "activation.approved",
-  );
-  assert.ok(approvalReceipt);
-  await overwriteStoredState(applicationRoot, applied, {
-    ...applied,
-    application: {
-      ...applied.application,
-      receiptHash: approvalReceipt.receiptHash,
-    },
-  });
-  await expectCode(
-    rollbackSourceEvolution({
-      root: applicationRoot,
-      evolutionId: applied.evolutionId,
-      humanId: "reviewer-1",
-      expectedRevision: applied.receiptCount,
-    }),
-    "RECEIPT_CHAIN_INVALID",
-  );
-  assert.equal(
-    await readFile(
-      path.join(applicationRoot, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
-      "utf8",
-    ),
-    applied.source.postimage,
-  );
-});
-
-test("rejects rollback pointer substitution in terminal state", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
+test("apply rejects source drift after approval and preserves approved state", async () => {
+  const root = await rootFixture("priority-card");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "priority-card"));
   const approved = await approveSourceEvolution(approveInput(root, prepared));
-  const applied = await applySourceEvolution({
-    root,
-    evolutionId: approved.evolutionId,
-    expectedRevision: approved.receiptCount,
-  });
-  const rolledBack = await rollbackSourceEvolution({
-    root,
-    evolutionId: applied.evolutionId,
-    humanId: "reviewer-1",
-    expectedRevision: applied.receiptCount,
-  });
-  const receipts = await storedReceipts(root, rolledBack);
-  const applicationReceipt = receipts.find(
-    (receipt) => receipt.kind === "installation.activated",
-  );
-  assert.ok(applicationReceipt);
-  await overwriteStoredState(root, rolledBack, {
-    ...rolledBack,
-    rollback: {
-      ...rolledBack.rollback,
-      receiptHash: applicationReceipt.receiptHash,
-    },
-  });
-  await expectCode(
-    getEvolutionStatus(root, rolledBack.evolutionId),
-    "RECEIPT_CHAIN_INVALID",
-  );
-  assert.equal(
-    await readFile(
-      path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
-      "utf8",
-    ),
-    PREIMAGE,
-  );
-});
-
-test("quarantines expired locks without trusting repository owner tokens as paths", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  await writeFile(
-    evolutionStorageFile(root, prepared, "mutation.lock"),
-    JSON.stringify({
-      schemaVersion: "living.source-evolution-lock/v1",
-      ownerToken: "../../../../../../escaped",
-      acquiredAt: "2026-07-20T10:00:00.000Z",
-      expiresAt: "2026-07-20T10:01:00.000Z",
-    }),
-    "utf8",
-  );
-
-  assert.equal(
-    (await getEvolutionStatus(root, prepared.evolutionId)).status,
-    "prepared",
-  );
-  await assert.rejects(readFile(path.join(root, "escaped.json"), "utf8"), {
-    code: "ENOENT",
-  });
-  const entries = await readdir(
-    path.join(root, ...prepared.storage.directory.split("/")),
-  );
-  assert.equal(entries.includes("mutation.lock"), false);
-  assert.equal(
-    entries.filter((entry) =>
-      /^mutation\.lock\.stale\.[0-9a-f-]{36}\.json$/u.test(entry),
-    ).length,
-    1,
-  );
-});
-
-test("rejects target tampering after approval", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const approved = await approveSourceEvolution(approveInput(root, prepared));
-  const target = path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/"));
-  await writeFile(target, `${PREIMAGE}\n// developer edit\n`, "utf8");
+  const target = path.join(root, ...VARIANTS["priority-card"].targetPath.split("/"));
+  await writeFile(target, `${VARIANTS["priority-card"].preimage}// drift\n`, "utf8");
   await expectCode(
     applySourceEvolution({
       root,
@@ -562,356 +507,296 @@ test("rejects target tampering after approval", async () => {
     "TARGET_PREIMAGE_MISMATCH",
   );
   assert.equal((await getEvolutionStatus(root, approved.evolutionId)).status, "approved");
+  await rm(root, { recursive: true, force: true });
 });
 
-test("applies only the exact approved postimage", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
+test("rollback requires the exact installed postimage", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "lead-navigation"));
   const approved = await approveSourceEvolution(approveInput(root, prepared));
   const applied = await applySourceEvolution({
     root,
     evolutionId: approved.evolutionId,
     expectedRevision: approved.receiptCount,
   });
-  assert.equal(applied.status, "applied");
-  assert.equal(applied.receiptCount, 7);
-  assert.equal(
-    await readFile(path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")), "utf8"),
-    applied.source.postimage,
+  const target = path.join(root, ...VARIANTS["lead-navigation"].targetPath.split("/"));
+  await writeFile(target, `${applied.source.postimage}// drift\n`, "utf8");
+  await expectCode(
+    rollbackSourceEvolution({
+      root,
+      evolutionId: applied.evolutionId,
+      humanId: "reviewer-1",
+      expectedRevision: applied.receiptCount,
+    }),
+    "TARGET_POSTIMAGE_MISMATCH",
   );
+  assert.equal((await getEvolutionStatus(root, applied.evolutionId)).status, "applied");
+  await rm(root, { recursive: true, force: true });
 });
 
-test("revalidates the installed host identity immediately before application", async () => {
-  for (const mode of ["missing", "mismatch"] as const) {
-    const root = await rootFixture();
-    const prepared = await prepareSourceEvolution(prepareInput(root));
-    const approved = await approveSourceEvolution(approveInput(root, prepared));
-    const installPath = path.join(root, ".living", "install-record.json");
-    if (mode === "missing") {
-      await rm(installPath);
-    } else {
-      const install = JSON.parse(await readFile(installPath, "utf8")) as {
-        manifestHash: string;
-      } & Record<string, unknown>;
-      await writeFile(
-        installPath,
-        JSON.stringify({
-          ...install,
-          manifestHash: `sha256:${"d".repeat(64)}`,
-        }),
-        "utf8",
-      );
+test("stored proposal tampering is rejected before lifecycle mutation", async () => {
+  const root = await rootFixture("priority-card");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "priority-card"));
+  await writeFile(
+    storageFile(root, prepared, "state.json"),
+    `${JSON.stringify({
+      ...prepared,
+      inputs: {
+        ...prepared.inputs,
+        patchProposal: {
+          ...prepared.inputs.patchProposal,
+          summary: "tampered summary",
+        },
+      },
+    })}\n`,
+    "utf8",
+  );
+  await expectCode(
+    getEvolutionStatus(root, prepared.evolutionId),
+    "STATE_TAMPERED",
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("v2 listing ignores isolated legacy v1 storage", async () => {
+  const root = await rootFixture("lead-navigation");
+  const legacy = path.join(
+    root,
+    ".living",
+    "data",
+    "evolutions",
+    `evolution.source.${"a".repeat(24)}`,
+  );
+  await mkdir(legacy, { recursive: true });
+  await writeFile(path.join(legacy, "state.json"), "legacy-v1", "utf8");
+  assert.deepEqual(await listEvolutionStatuses(root), []);
+  const prepared = await prepareSourceEvolution(prepareInput(root, "lead-navigation"));
+  assert.deepEqual(
+    (await listEvolutionStatuses(root)).map((entry) => entry.evolutionId),
+    [prepared.evolutionId],
+  );
+  assert.match(prepared.storage.directory, /^\.living\/data\/evolutions-v2\//u);
+  await rm(root, { recursive: true, force: true });
+});
+
+test("journal recovery completes a dynamic-target apply exactly once", async () => {
+  const root = await rootFixture("priority-card");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "priority-card"));
+  const approved = await approveSourceEvolution(approveInput(root, prepared));
+  let thrown = false;
+  setSourceEvolutionFaultInjectorForTests((point) => {
+    if (point === "after-target" && !thrown) {
+      thrown = true;
+      throw new Error("simulated crash after dynamic target replacement");
     }
+  });
+  try {
+    await assert.rejects(
+      applySourceEvolution({
+        root,
+        evolutionId: approved.evolutionId,
+        expectedRevision: approved.receiptCount,
+      }),
+      /simulated crash/u,
+    );
+  } finally {
+    setSourceEvolutionFaultInjectorForTests();
+  }
+  const recovered = await getEvolutionStatus(root, approved.evolutionId);
+  assert.equal(recovered.status, "applied");
+  assert.equal(recovered.receiptCount, 8);
+  assert.equal(
+    await readFile(
+      path.join(root, ...VARIANTS["priority-card"].targetPath.split("/")),
+      "utf8",
+    ),
+    recovered.source.postimage,
+  );
+  await assert.rejects(
+    readFile(storageFile(root, recovered, "pending-transaction.json"), "utf8"),
+    { code: "ENOENT" },
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("journal recovery resumes after the exact preimage was captured", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "lead-navigation"));
+  const approved = await approveSourceEvolution(approveInput(root, prepared));
+  let thrown = false;
+  setSourceEvolutionFaultInjectorForTests((point) => {
+    if (point === "after-target-capture" && !thrown) {
+      thrown = true;
+      throw new Error("simulated crash after exact preimage capture");
+    }
+  });
+  try {
+    await assert.rejects(
+      applySourceEvolution({
+        root,
+        evolutionId: approved.evolutionId,
+        expectedRevision: approved.receiptCount,
+      }),
+      /simulated crash/u,
+    );
+  } finally {
+    setSourceEvolutionFaultInjectorForTests();
+  }
+  const recovered = await getEvolutionStatus(root, approved.evolutionId);
+  assert.equal(recovered.status, "applied");
+  assert.equal(
+    await readFile(
+      path.join(root, ...VARIANTS["lead-navigation"].targetPath.split("/")),
+      "utf8",
+    ),
+    recovered.source.postimage,
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("a concurrent writer is preserved and never overwritten during apply", async () => {
+  const root = await rootFixture("priority-card");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "priority-card"));
+  const approved = await approveSourceEvolution(approveInput(root, prepared));
+  const target = path.join(
+    root,
+    ...VARIANTS["priority-card"].targetPath.split("/"),
+  );
+  const concurrent = '"use client";\nexport default function ConcurrentEdit() { return <p>human edit</p>; }\n';
+  let injected = false;
+  setSourceEvolutionFaultInjectorForTests(async (point) => {
+    if (point === "after-target-capture" && !injected) {
+      injected = true;
+      await writeFile(target, concurrent, "utf8");
+    }
+  });
+  try {
     await expectCode(
       applySourceEvolution({
         root,
         evolutionId: approved.evolutionId,
         expectedRevision: approved.receiptCount,
       }),
-      mode === "missing" ? "HOST_NOT_INSTALLED" : "HOST_INSTALL_MISMATCH",
+      "STORAGE_CONFLICT",
     );
-    assert.equal(
-      await readFile(
-        path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
-        "utf8",
-      ),
-      PREIMAGE,
-    );
-    assert.equal(
-      (await getEvolutionStatus(root, approved.evolutionId)).status,
-      "approved",
-    );
+  } finally {
+    setSourceEvolutionFaultInjectorForTests();
   }
+  assert.equal(await readFile(target, "utf8"), concurrent);
+  await rm(root, { recursive: true, force: true });
 });
 
-test("rolls back only the exact installed postimage", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const approved = await approveSourceEvolution(approveInput(root, prepared));
-  const applied = await applySourceEvolution({
-    root,
-    evolutionId: approved.evolutionId,
-    expectedRevision: approved.receiptCount,
-  });
-  const rolledBack = await rollbackSourceEvolution({
-    root,
-    evolutionId: applied.evolutionId,
-    humanId: "reviewer-1",
-    expectedRevision: applied.receiptCount,
-  });
-  assert.equal(rolledBack.status, "rolled-back");
-  assert.equal(rolledBack.receiptCount, 8);
-  assert.equal(
-    await readFile(path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")), "utf8"),
-    PREIMAGE,
-  );
-});
-
-test("rejects lifecycle replay and stale revisions", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
+test("stale revisions and lifecycle replays are rejected", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "lead-navigation"));
   await expectCode(
     approveSourceEvolution({
       ...approveInput(root, prepared),
-      expectedRevision: prepared.receiptCount - 1,
+      expectedRevision: prepared.receiptCount + 1,
     }),
     "STALE_REVISION",
   );
   const approved = await approveSourceEvolution(approveInput(root, prepared));
-  const applied = await applySourceEvolution({
-    root,
-    evolutionId: approved.evolutionId,
-    expectedRevision: approved.receiptCount,
-  });
   await expectCode(
-    applySourceEvolution({
-      root,
-      evolutionId: applied.evolutionId,
-      expectedRevision: applied.receiptCount,
+    approveSourceEvolution({
+      ...approveInput(root, prepared),
+      expectedRevision: approved.receiptCount,
     }),
     "EVOLUTION_REPLAY_REJECTED",
   );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("same-app mutations reject active siblings and release the slot after rollback", async () => {
+  const root = await sameAppRootFixture();
+  const first = await prepareSourceEvolution(
+    prepareInput(root, "lead-navigation"),
+  );
+  const second = await prepareSourceEvolution(
+    prepareInput(root, "priority-card"),
+  );
+  const approvedFirst = await approveSourceEvolution(approveInput(root, first));
+
   await expectCode(
-    prepareSourceEvolution(prepareInput(root)),
-    "TARGET_PREIMAGE_MISMATCH",
+    approveSourceEvolution(approveInput(root, second)),
+    "INVALID_TRANSITION",
   );
-});
-
-test("requires an exact Living install record", async () => {
-  const missing = await rootFixture({ install: "missing" });
   await expectCode(
-    prepareSourceEvolution(prepareInput(missing)),
-    "HOST_NOT_INSTALLED",
-  );
-  const mismatch = await rootFixture({ install: "mismatch" });
-  await expectCode(
-    prepareSourceEvolution(prepareInput(mismatch)),
-    "HOST_INSTALL_MISMATCH",
-  );
-});
-
-test("serializes concurrent approvals with a filesystem CAS lock", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const input = approveInput(root, prepared);
-  const results = await Promise.allSettled([
-    approveSourceEvolution(input),
-    approveSourceEvolution(input),
-  ]);
-  assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
-  const rejected = results.find((result) => result.status === "rejected");
-  assert.ok(rejected !== undefined && rejected.status === "rejected");
-  assert.ok(
-    rejected.reason instanceof SourceEvolutionError &&
-      ["EVOLUTION_BUSY", "STALE_REVISION"].includes(rejected.reason.code),
-  );
-  const state = await getEvolutionStatus(root, prepared.evolutionId);
-  assert.equal(state.status, "approved");
-  assert.equal(state.receiptCount, 6);
-  const receiptLines = (
-    await readFile(
-      path.join(
-        root,
-        ".living",
-        "data",
-        "evolutions",
-        prepared.evolutionId,
-        "receipts.ndjson",
-      ),
-      "utf8",
-    )
-  ).trim().split("\n");
-  assert.equal(receiptLines.length, 6);
-  assert.deepEqual(
-    receiptLines.map((line) => JSON.parse(line).sequence),
-    [0, 1, 2, 3, 4, 5],
-  );
-});
-
-test("reclaims an expired owner-token lock without relying on a reusable pid", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const directory = path.join(
-    root,
-    ".living",
-    "data",
-    "evolutions",
-    prepared.evolutionId,
-  );
-  await writeFile(
-    path.join(directory, "mutation.lock"),
-    JSON.stringify({
-      schemaVersion: "living.source-evolution-lock/v1",
-      ownerToken: "stale-owner",
-      acquiredAt: "2026-07-20T10:00:00.000Z",
-      expiresAt: "2026-07-20T10:01:00.000Z",
-    }),
-    "utf8",
-  );
-  assert.equal(
-    (await getEvolutionStatus(root, prepared.evolutionId)).status,
-    "prepared",
-  );
-  assert.equal(
-    (await readdir(directory)).filter((entry) =>
-      /^mutation\.lock\.stale\.[0-9a-f-]{36}\.json$/u.test(entry),
-    ).length,
-    1,
-  );
-});
-
-test("rolled back is terminal for the same evidence identity", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const approved = await approveSourceEvolution(approveInput(root, prepared));
-  const applied = await applySourceEvolution({
-    root,
-    evolutionId: approved.evolutionId,
-    expectedRevision: approved.receiptCount,
-  });
-  const rolledBack = await rollbackSourceEvolution({
-    root,
-    evolutionId: applied.evolutionId,
-    humanId: "reviewer-1",
-    expectedRevision: applied.receiptCount,
-  });
-  assert.equal(rolledBack.status, "rolled-back");
-  await expectCode(
-    prepareSourceEvolution(prepareInput(root)),
-    "EVOLUTION_ALREADY_EXISTS",
-  );
-});
-
-test("recovers every write-ahead crash point without duplicate effects", async () => {
-  const crashPoints = [
-    "after-journal",
-    "after-target",
-    "after-receipts",
-    "after-state",
-  ] satisfies readonly SourceEvolutionFaultPoint[];
-
-  for (const crashPoint of crashPoints) {
-    const root = await rootFixture();
-    const prepared = await prepareSourceEvolution(prepareInput(root));
-    const approved = await approveSourceEvolution(approveInput(root, prepared));
-    let injected = false;
-    setSourceEvolutionFaultInjectorForTests((point) => {
-      if (!injected && point === crashPoint) {
-        injected = true;
-        throw new Error(`simulated crash at ${point}`);
-      }
-    });
-    try {
-      await assert.rejects(
-        applySourceEvolution({
-          root,
-          evolutionId: approved.evolutionId,
-          expectedRevision: approved.receiptCount,
-        }),
-        /simulated crash/,
-      );
-    } finally {
-      setSourceEvolutionFaultInjectorForTests(undefined);
-    }
-    assert.equal(injected, true, `fault was injected at ${crashPoint}`);
-
-    const directory = path.join(
+    applySourceEvolution({
       root,
-      ".living",
-      "data",
-      "evolutions",
-      approved.evolutionId,
-    );
-    const journal = path.join(directory, "pending-transaction.json");
-    await assert.doesNotReject(readFile(journal, "utf8"));
+      evolutionId: second.evolutionId,
+      expectedRevision: second.receiptCount,
+    }),
+    "INVALID_TRANSITION",
+  );
 
-    const recovered = await getEvolutionStatus(root, approved.evolutionId);
-    assert.equal(recovered.status, "applied");
-    assert.equal(recovered.receiptCount, 7);
-    assert.equal(
-      await readFile(
-        path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
-        "utf8",
-      ),
-      recovered.source.postimage,
-    );
-    await assert.rejects(
-      readFile(journal, "utf8"),
-      (error: unknown) =>
-        (error as NodeJS.ErrnoException).code === "ENOENT",
-    );
-    const receiptLines = (await readFile(path.join(directory, "receipts.ndjson"), "utf8"))
-      .trim()
-      .split("\n");
-    assert.equal(receiptLines.length, 7);
-    assert.deepEqual(
-      receiptLines.map((line) => JSON.parse(line).sequence),
-      [0, 1, 2, 3, 4, 5, 6],
-    );
-  }
+  const appliedFirst = await applySourceEvolution({
+    root,
+    evolutionId: approvedFirst.evolutionId,
+    expectedRevision: approvedFirst.receiptCount,
+  });
+  await expectCode(
+    approveSourceEvolution(approveInput(root, second)),
+    "INVALID_TRANSITION",
+  );
+  const rolledBackFirst = await rollbackSourceEvolution({
+    root,
+    evolutionId: appliedFirst.evolutionId,
+    humanId: "reviewer-1",
+    expectedRevision: appliedFirst.receiptCount,
+  });
+  const approvedSecond = await approveSourceEvolution(approveInput(root, second));
+
+  assert.equal(rolledBackFirst.status, "rolled-back");
+  assert.equal(approvedSecond.status, "approved");
+  await rm(root, { recursive: true, force: true });
 });
 
-test("recovers an interrupted reverse source transition during rollback", async () => {
-  const root = await rootFixture();
-  const prepared = await prepareSourceEvolution(prepareInput(root));
-  const approved = await approveSourceEvolution(approveInput(root, prepared));
-  const applied = await applySourceEvolution({
-    root,
-    evolutionId: approved.evolutionId,
-    expectedRevision: approved.receiptCount,
-  });
-  let injected = false;
-  setSourceEvolutionFaultInjectorForTests((point) => {
-    if (!injected && point === "after-target") {
-      injected = true;
-      throw new Error("simulated rollback crash after target");
-    }
-  });
-  try {
-    await assert.rejects(
-      rollbackSourceEvolution({
-        root,
-        evolutionId: applied.evolutionId,
-        humanId: "reviewer-1",
-        expectedRevision: applied.receiptCount,
-      }),
-      /simulated rollback crash/,
-    );
-  } finally {
-    setSourceEvolutionFaultInjectorForTests(undefined);
-  }
-  assert.equal(injected, true);
+test("concurrent direct-engine sibling approvals produce exactly one active evolution", async () => {
+  const root = await sameAppRootFixture();
+  const first = await prepareSourceEvolution(
+    prepareInput(root, "lead-navigation"),
+  );
+  const second = await prepareSourceEvolution(
+    prepareInput(root, "priority-card"),
+  );
 
-  const directory = path.join(
-    root,
-    ".living",
-    "data",
-    "evolutions",
-    applied.evolutionId,
+  const outcomes = await Promise.allSettled([
+    approveSourceEvolution(approveInput(root, first)),
+    approveSourceEvolution(approveInput(root, second)),
+  ]);
+  const fulfilled = outcomes.filter(
+    (outcome): outcome is PromiseFulfilledResult<SourceEvolutionState> =>
+      outcome.status === "fulfilled",
   );
-  const journal = path.join(directory, "pending-transaction.json");
-  await assert.doesNotReject(readFile(journal, "utf8"));
+  const rejected = outcomes.filter(
+    (outcome): outcome is PromiseRejectedResult => outcome.status === "rejected",
+  );
+  assert.equal(fulfilled.length, 1);
+  assert.equal(rejected.length, 1);
+  assert.ok(rejected[0]?.reason instanceof SourceEvolutionError);
+  assert.ok(
+    rejected[0]?.reason.code === "EVOLUTION_BUSY" ||
+      rejected[0]?.reason.code === "INVALID_TRANSITION",
+  );
 
-  const recovered = await getEvolutionStatus(root, applied.evolutionId);
-  assert.equal(recovered.status, "rolled-back");
-  assert.equal(recovered.receiptCount, 8);
-  assert.equal(
-    await readFile(
-      path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
-      "utf8",
-    ),
-    PREIMAGE,
-  );
-  await assert.rejects(
-    readFile(journal, "utf8"),
-    (error: unknown) => (error as NodeJS.ErrnoException).code === "ENOENT",
-  );
-  const receiptLines = (await readFile(path.join(directory, "receipts.ndjson"), "utf8"))
-    .trim()
-    .split("\n");
-  assert.equal(receiptLines.length, 8);
+  const states = await Promise.all([
+    getEvolutionStatus(root, first.evolutionId),
+    getEvolutionStatus(root, second.evolutionId),
+  ]);
   assert.deepEqual(
-    receiptLines.map((line) => JSON.parse(line).sequence),
-    [0, 1, 2, 3, 4, 5, 6, 7],
+    states.map((state) => state.status).sort(),
+    ["approved", "prepared"],
   );
+  assert.deepEqual(
+    states.map((state) => state.receiptCount).sort((left, right) => left - right),
+    [5, 7],
+  );
+  for (const state of states) {
+    await assert.rejects(
+      readFile(storageFile(root, state, "pending-transaction.json"), "utf8"),
+      { code: "ENOENT" },
+    );
+  }
+  await rm(root, { recursive: true, force: true });
 });

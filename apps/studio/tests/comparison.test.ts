@@ -28,7 +28,10 @@ function status(
     connected: true,
     phase,
     evolutionId: phase === "ready" ? null : "evolution.source.demo",
-    title: "Preserve list context",
+    title: "Reduce repeated workflow backtracking",
+    proposalSummary: "Keep users inside the active review flow",
+    proposalRationale: "Add bounded controls near the current task context.",
+    targetPath: "src/components/workflow-toolbar.tsx",
     preHash,
     postHash,
     hostSourceHash: preHash,
@@ -43,7 +46,7 @@ const identity = {
   schemaVersion: PREVIEW_IDENTITY_SCHEMA,
   evolutionId: "evolution.source.demo",
   postHash,
-  targetPath: "src/app/leads/[id]/page.tsx",
+  targetPath: "src/components/workflow-toolbar.tsx",
 } as const;
 
 test("comparison route accepts only loopback displays and delegates verified rendering", async () => {
@@ -62,8 +65,8 @@ test("comparison route accepts only loopback displays and delegates verified ren
   assert.match(page, /LIVING_STUDIO_PREVIEW_URL/u);
   assert.match(component, /previewIdentityMatches/u);
   assert.match(component, /showComparison &&/u);
-  assert.match(component, /title="Current CRM"/u);
-  assert.match(component, /title="Verified isolated proposed CRM preview"/u);
+  assert.match(component, /title="Current application"/u);
+  assert.match(component, /title="Verified isolated proposed application preview"/u);
   assert.doesNotMatch(component, /allow-forms/u);
   assert.doesNotMatch(component, /method:\s*"POST"|Approve exact patch|Apply to CRM source/u);
 });
@@ -99,18 +102,18 @@ test("preview broker rejects remote, cross-origin, unsafe-port, and IPv6 inputs"
     /Cross-origin/u,
   );
   assert.throws(
-    () => parseConfiguredPreviewUrl("http://127.0.0.1:3001/leads/lead-01"),
+    () => parseConfiguredPreviewUrl("http://127.0.0.1:3001/review/item-01"),
     /port 3002/u,
   );
   assert.throws(
-    () => parseConfiguredPreviewUrl("http://[::1]:3002/leads/lead-01"),
+    () => parseConfiguredPreviewUrl("http://[::1]:3002/review/item-01"),
     /loopback HTTP URL/u,
   );
 });
 
 test("preview broker strictly validates bounded endpoint responses", async () => {
   const previewUrl = parseConfiguredPreviewUrl(
-    "http://127.0.0.1:3002/leads/lead-01",
+    "http://127.0.0.1:3002/review/item-01",
   );
   const exact = await fetchPreviewIdentity(
     previewUrl,
@@ -167,6 +170,13 @@ test("preview identity is strict and must match the governed evolution", () => {
     }),
     false,
   );
+  assert.equal(
+    previewIdentityMatches(status("draft_ready"), {
+      ...identity,
+      targetPath: "src/app/another/page.tsx",
+    }),
+    false,
+  );
   assert.equal(previewIdentityMatches(status("active"), identity), false);
   assert.equal(
     previewIdentityMatches(
@@ -179,6 +189,14 @@ test("preview identity is strict and must match the governed evolution", () => {
     () => parsePreviewIdentity({ ...identity, extra: true }),
     /unknown or missing fields/u,
   );
+  assert.throws(
+    () => parsePreviewIdentity({ ...identity, targetPath: "../package.json" }),
+    /invalid/u,
+  );
+  assert.throws(
+    () => parsePreviewIdentity({ ...identity, targetPath: "src/app/api/route.ts" }),
+    /invalid/u,
+  );
 });
 
 test("comparison copy remains truthful through every lifecycle phase", () => {
@@ -187,7 +205,7 @@ test("comparison copy remains truthful through every lifecycle phase", () => {
   assert.equal(describeComparison(status("approved")).canCompare, true);
   assert.match(describeComparison(status("approved")).notice, /not yet been applied/u);
   assert.equal(describeComparison(status("active")).canCompare, false);
-  assert.match(describeComparison(status("active")).notice, /no longer.*old CRM/u);
+  assert.match(describeComparison(status("active")).notice, /no longer.*old application/u);
   assert.equal(describeComparison(status("rolled_back")).canCompare, false);
   assert.match(describeComparison(status("rolled_back")).notice, /preimage was restored/u);
   assert.equal(describeComparison(status("ready")).canCompare, false);
@@ -208,17 +226,19 @@ test("comparison explains the authority boundary and reads lifecycle status only
     "Observe",
     "Analyze",
     "Detect",
-    "Prepare",
+    "Author and validate",
     "Approve and apply",
   ]) {
     assert.match(page, new RegExp(label, "u"));
   }
   assert.match(page, /Automatic boundary/u);
   assert.match(page, /Human boundary/u);
-  assert.match(page, /The real CRM is still unchanged/u);
+  assert.match(page, /The connected application is still unchanged/u);
   assert.match(page, /#approve-change/u);
-  assert.match(statusComponent, /The proposal adds one navigation row/u);
-  assert.match(statusComponent, /Previous lead · 1 of 36 · Next lead/u);
+  assert.match(statusComponent, /GPT-5.6 authored this change/u);
+  assert.match(statusComponent, /status.proposalSummary/u);
+  assert.match(statusComponent, /status.proposalRationale/u);
+  assert.match(statusComponent, /status.targetPath/u);
   assert.match(statusComponent, /Technical proof and exact hashes/u);
   assert.match(statusComponent, /fetch\("\/api\/evolution"/u);
   assert.match(statusComponent, /fetch\("\/api\/preview-identity"/u);
@@ -237,7 +257,7 @@ test("evolution console links to comparison only before source application", asy
   assert.match(source, /studioAppHref\(appId, "compare"\)/u);
   assert.match(source, /Open before \/ after comparison/u);
   assert.match(source, /Approve change/u);
-  assert.match(source, /Apply approved change to real CRM/u);
+  assert.match(source, /Apply approved change to application/u);
   assert.match(source, /canRollback = status\?\.phase === "active" && approverValid/u);
   assert.match(source, /Rollback receipt label/u);
 });

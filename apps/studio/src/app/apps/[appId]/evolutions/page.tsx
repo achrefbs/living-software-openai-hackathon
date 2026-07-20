@@ -69,7 +69,7 @@ export default async function EvolutionsPage({
           title={
             detection === undefined
               ? "No new proposal from this snapshot"
-              : "Review one proposed CRM change"
+              : "Review one GPT-authored source proposal"
           }
           description={
             detection === undefined ? (
@@ -95,7 +95,7 @@ export default async function EvolutionsPage({
         {dataset.app.connection === "captured_snapshot" && (
           <LiveEvolutionConsole
             appId={dataset.app.id}
-            crmUrl={process.env.LIVING_STUDIO_HOST_URL}
+            hostUrl={process.env.LIVING_STUDIO_HOST_URL}
             snapshotIdentity={dataset.evidenceIdentity}
           />
         )}

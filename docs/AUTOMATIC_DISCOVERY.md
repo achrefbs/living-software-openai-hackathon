@@ -12,29 +12,53 @@ The first supported slice is **TypeScript Next.js App Router 15.3+**. The archit
 existing Next.js repository
   -> bounded static scanner
   -> Product Manifest + runtime locator map + metric catalog
-  -> explicit hash-guarded install
-  -> Next instrumentation-client observer
-  -> same-origin local collector
-  -> append-only synthetic/observed evidence
+
+living install
+  -> explicit create-only observer + same-origin collector
+  -> hash-guarded install journal
+
+ordinary UI activity
+  -> privacy-minimized, hash-linked local evidence
   -> deterministic workflow + metric analysis
-  -> optional threshold-based opportunity
+  -> current threshold-based backtracking opportunity
 
-verified neutral evidence bundle
-  -> separate GPT-5.6 human-review draft path
+living improve --provider codex|api
+  -> GPT-5.6 evidence interpretation
+  -> at most 3 manifest-linked UI candidates / 96 KB
+  -> second tool-less GPT-5.6 call authors 1-8 edits to 1 existing UI file
+  -> deterministic compilation + static proof
+  -> prepared state; host unchanged
 
-neutral fixture OR verified synthetic automatic-host analysis
-  -> validated privacy-minimized static snapshot
-  -> read-only Living Studio
+human approval of exact artifact + proof hashes
+  -> engine-owned source application
+  -> manual host build/reload and verification
+  -> exact-postimage rollback when requested
+
+explicit studio:sync
+  -> Studio map, workflows, opportunity, proposal, proof and receipts
 ```
 
-The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing. Simulator output is compared only after a run to measure Living's coverage and accuracy. An explicit `studio:sync` command can export verified synthetic analysis into Studio through a one-way static file boundary. Studio does not ingest the host live. The current GPT-5.6 runner remains separate and consumes neutral replay evidence, not automatic host evidence. Evolution Review can display the committed neutral proof independently, but its identity mismatch prevents it from becoming a CRM interpretation or lifecycle state.
+The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing, detecting an opportunity, or prompting GPT. Simulator output is compared only after a run. `studio:sync` exports a verified, privacy-minimized snapshot through an explicit local file boundary; Studio is not continuous live ingestion. For an exactly bound captured host, Evolution Review can use its loopback-only development broker to invoke the explicitly selected GPT-5.6 provider and the same governed lifecycle ledger as the CLI. Neutral, disconnected, and identity-mismatched views remain read-only.
 
 ## CLI surface
 
-Build the CLI once, then point it at a supported repository:
+Build the CLI once, then point the terminal-first path at a supported repository:
 
 ```bash
 npm run build:cli
+npm run living -- install --root <next-app> --synthetic
+# exercise the running application
+npm run living -- improve --root <next-app> --provider codex
+npm run living -- status --root <next-app>
+npm run living -- approve --root <next-app> --evolution <id> --actor <operator> --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+npm run living -- rollback --root <next-app> --evolution <id> --actor <operator>
+```
+
+`install` performs supported discovery and applies only the declared create-only observation files. `improve` analyzes current evidence, invokes the explicitly selected provider, and prepares a proposal without writing host source. Approval requires the exact artifact and proof hashes shown during review; omit `--apply` to keep approval and application as separate commands. `--provider api` is an explicit alternative requiring `OPENAI_API_KEY`; no provider fallback occurs.
+
+The lower-level compatibility commands remain available for preview-first installation, inspection, snapshotting, and removal:
+
+```bash
 npm run living -- map --root <next-app>
 npm run living -- init --root <next-app> --synthetic
 npm run living -- init --root <next-app> --synthetic --apply
@@ -45,7 +69,7 @@ npm run living -- uninstall --root <next-app>
 npm run living -- uninstall --root <next-app> --apply
 ```
 
-`map`, `analyze`, and `snapshot` are read-only. `init` and `uninstall` are dry-run by default; only `--apply` changes the supported host. `--synthetic` labels test observation provenance and is not accepted by `map`, `analyze`, `snapshot`, or `uninstall`. `snapshot` exports a strict minimized view of the current analysis; `npm run studio:sync -- --root <next-app>` additionally refuses observed or mixed evidence. The older `--fixture` CLI remains available as a deterministic, read-only neutral test path.
+`map`, `analyze`, and `snapshot` are read-only. `init` and `uninstall` are dry-run by default; only `--apply` changes the supported host. `--synthetic` labels test observation provenance and is not accepted by `map`, `analyze`, `snapshot`, or `uninstall`. `snapshot` exports a strict minimized view of the current analysis; `studio:sync` additionally refuses observed or mixed evidence. The older `--fixture` CLI remains a deterministic, read-only neutral test path.
 
 ## Static discovery
 
@@ -67,7 +91,7 @@ The exact scanned source set produces a deterministic release digest even when G
 
 ## Installation transaction
 
-Installation remains dry-run by default. `--apply` is explicit.
+The lower-level `init` compatibility command remains dry-run by default and requires `--apply`. The terminal-first `install` command is itself the explicit high-level apply action over the same create-only plan.
 
 The Next.js adapter may create only new, planned files:
 

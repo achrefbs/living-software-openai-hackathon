@@ -102,6 +102,52 @@ export type DraftEvolutionBriefInput = Readonly<{
   evidenceEvents: readonly WorkflowEvent[];
 }>;
 
+export type SourceCandidate = Readonly<{
+  /** Normalized repository-relative path supplied by the local orchestrator. */
+  path: string;
+  /** SHA-256 of the exact UTF-8 source bytes in `content`. */
+  preimageHash: string;
+  /** Untrusted, bounded source text. The model receives no filesystem access. */
+  content: string;
+}>;
+
+export type SourcePatchEdit = Readonly<{
+  /** Exact text that must occur once in the selected preimage. */
+  anchor: string;
+  /** Replacement text. Empty text is an explicit deletion proposal. */
+  replacement: string;
+}>;
+
+export type SourcePatchProposal = Readonly<{
+  schemaVersion: "living.source-patch-proposal/v1";
+  proposalId: string;
+  appId: string;
+  opportunityId: string;
+  manifestHash: string;
+  briefId: string;
+  target: Readonly<{
+    path: string;
+    preimageHash: string;
+  }>;
+  summary: string;
+  rationale: string;
+  edits: readonly SourcePatchEdit[];
+  governance: Readonly<{
+    status: "draft";
+    humanApprovalRequired: true;
+    applicationAllowed: false;
+  }>;
+}>;
+
+export type DraftSourcePatchInput = Readonly<{
+  brief: EvolutionBrief;
+  candidates: readonly SourceCandidate[];
+}>;
+
+export type IntelligenceSchemaName =
+  | "living_evolution_brief"
+  | "living_source_patch";
+
 export type ResponsesRequest = Readonly<{
   model: "gpt-5.6";
   store: false;
@@ -114,7 +160,7 @@ export type ResponsesRequest = Readonly<{
   text: Readonly<{
     format: Readonly<{
       type: "json_schema";
-      name: "living_evolution_brief";
+      name: IntelligenceSchemaName;
       strict: true;
       schema: Readonly<Record<string, unknown>>;
     }>;
@@ -158,6 +204,20 @@ export type IntelligenceProvenance = Readonly<{
 export type DraftEvolutionBriefResult = Readonly<{
   draft: EvolutionBrief;
   provenance: IntelligenceProvenance;
+}>;
+
+export type SourcePatchProvenance = Readonly<
+  Omit<IntelligenceProvenance, "evidenceAliases"> & {
+    sourceCandidates: readonly Readonly<{
+      path: string;
+      preimageHash: string;
+    }>[];
+  }
+>;
+
+export type DraftSourcePatchResult = Readonly<{
+  proposal: SourcePatchProposal;
+  provenance: SourcePatchProvenance;
 }>;
 
 export type FetchLike = (

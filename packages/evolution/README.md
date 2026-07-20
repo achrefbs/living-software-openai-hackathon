@@ -1,53 +1,28 @@
 # @living-software/evolution
 
-This package implements one intentionally narrow source evolution:
-`next-crm-lead-review-navigation/v1`.
+This package turns an evidence-bound GPT-5.6 source proposal into a governed,
+reversible one-file evolution.
 
-It can prepare and statically prove a deterministic one-file patch, record an
-exact-hash human approval, apply only to the approved regular-file preimage,
-and roll back only the exact installed postimage. It never executes generated
-code, invokes Git, or grants network, process, filesystem-expansion, or secret
-authority.
+GPT selects one bounded UI source candidate and authors exact anchor/replacement
+edits. The model receives no filesystem or process authority. The local engine
+independently verifies the target came from the brief's affected Product Manifest
+nodes, recompiles the edits against the exact preimage, enforces a declared-authority
+denylist and diff limits, and seals the proposal, provenance, source hashes, proof,
+and receipts. The denylist is defense in depth, not semantic proof that generated
+source is correct or secure.
 
-Lifecycle evidence is stored below
-`.living/data/evolutions/<evolution-id>/` in a strict state document and a
-hash-linked receipt stream.
+Preparation never edits the host. A human must approve the exact artifact and
+proof before application. Apply accepts only the stored preimage, and rollback
+accepts only the exact installed postimage. Application captures and verifies the
+prior image, publishes without overwriting a concurrently recreated target, and
+journals recovery under `.living/data/evolutions-v2`.
 
-## Interpretation boundary
+Application-scoped lease locking serializes direct engine mutations and permits
+only one same-app evolution in `approved` or `applied` state; rollback releases
+the slot.
 
-The GPT-5.6 brief is preserved in full as evidence interpretation. It does not
-select or generate the source mutation. The artifact therefore records
-`briefRole: evidence-interpretation-only` and `implementsBrief: false`.
-
-The fixed adapter is eligible only when the validated host, manifest, exact
-target source, and a backtracking opportunity satisfy its deterministic
-contract. No model-produced code is executed.
-
-## Concurrency and lifecycle
-
-Approval, application, and rollback require `expectedRevision`, which is the
-verified receipt count. Each operation runs under an owner-token filesystem
-lock scoped to one evolution. Expired locks are quarantined before a new owner
-continues; process identifiers are not trusted as ownership evidence.
-
-Preparation emits four receipts. Human approval adds exact contract/artifact
-and artifact/proof confirmations. Application and rollback each add one
-receipt. Every receipt is sequence-checked and hash-linked to the prior one.
-
-`rolled-back` is terminal for the same deterministic evidence identity. A new
-attempt requires new evidence and therefore a new evolution identity.
-
-## Write-ahead recovery
-
-A lifecycle mutation first writes a hash-bound pending transaction containing
-the exact base state and receipt-chain head, new receipts, next state, and any
-source transition. While holding the evolution lock, recovery deterministically
-rolls that transaction forward: exact target replacement when required, atomic
-receipt-file replacement, atomic state replacement, then journal removal.
-
-Recovery is idempotent when interrupted after the journal, target, receipts, or
-state step. It refuses to proceed if the host source, receipt suffix, or state
-matches neither the exact before nor after boundary. Fault-injection tests cover
-all four interruption points. These guarantees are scoped to the package's
-validated files and process-visible filesystem semantics; they do not claim
-durability beyond guarantees provided by the host filesystem.
+Current limits are deliberate: one existing `.ts`, `.tsx`, `.js`, `.jsx`, or
+`.css` UI file below `src/app` or `src/components`; no route handlers or
+declared server/host/network/process/storage/secret/dynamic-code/raw-HTML/loader
+authority patterns; no dependency changes, new files, Git commands, or automatic
+approval.

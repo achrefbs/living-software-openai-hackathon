@@ -29,6 +29,29 @@ export {
   type RootCommandOptions,
 } from "./root-mode.js";
 export {
+  SOURCE_CANDIDATE_LIMITS,
+  SourceCandidateError,
+  collectSourceCandidates,
+  type CollectSourceCandidatesInput,
+  type SourceCandidate,
+  type SourceCandidateBrief,
+  type SourceCandidateErrorCode,
+} from "./source-candidates.js";
+export {
+  formatTerminalResult,
+  runTerminalCommand,
+  type ApplyArguments,
+  type ApproveArguments,
+  type ImproveArguments,
+  type InstallArguments,
+  type RollbackArguments,
+  type StatusArguments,
+  type TerminalArguments,
+  type TerminalDependencies,
+  type TerminalProvider,
+  type TerminalResult,
+} from "./terminal.js";
+export {
   CLI_PLAN_SCHEMA_VERSION,
   NEXT_HOST_FIXTURE_SCHEMA_VERSION,
   type AutomaticCliCommand,
@@ -41,4 +64,5 @@ export {
   type FixtureNode,
   type NextJsHostFixture,
   type PlannedChange,
+  type TerminalCliCommand,
 } from "./types.js";

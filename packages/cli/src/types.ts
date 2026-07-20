@@ -73,6 +73,13 @@ export interface NextJsHostFixture {
 
 export type CliCommand = "init" | "map" | "doctor" | "uninstall";
 export type AutomaticCliCommand = CliCommand | "analyze" | "snapshot";
+export type TerminalCliCommand =
+  | "install"
+  | "improve"
+  | "status"
+  | "approve"
+  | "apply"
+  | "rollback";
 
 export interface PlannedChange {
   readonly action: "create" | "replace" | "remove" | "set-package-dependency" | "remove-package-dependency";

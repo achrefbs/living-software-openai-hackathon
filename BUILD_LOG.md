@@ -557,6 +557,43 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Replace the hardcoded CRM recipe with GPT-authored source evolution
+
+**Scope**
+
+- Superseded the fixed lead-navigation adapter with a generic two-stage intelligence path: GPT-5.6 interprets verified workflow evidence, then authors one bounded exact source-patch proposal against manifest-linked UI candidates.
+- Added strict source-candidate collection and patch validation: one existing supported UI file, up to three candidates, 64 KiB per file, 96 KiB total, one to eight non-overlapping exact anchored replacements, verified preimage hashes, deterministic output bounds, and prohibited-code checks.
+- Rebuilt the evolution lifecycle around dynamic model-selected targets and isolated v2 state. Proposal provenance now binds the app, manifest, opportunity, brief, both model requests, candidate hashes, compiled artifact, proof, approval, apply, and rollback receipts.
+- Hardened the boundary with descriptor-bound bounded source reads that bind path and handle identity and reject swaps/growth; caller-supplied artifact and proof hashes; escape-aware defense-in-depth checks for declared host/network/process/storage/secret/dynamic-code/raw-HTML/loader authority patterns with positive controls; capture-verify/no-overwrite apply and rollback that preserve racing writers; and application-scoped same-app mutation locking.
+- Added a terminal-first workflow with `living install`, `living improve`, `living status`, `living approve`, `living apply`, and `living rollback`. Human-readable output is the default; `--json` exposes the canonical machine contract. `living improve` requires an explicit `--provider codex|api`.
+- Updated Studio and the isolated-preview generator to render the generic GPT-authored target and diff instead of CRM-specific Previous/Next assumptions. The Studio and CLI use the same governed ledger.
+- Deleted the active hardcoded adapter. Its earlier evidence remains in this append-only log and in superseded decision D-016.
+
+**How Codex accelerated the work**
+
+- Codex designed and implemented the bounded model-patch contract, generic compiler, dynamic lifecycle, terminal workflow, Studio integration, preview update, and adversarial regression suite in parallel.
+- Codex and parallel adversarial reviewers found and closed candidate-read races, declared-authority policy bypasses, concurrent source-write overwrite risk, unbound terminal approval hashes, and sibling-approval races. The final boundary retains explicit provider selection, no model tools or direct writes, caller-supplied artifact-and-proof-hash human approval, fail-closed apply, and exact-postimage rollback.
+
+**How GPT-5.6 was used**
+
+- The production path now assigns GPT-5.6 real source-authoring responsibility within the bounded contract. Local transport fixtures proved acceptance of materially different generated changes without hardcoding a feature or target.
+- No new live CRM source-generation request was made in this slice. The live Codex CLI run remains paused until the entrant explicitly consents to sending bounded synthetic workflow evidence and up to 96 KiB of relevant CRM UI source to OpenAI.
+
+**Human decisions**
+
+- The entrant rejected the fixed navigation recipe because it did not prove the product premise and explicitly authorized bounded GPT-authored source proposals under the stated guardrails.
+- Human approval remains a product requirement: generating and previewing a proposal does not authorize applying it to the connected CRM.
+
+**Evidence**
+
+- The full repository gate passed 261/261 tests: 240 product tests and 21 integration tests, every workspace typecheck, the compliance baseline, and a successful Studio production build.
+- Evolution tests exercise two materially different GPT-authored proposals and source targets through prepare, approve, apply, and rollback; unrelated targets, stale preimages, malformed anchors, overlapping edits, proposals containing declared denied authority patterns, and concurrent same-app approvals fail closed.
+- CLI tests passed 35/35, intelligence tests passed 50/50, evolution tests passed 23/23, Studio tests passed 39/39, and isolated-preview tests passed 3/3.
+- A real read-only `living status` command succeeded against the separate CRM. No CRM source was changed, no live proposal was generated, and no activation was performed during this slice.
+- Submission validation still has manual checklist work and the required `/feedback` Codex Session ID pending; this entry does not claim submission readiness.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

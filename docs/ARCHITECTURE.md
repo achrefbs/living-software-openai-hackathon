@@ -1,115 +1,115 @@
 # Architecture
 
-## Current Build Week slice
+## Product boundary
 
-Living Software is an installable developer tool, not the reference CRM. The current automatic adapter supports TypeScript Next.js App Router 15.3+ repositories that use `src/app`; arbitrary Node applications and other frameworks are not current claims. The CRM and its simulator remain separate repositories and must work without Living Software.
+Living Software is an installable developer tool, not the reference CRM. Current automatic discovery and installation support TypeScript Next.js App Router 15.3+ repositories using `src/app`. The CRM and simulator remain independent projects.
 
 ```text
 supported Next.js source
-  -> bounded, non-executing discovery
-  -> Product Manifest + observation runtime map + metric catalog
+  -> bounded non-executing discovery
+  -> Product Manifest + observation map + metric catalog
 
-explicit --apply
-  -> create-only generated browser observer + same-origin collector
-  -> hash-guarded install journal
+living install
+  -> create-only observer + same-origin collector + hash journal
 
-public UI activity
-  -> privacy-safe, hash-linked local evidence
-  -> deterministic workflow projection + technical metrics
-  -> optional threshold-based Opportunity
+ordinary UI activity
+  -> privacy-minimized, hash-linked local evidence
+  -> deterministic workflows + metrics + opportunity
 
-verified neutral evidence bundle + Opportunity
-  -> privacy-minimized GPT-5.6 request
-  -> schema/reference-validated EvolutionBrief draft
-  -> human review required
+living improve --provider codex|api
+  -> GPT-5.6 evidence interpretation
+  -> up to 3 manifest-bound UI candidates / 96 KB
+  -> second tool-less GPT-5.6 call authors 1-8 edits to 1 existing file
+  -> deterministic compilation + static proof
+  -> prepared state; host unchanged
 
-labeled neutral fixture OR validated synthetic capture
-  -> privacy-minimized static snapshot
-  -> read-only Living Studio
+human exact-hash approval
+  -> engine-owned capture-verify/no-overwrite source application
+  -> manual host build/reload and verification
+  -> exact-postimage rollback when requested
 
-committed living.gpt56-proof/v2
-  -> strict contract validation + safe display projection
-  -> independent recorded-run panel in Evolution Review
-  -> exact app + manifest + opportunity + event-set relation check
+explicit studio:sync
+  -> Studio map, workflow, opportunity, proposal, proof and receipt views
 ```
 
-The automatic path can export verified synthetic analysis to Studio through an explicit static sync. Studio validates that minimized snapshot before rendering it and otherwise falls back to the labeled neutral fixture. It does not ingest the host live or call the model runner. The current GPT-5.6 runner separately consumes neutral replay evidence. Studio can validate and render the committed live proof as recorded evidence, but only an exact app, manifest, opportunity, and event-set identity match labels it related to the active dataset. Relation alone never creates lifecycle state or authority.
+## Implemented components
 
-## Implemented boundaries
-
-| Component | What is implemented | What is not implemented |
+| Component | Implemented | Excluded |
 | --- | --- | --- |
-| Public contracts | Strict, versioned schemas for discovery, installation, observation, metrics, workflow evidence, opportunities, capability contracts, broker descriptions, receipts, and Studio messages | A schema does not itself provide production storage, approval, execution, or rollback |
-| Discovery | Bounded static analysis of a TypeScript Next.js App Router 15.3+ repository using `src/app`, with source-linked nodes, edges, normalized routes and runtime locators | Arbitrary Node, other frameworks, execution of host code, or automatic knowledge of business success |
-| CLI and automatic planner | `map --root`; dry-run-first `init --root [--synthetic] [--apply]`; `doctor --root [--synthetic]`; `analyze --root`; read-only `snapshot --root`; and dry-run-first `uninstall --root [--apply]` | Package-manager publication, universal installation, or a production deployment service |
-| Installer | Create-only, symlink-safe, atomic writes; preimage and content hashes; idempotency; install journal; exact-hash uninstall that preserves changed files and captured evidence | Editing existing integration files, editing `package.json`, deleting changed files, or deleting evidence by default |
-| Browser observer | Route and mapped action events, sanitized errors, performance and friction signals, viewport facts, visibility, scroll burden, and bounded CSS-pixel geometry | Text, values, keystrokes, query strings or hashes, DOM or HTML, cookies, headers, request bodies, screenshots, or persistent user/cross-tab identifiers |
-| Local collector | Same-origin bounded POST batches and append-only hash-linked, manifest-scoped logs below `.living/data/releases/` for single-process local proof | Authentication, evidence-reading API, database durability, multi-instance coordination, or production telemetry operations |
-| Analyzer | Deterministic workflow cases and variants, technical metrics, and optional threshold-based friction opportunity | Business-outcome truth, causal claims, or automatic layout mutation |
-| Host SDK | Event validation, sensitive-key rejection, bounded queues and batches, host-supplied transport, retry restoration, and close/flush behavior | Automatic instrumentation or a production collector service |
-| Intelligence | Explicit Codex CLI (`gpt-5.6-terra`) and Responses API (`gpt-5.6`) transports, exact neutral evidence/hash checks, privacy-minimized context, opaque evidence aliases, strict structured output, provider-specific isolation/bounds, truthful model provenance, local reference validation, and a preserved live Terra proof | Automatic-host evidence ingestion, semantic truth guarantees, approval, code generation, host tools, or activation |
-| Neutral replay | A synthetic descriptor and event stream that exercise the fixture CLI, projection, detector, and evidence hashing offline | Production telemetry or a claim that synthetic behavior represents real users |
-| Living Studio | Five read-only routes; empty, disconnected, and invalid-data previews; neutral fixture fallback; validated ingestion of an explicitly synced synthetic-only static snapshot; and a strictly validated, privacy-minimized projection of the committed GPT-5.6 proof with fail-closed evidence-identity relation | Live ingestion, model calls, automatic proof-to-snapshot attachment, command handling, lifecycle proof, activation, disable, or rollback |
+| Discovery | Source-linked nodes, edges, routes and runtime locators for supported `src/app` repositories | Arbitrary Node/framework support; host execution; business-goal inference |
+| Installer | Create-only atomic writes, journaled hashes, idempotency and exact-hash removal | Existing-file overwrite, dependency editing, evidence deletion |
+| Observer/collector | Route/action/performance/friction events and bounded CSS-pixel geometry in manifest-scoped hash chains | Content, DOM, screenshots, persistent identity, production telemetry |
+| Analyzer | Deterministic workflow cases, variants, metrics and the current threshold-based backtracking opportunity | Causality or automatic knowledge of success |
+| Intelligence | Explicit Codex CLI and Responses API transports; evidence brief plus source-patch Structured Outputs; provenance and local validation | Tools, filesystem authority, approval or application authority |
+| Candidate selector | Source provenance from affected manifest nodes; at most 3 files, 64 KB each and 96 KB total | Repository-wide context, API/tests/configuration, symlinks, binary or changed-during-read files |
+| Evolution engine | One existing UI file, 1-8 exact edits, static guards, exact hashes, proof, receipts, approval, apply, recovery and rollback | New/multiple files, dependencies, Git, server/network/process/secret/dynamic-code authority |
+| CLI | Human-readable `install`, `improve`, `status`, `approve`, `apply`, `rollback`; canonical `--json` | Background or automatic approval/application |
+| Studio | Validated static capture plus loopback connected lifecycle, proposal inspection and optional comparison | Continuous live ingestion, remote production control plane, automatic measurement |
 
-## Authority model
+## Two model calls, one authority boundary
 
-- Host source, observed events, and model output are untrusted inputs.
-- Discovery never imports application modules, evaluates JSX, executes scripts, or follows paths outside the repository.
-- Installation can create only the previewed generated files after explicit `--apply`; existing files cause a conflict instead of being overwritten.
-- Deterministic code owns parsing, canonical hashes, projections, detector thresholds, evidence linkage, install integrity, and model-response reference checks.
-- GPT-5.6 may interpret a bounded neutral evidence bundle and draft a hypothesis only.
-- A draft remains `status: draft`, requires human review, and has `activationAllowed: false`.
-- Uninstall removes only unchanged generated files recorded in the hash journal and preserves modified files and evidence.
-- No current code path changes host business logic or layout, approves a proposal, or activates a capability.
+The first GPT-5.6 call receives the exact privacy-minimized opportunity context and returns an `EvolutionBrief`. Living validates all cited evidence, metrics and affected product nodes.
 
-Application-side validation establishes schema and reference integrity, not semantic or causal truth. Human review remains necessary even when every deterministic check passes.
+Living then resolves those affected nodes to eligible UI source provenance. It reads at most three exact candidates, capped at 96 KB total. The second GPT-5.6 call receives only the validated brief and those candidates. It selects one file and authors one to eight exact anchor/replacement edits.
 
-## Reproducible paths
+Both calls are tool-less from the product's perspective. The model cannot browse the repository, call a terminal, read another file, write source or execute the result. The Codex CLI transport uses an isolated read-only temporary workspace; the API transport uses `store: false`. There is no automatic provider fallback.
 
-### Supported automatic host path
+The model output is not accepted as arbitrary executable authority. The deterministic compiler verifies:
 
-1. Run `map --root` to scan a supported repository without executing or changing it.
-2. Run `init --root` to preview the exact create-only file set.
-3. Add `--synthetic --apply` for an explicitly synthetic test installation.
-4. Run `doctor --root --synthetic`, start the host normally, and drive its public UI.
-5. Read the current manifest's `.living/data/releases/<manifest-hash>/events.ndjson` through `analyze --root` to project workflows and technical metrics. A compatible legacy log can be read when no current segment exists; evidence from different manifests is never combined.
-6. Optionally run `snapshot --root` directly, or `npm run studio:sync -- --root <next-app>`, to produce a validated, privacy-minimized static Studio snapshot. Only explicitly synthetic evidence is accepted by the sync script.
-7. Preview and then apply `uninstall --root`; verify changed generated files and evidence are preserved.
+- strict schema and draft-only governance;
+- supplied candidate path and exact preimage SHA-256;
+- one eligible existing UI file;
+- 1-8 unique anchors that each occur exactly once and do not overlap;
+- bounded replacements, aggregate diff and postimage;
+- absence of declared server, network, process, secret, dynamic-code and raw-HTML authority;
+- exact app, manifest, opportunity, model-run, proposal, contract, artifact and proof bindings.
 
-The independent CRM proof completed supported installation, runtime capture, privacy checks, and byte-preserving removal. Its simulator remained a post-run oracle and was never input to Living's discovery or observation.
+Passing this proof creates a `prepared` evolution and does not edit the host.
 
-### Neutral offline path
+## Lifecycle and ownership
 
-1. Convert the explicit neutral descriptor into a deterministic integration plan and Product Manifest.
-2. Build and validate synthetic semantic events against the generated host configuration.
-3. Project workflow cases and variants deterministically.
-4. Detect repeated backtracking and bind the opportunity to the exact affected event set.
+State transitions are:
 
-### Opt-in live-model path
+```text
+prepared -> approved -> applied -> rolled-back
+```
 
-1. Recompute and verify the neutral manifest and evidence hashes, event links, time window, origin, session count, and projected case count.
-2. Remove host display text, paths, symbols, metadata, release data, and user/session/subject identifiers; replace raw event IDs with opaque aliases.
-3. Send the bounded neutral evidence to GPT-5.6 through one explicitly selected transport. The Codex CLI path requests `gpt-5.6-terra` and uses an isolated read-only temporary workspace, ephemeral files, an explicit disable list for installed host-capable feature surfaces, strict schema/stream/file bounds, and fail-closed JSONL acceptance. The API path requests `gpt-5.6` with `store: false`, no requested tools, strict Structured Outputs, and bounded output tokens.
-4. Revalidate the returned schema, citations, metrics, product nodes, evidence scope, and provider-specific provenance before returning a local draft. API response IDs and actual models remain distinct from CLI thread IDs and requested-model evidence.
-5. For the offline judge path, parse the committed proof through the same strict public contract, project only display-safe fields, and compare its app, manifest, opportunity, and event-set identities with the active Studio dataset. Matching labels the run related; it remains a draft and grants no lifecycle authority. The current neutral proof remains independent from the CRM snapshot.
+- GPT can create only an untrusted proposal.
+- Deterministic code owns source selection, validation, hashes, proof and filesystem operations.
+- A human resupplies and approves the exact artifact and proof hashes; the engine binds the stored contract and current receipt revision.
+- Application writes only while the target equals the approved preimage.
+- Rollback restores only while the target equals the applied postimage.
+- Every transition extends the receipt chain; interrupted transactions are recovered before further work.
+- An application-scoped lease lock serializes mutations; a same-app sibling cannot also become approved or applied until the active evolution is rolled back.
 
-## Planned lifecycle, not current functionality
+`approve --apply` combines two explicit engine transitions for terminal convenience: record exact human approval, then apply that same approved postimage. Omitting `--apply` preserves separate approval and application commands.
 
-The intended later lifecycle is human-confirmed capability contract -> Codex-generated artifact -> deterministic proof -> separate activation approval -> broker execution -> measurement -> disable or rollback -> hash-linked receipts.
+## Terminal-first path
 
-None of the following is implemented end to end: additional framework adapters, production evidence storage, Codex artifact generation, broker execution, proof gates, lifecycle state storage, activation, measurement, disable, rollback, or live Studio/host integration.
+```bash
+npm run living -- install --root <next-app> --synthetic
+# exercise the application
+npm run living -- improve --root <next-app> --provider codex
+npm run living -- status --root <next-app>
+npm run living -- approve --root <next-app> --evolution <id> --actor <operator> --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+# build/reload and inspect the host
+npm run living -- rollback --root <next-app> --evolution <id> --actor <operator>
+```
+
+Select `--provider api` explicitly when using the Responses API. The CLI is sufficient for the complete governed source lifecycle. Studio is a visual companion that consumes an explicitly synchronized, minimized capture and the same local evolution ledger.
 
 ## Reference CRM boundary
 
-The standalone CRM and its user-workflow simulator were built separately. The CRM exposes an ordinary application surface and does not import Living core or Studio. Living's supported adapter may add only its documented generated integration files. Simulator traces provide synthetic post-run ground truth; Living must independently derive its map, evidence, metrics, and opportunities rather than consume simulator conclusions.
+The separate CRM exposes an ordinary product surface and has no dependency on Living core or Studio. Its simulator drives synthetic browser behavior but does not tell Living what to detect or what patch to create. Living independently derives the map, evidence, opportunity and model context.
+
+The engine contains no CRM-specific Previous/Next transform. GPT may propose any change that fits the one-file UI envelope and passes the static policy.
 
 ## Current non-claims
 
 - Universal or zero-configuration support for arbitrary codebases.
-- Automatic knowledge of business goals, outcomes, or causality.
-- Whole-desktop, hidden-content, or screenshot observation.
-- Background installation or mutation.
-- Production-readiness or universal safety.
-- Multi-tenant or multi-instance deployment.
-- Live Studio ingestion or a completed governed activation lifecycle.
-- Production generalization from synthetic evidence.
+- Automatic knowledge of business goals, outcomes or causality.
+- Semantic proof that a generated patch is correct, accessible or buildable.
+- Automatic source application without human approval.
+- Runtime success merely because source was written.
+- Automatic capture and measurement of a post-change cohort.
+- Production multi-tenant telemetry or remote lifecycle control.

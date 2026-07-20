@@ -1,48 +1,64 @@
 # Judging criteria map
 
-Every claim must point to runnable behavior, a test, a commit, or a preserved artifact. Planned behavior stays labeled as planned.
+Every claim must point to runnable behavior, a test, a commit or a preserved artifact. Planned behavior remains labeled.
 
-| Criterion | Evidence available now | Evidence still required |
+| Criterion | Evidence available now | Still required |
 | --- | --- | --- |
-| Technological Implementation | Versioned contracts; bounded Next.js source discovery; dry-run-first create-only installer and hash-guarded uninstall; generated observer and same-origin local collector; workflow and metric analysis; completed independent CRM installation/runtime/privacy/removal proof; validated synthetic-only Studio snapshot; strict GPT-5.6 transports and preserved live proof; one exact-hash CRM source-evolution adapter with static proof, separate approval/application, crash-safe receipts, rollback, and a dual-identity before/after preview; chronological Build Log | Fresh-clone and required no-rebuild judge paths; primary `/feedback` Session ID |
-| Design | Privacy boundary that preserves useful CSS-pixel geometry; coherent five-surface Studio; plain-language trigger and next-action panels; explicit unchanged/live states; side-by-side real CRM and verified preview with the only visible delta called out; technical hashes collapsed but available | Final recorded walkthrough |
-| Potential Impact | A concrete installed-tool proof that detects 18 backtracking revisits across three synthetic CRM workflows and prepares a bounded Previous/Next lead-review improvement without granting a model source authority | Post-change measurement after an entrant-approved application; no generalization beyond the tested adapter |
-| Quality of the Idea | Software surfaces repeated workflow and layout friction while deterministic systems bound installation, evidence, interpretation, and removal; the model remains advisory | Final entrant-written positioning that does not overstate business understanding or the future governed lifecycle |
+| Technological Implementation | Versioned contracts; bounded Next.js discovery; create-only installer; browser observer and hash-linked collector; deterministic workflows/metrics/opportunity; explicit GPT-5.6 transports; manifest-bound 3-file/96-KB source projection; GPT-authored one-file 1-8-edit proposal; static proof; caller-supplied artifact/proof-hash approval; exact-preimage application; receipts, recovery and rollback; Studio | Fresh-clone/no-rebuild judge path; primary `/feedback` ID; exact submission-commit live run |
+| Design | Terminal-first install -> observe -> improve flow; human-readable proposal/next command; Studio map, evidence, proposal, proof, comparison and receipt surfaces; explicit unchanged/prepared/applied states | Final recorded walkthrough |
+| Potential Impact | A tool that can derive friction from application behavior and let GPT invent a bounded UI improvement without giving the model host authority | Runtime proof of the final proposal; no automatic post-change measurement claim |
+| Quality of Idea | Creativity and governance are separated: GPT authors the proposal, deterministic code bounds it, and a human controls exact source application | Concise entrant narration and submission copy |
 
-## Judge commands
+## Primary judge path
 
 ```bash
 npm install
 npm run build:cli
-npm run living -- map --fixture samples/neutral-host/host-fixture.json
-npm run typecheck
 npm run test
+npm run living -- install --root ../crm-workflow-lab --synthetic
+# exercise the running CRM
+npm run living -- improve --root ../crm-workflow-lab --provider codex
+npm run living -- status --root ../crm-workflow-lab
+npm run studio:sync -- --root ../crm-workflow-lab
+npm run dev --workspace @living-software/studio -- --port 3001
+```
+
+Review the exact target, 1-8 model-authored edits, proof and evolution ID. Then:
+
+```bash
+npm run living -- approve --root ../crm-workflow-lab --evolution <id> --actor judge-demo --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+# reload/build and inspect the CRM
+npm run living -- rollback --root ../crm-workflow-lab --evolution <id> --actor judge-demo
+```
+
+`--provider codex` uses saved Codex authentication. `--provider api` is a separate explicit path requiring `OPENAI_API_KEY`; there is no fallback. `--json` produces canonical terminal output.
+
+The credential-free neutral path remains:
+
+```bash
+npm run living -- map --fixture samples/neutral-host/host-fixture.json
 npm run demo:neutral
 npm run dev:studio
 ```
 
-The neutral fixture path is deterministic and read-only. In Studio, open Evolution Review to inspect the committed sanitized GPT-5.6 run without credentials; the separate-run banner explains why it does not become CRM evidence or lifecycle state. For a separate supported TypeScript Next.js App Router 15.3+ repository using `src/app`, the automatic CLI surface is:
+The neutral proof demonstrates deterministic plumbing and a preserved model interpretation. It does not substitute for a current live GPT-authored patch, approval or runtime verification.
 
-```bash
-npm run living -- map --root <next-app>
-npm run living -- init --root <next-app> --synthetic
-npm run living -- init --root <next-app> --synthetic --apply
-npm run living -- doctor --root <next-app> --synthetic
-npm run living -- analyze --root <next-app>
-npm run studio:sync -- --root <next-app>
-npm run living -- uninstall --root <next-app>
-npm run living -- uninstall --root <next-app> --apply
-```
+## What judges should verify
 
-`npm run demo:gpt56` is an additional opt-in live path that currently uses saved Codex CLI authentication. `npm run demo:gpt56:api` switches explicitly to an entrant-supplied runtime API key; there is no automatic fallback. Both consume verified neutral replay evidence and remain outside the offline command sequence above.
+- GPT sees only an evidence brief and at most three manifest-bound UI files / 96 KB.
+- GPT has no tools and proposes one existing UI file with 1-8 exact edits.
+- Living—not GPT—enforces target, preimage, anchors, static authority, diff and lifecycle bindings.
+- Prepared source is unchanged.
+- `approve --apply` is a visible human action over both the exact artifact and proof hashes.
+- Runtime behavior is verified separately.
+- Rollback restores only the exact applied postimage.
 
-Verified platform: Windows 11 with Node.js 22 or newer; the current proof runtime is Node.js 24.14.1. Other operating systems have not yet been verified. The required judge path that does not require rebuilding from scratch remains an open submission gate.
+## Claims intentionally excluded
 
-## Claims intentionally excluded today
-
-- Universal source-code scanning, automatic installation into arbitrary Node software, or support beyond the current adapter.
-- Automatic knowledge of business outcomes or causal layout conclusions.
-- Production authenticated or multi-instance evidence collection.
-- Live host/model ingestion by Studio, automatic-host evidence sent to GPT-5.6, or attachment/lifecycle unlock from the neutral proof.
-- Arbitrary model-generated source patches, automatic approval/application, or completed automatic post-change measurement.
-- Any implementation dependency on the separately built CRM or simulator.
+- Universal arbitrary-codebase support.
+- Repository-wide autonomous coding or multi-file/dependency changes.
+- Model filesystem, terminal, browser, network, approval or application authority.
+- Semantic proof that a generated patch is correct, accessible or buildable.
+- Production telemetry/control-plane readiness.
+- Automatic post-change measurement or causal proof of improvement.
+- Any implementation dependency on the separate CRM or simulator.

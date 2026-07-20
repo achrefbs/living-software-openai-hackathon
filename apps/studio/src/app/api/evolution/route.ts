@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
-import { loadAutomaticEvolutionInput } from "@living-software/cli";
+import {
+  collectSourceCandidates,
+  loadAutomaticEvolutionInput,
+} from "@living-software/cli";
 import {
   gpt56EvolutionBriefSchema,
   intelligenceProvenanceSchema,
@@ -10,12 +13,12 @@ import {
 import {
   applySourceEvolution,
   approveSourceEvolution,
-  compileLeadReviewNavigation,
   getEvolutionStatus,
   listEvolutionStatuses,
   prepareSourceEvolution,
   rollbackSourceEvolution,
-  SOURCE_EVOLUTION_TARGET_PATH,
+  sourcePatchModelProvenanceSchema,
+  sourcePatchProposalSchema,
   type SourceEvolutionState,
 } from "@living-software/evolution";
 import {
@@ -28,7 +31,7 @@ import { loadStudioEvolutionConnection } from "@/lib/evolution-connection";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u;
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
@@ -65,8 +68,7 @@ function emptyStatus(
     title: null,
     interpretation: null,
     proposalSummary: null,
-    modelChangeSummary: null,
-    modelAffectedNodeIds: [],
+    proposalRationale: null,
     targetPath: null,
     preHash: null,
     postHash: null,
@@ -110,13 +112,12 @@ function projectStatus(
     revision: state.receiptCount,
     title: state.inputs.brief.title,
     interpretation: state.inputs.brief.interpretation,
-    proposalSummary:
-      "Add Previous/Next lead review navigation to remove repeated list backtracking.",
-    modelChangeSummary: state.inputs.brief.proposedChange.summary,
-    modelAffectedNodeIds: state.inputs.brief.proposedChange.affectedProductNodeIds,
+    proposalSummary: state.inputs.patchProposal.summary,
+    proposalRationale: state.inputs.patchProposal.rationale,
     targetPath: state.artifact.target.path,
     preHash: state.artifact.target.preimageHash,
     postHash: state.artifact.target.postimageHash,
+    hostSourceHash: null,
     artifactHash: state.artifact.contentHash,
     proofHash: state.proof.proofHash,
     patchPreview: cachedPatchPreview(state),
@@ -124,7 +125,7 @@ function projectStatus(
     approvalActor: state.approval?.humanId ?? null,
     receiptCount: state.receiptCount,
     provider:
-      state.modelProvenance.transport === "codex-cli" ? "codex" : "api",
+      state.modelProvenance.patch.transport === "codex-cli" ? "codex" : "api",
     evidenceRelation,
     ...(error === undefined ? {} : { error }),
   };
@@ -400,30 +401,46 @@ function parseCommand(value: unknown): CommandBody {
   return body as CommandBody;
 }
 
-async function readTargetPreimage(rootInput: string): Promise<string> {
+function canonicalTargetSegments(targetPath: string): readonly string[] {
+  const normalized = targetPath.replaceAll("\\", "/");
+  const segments = normalized.split("/");
+  if (
+    normalized !== targetPath ||
+    normalized.length === 0 ||
+    normalized.length > 512 ||
+    normalized.startsWith("/") ||
+    /^[A-Za-z]:\//u.test(normalized) ||
+    segments.some((segment) => segment === "" || segment === "." || segment === "..")
+  ) {
+    throw new TypeError("Evolution target must be a canonical repository-relative path");
+  }
+  return segments;
+}
+
+async function readTargetPreimage(
+  rootInput: string,
+  targetPath: string,
+): Promise<string> {
   const root = await realpath(rootInput);
-  const target = path.resolve(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/"));
-  const relative = path.relative(root, target);
-  if (
-    relative === "" ||
-    relative === ".." ||
-    relative.startsWith(`..${path.sep}`) ||
-    path.isAbsolute(relative)
-  ) {
-    throw new TypeError("Evolution target escaped the connected host root");
+  const rootStat = await lstat(root);
+  if (!rootStat.isDirectory()) {
+    throw new TypeError("Connected host root must be a directory");
   }
-  const parent = await realpath(path.dirname(target));
-  const parentRelative = path.relative(root, parent);
-  if (
-    parentRelative === ".." ||
-    parentRelative.startsWith(`..${path.sep}`) ||
-    path.isAbsolute(parentRelative)
-  ) {
-    throw new TypeError("Evolution target traversed a symlink outside the host");
-  }
-  const stat = await lstat(target);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 2_000_000) {
-    throw new TypeError("Evolution target must be a bounded regular file");
+  const segments = canonicalTargetSegments(targetPath);
+  let target = root;
+  for (let index = 0; index < segments.length; index += 1) {
+    target = path.join(target, segments[index]!);
+    const stat = await lstat(target);
+    if (stat.isSymbolicLink()) {
+      throw new TypeError("Evolution target cannot traverse a symbolic link");
+    }
+    const last = index === segments.length - 1;
+    if ((!last && !stat.isDirectory()) || (last && !stat.isFile())) {
+      throw new TypeError("Evolution target must be below regular directories");
+    }
+    if (last && stat.size > 2_000_000) {
+      throw new TypeError("Evolution target must be a bounded regular file");
+    }
   }
   return readFile(target, "utf8");
 }
@@ -511,10 +528,13 @@ export async function GET(request: Request): Promise<Response> {
     assertLocalRequest(request);
     const { connection, state, evidenceRelation } = await connectionAndState();
     if (connection === null) {
-      return json(emptyStatus(false, "Run studio:sync with the instrumented CRM first"), 503);
+      return json(emptyStatus(false, "Run studio:sync with the instrumented application first"), 503);
     }
     if (state === null) return json(emptyStatus(true));
-    const hostSource = await readTargetPreimage(connection.hostRoot);
+    const hostSource = await readTargetPreimage(
+      connection.hostRoot,
+      state.artifact.target.path,
+    );
     const hostSourceHash =
       `sha256:${createHash("sha256").update(hostSource, "utf8").digest("hex")}`;
     return json({
@@ -595,42 +615,59 @@ export async function POST(request: Request): Promise<Response> {
           snapshotHash: connection.snapshotHash,
         },
       );
-      const preimage = await readTargetPreimage(connection.hostRoot);
-      const postimage = compileLeadReviewNavigation(preimage);
-      if (
-        unifiedPatchPreview(
-          preimage,
-          postimage,
-          SOURCE_EVOLUTION_TARGET_PATH,
-        ) === null
-      ) {
-        throw new TypeError(
-          "The deterministic candidate exceeds Studio's bounded review limits",
-        );
-      }
       const intelligence = createIntelligenceClient(
         command.provider === "codex"
           ? createCodexCliTransport()
           : createFetchTransport(),
         { timeoutMs: 120_000 },
       );
-      const modelRun = await intelligence.draftEvolutionBrief({
+      const briefRun = await intelligence.draftEvolutionBrief({
         manifest: input.manifest,
         opportunity: input.opportunity,
         evidenceEvents: input.evidenceEvents,
       });
+      const brief = gpt56EvolutionBriefSchema.parse(briefRun.draft);
+      const briefModelProvenance = intelligenceProvenanceSchema.parse(
+        briefRun.provenance,
+      );
+      const candidates = await collectSourceCandidates({
+        repositoryRoot: connection.hostRoot,
+        manifest: input.manifest,
+        brief: {
+          affectedProductNodeIds:
+            brief.proposedChange.affectedProductNodeIds,
+        },
+      });
+      const patchRun = await intelligence.draftSourcePatch({
+        brief,
+        candidates,
+      });
+      const patchProposal = sourcePatchProposalSchema.parse(patchRun.proposal);
+      const patchModelProvenance = sourcePatchModelProvenanceSchema.parse(
+        patchRun.provenance,
+      );
+      const targetCandidate = candidates.find(
+        (candidate) =>
+          candidate.path === patchProposal.target.path &&
+          candidate.preimageHash === patchProposal.target.preimageHash,
+      );
+      if (targetCandidate === undefined) {
+        throw new TypeError(
+          "GPT-5.6 selected source outside the exact bounded candidate set",
+        );
+      }
       next = await prepareSourceEvolution({
         root: connection.hostRoot,
         app: input.application,
         manifest: input.manifest,
         opportunity: input.opportunity,
-        brief: gpt56EvolutionBriefSchema.parse(modelRun.draft),
-        modelProvenance: intelligenceProvenanceSchema.parse(
-          modelRun.provenance,
-        ),
+        brief,
+        briefModelProvenance,
+        patchProposal,
+        patchModelProvenance,
         target: {
-          path: SOURCE_EVOLUTION_TARGET_PATH,
-          preimage,
+          path: targetCandidate.path,
+          preimage: targetCandidate.content,
         },
       });
     } else {

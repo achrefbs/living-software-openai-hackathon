@@ -20,8 +20,7 @@ type EvolutionStatus = Readonly<{
   title: string | null;
   interpretation: string | null;
   proposalSummary: string | null;
-  modelChangeSummary: string | null;
-  modelAffectedNodeIds: readonly string[];
+  proposalRationale: string | null;
   targetPath: string | null;
   preHash: string | null;
   postHash: string | null;
@@ -44,12 +43,12 @@ const PHASES: ReadonlyArray<Readonly<{
   {
     id: "ready",
     label: "Evidence captured",
-    detail: "Exact CRM manifest, opportunity, and event set",
+    detail: "Exact application manifest, opportunity, and event set",
   },
   {
     id: "draft_ready",
     label: "Proposal prepared",
-    detail: "GPT interpretation and deterministic static patch proof",
+    detail: "GPT-authored source edits passed bounded validation",
   },
   {
     id: "approved",
@@ -58,7 +57,7 @@ const PHASES: ReadonlyArray<Readonly<{
   },
   {
     id: "active",
-    label: "Apply to CRM",
+    label: "Apply to application",
     detail: "Exact host bytes replaced; runtime verification remains separate",
   },
 ];
@@ -70,11 +69,11 @@ function shortHash(value: string | null): string {
 export function LiveEvolutionConsole({
   appId,
   snapshotIdentity,
-  crmUrl,
+  hostUrl,
 }: {
   appId: string;
   snapshotIdentity: StudioEvidenceIdentity;
-  crmUrl?: string;
+  hostUrl?: string;
 }) {
   const [status, setStatus] = useState<EvolutionStatus | null>(null);
   const [provider, setProvider] = useState<"codex" | "api">("codex");
@@ -247,11 +246,11 @@ export function LiveEvolutionConsole({
     status?.phase === "ready"
       ? "Start one bounded proposal"
       : status?.phase === "draft_ready"
-        ? "The proposal is ready. The real CRM is still unchanged."
+        ? "The proposal is ready. The connected application is still unchanged."
         : status?.phase === "approved"
-          ? "Approved. The real CRM is still unchanged."
+          ? "Approved. The connected application is still unchanged."
           : status?.phase === "active"
-            ? "Applied to the CRM source"
+            ? "Applied to the application source"
             : status?.phase === "rolled_back"
               ? "Rolled back to the original source"
               : "Reading the connected lifecycle";
@@ -260,18 +259,18 @@ export function LiveEvolutionConsole({
       ? "Check the review confirmation to unlock approval."
       : !approverValid
         ? "Enter an approval receipt label to unlock approval."
-        : "Ready to record your approval. This will not edit the CRM.";
+        : "Ready to record your approval. This will not edit the application.";
 
   return (
     <section aria-labelledby="live-evolution-title" className="panel live-evolution">
       <div className="panel-heading">
         <div>
           <p className="eyebrow">Connected evolution broker</p>
-          <h2 id="live-evolution-title">CRM change, end to end</h2>
+          <h2 id="live-evolution-title">Application change, end to end</h2>
           <p className="panel-subtitle">
-            Living observed lead-review activity and prepared a bounded
-            proposal. Nothing reaches the CRM until a person approves and
-            separately applies it.
+            Living observed application activity. GPT-5.6 authors a bounded
+            source proposal, Living validates it, and nothing reaches the
+            application until a person approves and separately applies it.
           </p>
         </div>
         <span className={"badge " + (status?.connected ? "badge-positive" : "badge-locked")}>
@@ -282,7 +281,7 @@ export function LiveEvolutionConsole({
       <div className="evolution-trigger-note">
         <strong>What triggered this?</strong>
         <p>
-          The installed observer captured CRM activity automatically. For this
+          The installed observer captured application activity automatically. For this
           MVP, an operator then ran <code>living analyze</code> and
           <code>studio:sync</code>. Generate, Approve, and Apply remain explicit
           human actions.
@@ -353,8 +352,9 @@ export function LiveEvolutionConsole({
             <div>
               <strong>Prepare the proposal</strong>
               <p>
-                This manually starts GPT-5.6 interpretation and the
-                deterministic patch-and-proof step.
+                This starts GPT-5.6 evidence interpretation, bounded source
+                selection, and a second GPT-5.6 call that authors the source
+                edits. Living validates the exact patch before review.
               </p>
             </div>
             <div className="evolution-prepare-controls">
@@ -384,7 +384,7 @@ export function LiveEvolutionConsole({
                 onClick={() => void run("prepare")}
                 type="button"
               >
-                {busy === "prepare" ? "Preparing with GPT-5.6…" : "Generate proposal"}
+                {busy === "prepare" ? "Drafting brief and source patch…" : "Generate source proposal"}
               </button>
             </div>
           </div>
@@ -399,7 +399,7 @@ export function LiveEvolutionConsole({
               <div>
                 <h4>Review the visible change</h4>
                 <p>
-                  Compare the real CRM with the isolated, verified preview.
+                  Compare the connected application with the isolated, verified preview.
                 </p>
                 {hasPreparedDraft ? (
                   <Link
@@ -429,7 +429,8 @@ export function LiveEvolutionConsole({
                         type="checkbox"
                       />
                       I reviewed the before / after change and exact source diff,
-                      and understand it can be rolled back.
+                      confirm GPT-5.6 authored the proposal, and understand it
+                      can be rolled back.
                     </label>
                     <label className="evolution-approver-label" htmlFor="evolution-approver">
                       Approval receipt label
@@ -462,7 +463,7 @@ export function LiveEvolutionConsole({
                 ) : (
                   <p className="evolution-step-complete">
                     Approved{status.approvalActor ? ` by ${status.approvalActor}` : ""}.
-                    Approval did not edit the CRM.
+                    Approval did not edit the application.
                   </p>
                 )}
               </div>
@@ -470,7 +471,7 @@ export function LiveEvolutionConsole({
             <li className={status.phase === "approved" ? "evolution-decision-current" : ""}>
               <span aria-hidden="true">3</span>
               <div>
-                <h4>Apply the approved change to the real CRM</h4>
+                <h4>Apply the approved change to the application</h4>
                 {status.phase === "draft_ready" && (
                   <p className="evolution-step-locked">
                     Locked until the exact artifact is approved.
@@ -485,12 +486,12 @@ export function LiveEvolutionConsole({
                       type="button"
                     >
                       {busy === "activate"
-                        ? "Applying to CRM source…"
-                        : "Apply approved change to real CRM"}
+                        ? "Applying to application source…"
+                        : "Apply approved change to application"}
                     </button>
                     <p className="evolution-action-helper">
-                      Replaces only <code>src/app/leads/[id]/page.tsx</code>,
-                      and only if it still matches the version you reviewed.
+                      Replaces only <code>{status.targetPath}</code>, and only
+                      if it still matches the version you reviewed.
                     </p>
                   </>
                 )}
@@ -531,9 +532,9 @@ export function LiveEvolutionConsole({
             >
               {busy === "rollback" ? "Rolling back…" : "Roll back to original source"}
             </button>
-            {crmUrl && (
-              <a className="button button-secondary" href={crmUrl} rel="noreferrer" target="_blank">
-                Open real CRM
+            {hostUrl && (
+              <a className="button button-secondary" href={hostUrl} rel="noreferrer" target="_blank">
+                Open connected application
               </a>
             )}
           </div>
@@ -546,16 +547,11 @@ export function LiveEvolutionConsole({
             <span className="eyebrow">GPT-5.6 evidence interpretation</span>
             <h3>{status.title}</h3>
             {status.interpretation && <p>{status.interpretation}</p>}
-            {status.modelChangeSummary && (
-              <p className="evolution-model-change">
-                <strong>Model-suggested direction:</strong>{" "}
-                {status.modelChangeSummary}
-              </p>
-            )}
           </div>
           <div className="evolution-proposal-change">
-            <span>Independent deterministic candidate</span>
+            <span>GPT-5.6-authored source proposal</span>
             <strong>{status.proposalSummary}</strong>
+            {status.proposalRationale && <p>{status.proposalRationale}</p>}
             <code>{status.targetPath}</code>
           </div>
         </div>
@@ -569,9 +565,10 @@ export function LiveEvolutionConsole({
       )}
       {status?.title && (
         <p className="evolution-boundary-note">
-          GPT-5.6 did not choose or generate this source patch. The engine
-          independently selected its only eligible backtracking adapter; human
-          review decides whether the interpretation and candidate align.
+          GPT-5.6 authored the proposed source edits from bounded eligible
+          source files. Living then validated the schema, target, exact
+          anchors, prohibited authority, diff bounds, and pre/post hashes. The
+          model still cannot approve or apply the patch.
         </p>
       )}
       {status?.phase === "draft_ready" && status.patchPreview === null && (

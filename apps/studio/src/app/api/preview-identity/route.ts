@@ -6,7 +6,7 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_PREVIEW_URL = "http://127.0.0.1:3002/leads/lead-01";
+const DEFAULT_PREVIEW_URL = "http://127.0.0.1:3002/";
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1"]);
 const MAX_IDENTITY_BYTES = 4 * 1024;
 

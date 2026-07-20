@@ -11,6 +11,11 @@ import {
   createCodexCliTransport,
 } from "./codex-transport.js";
 import { GOVERNANCE_INSTRUCTION } from "./prompt.js";
+import {
+  EVOLUTION_BRIEF_JSON_SCHEMA,
+  SOURCE_PATCH_JSON_SCHEMA,
+} from "./schema.js";
+import { SOURCE_PATCH_GOVERNANCE_INSTRUCTION } from "./source-prompt.js";
 import type { ResponsesRequest } from "./types.js";
 
 const request: ResponsesRequest = {
@@ -27,12 +32,7 @@ const request: ResponsesRequest = {
       type: "json_schema",
       name: "living_evolution_brief",
       strict: true,
-      schema: {
-        type: "object",
-        properties: { ok: { type: "boolean" } },
-        required: ["ok"],
-        additionalProperties: false,
-      },
+      schema: EVOLUTION_BRIEF_JSON_SCHEMA,
     },
   },
 };
@@ -171,13 +171,83 @@ test("rejects a downgraded or modified developer role contract", async () => {
         { role: "user", content: "Interpret bounded evidence." },
       ],
     }),
-    /fixed Living Software role contract/,
+    /modified model or output contract/,
   );
   await assert.rejects(
     () => transport.send({
       ...request,
       model: "gpt-5.5",
     } as unknown as ResponsesRequest),
+    /modified model or output contract/,
+  );
+});
+
+test("accepts only the exact tool-less source-patch request contract", async () => {
+  let invocation;
+  const transport = createCodexCliTransport({
+    async run(value) {
+      invocation = value;
+      return {
+        exitCode: 0,
+        stdout: events(),
+        stderr: "",
+        finalMessage: JSON.stringify({ ok: true }),
+      };
+    },
+  });
+  const sourceRequest: ResponsesRequest = {
+    ...request,
+    max_output_tokens: 8_000,
+    input: [
+      { role: "developer", content: SOURCE_PATCH_GOVERNANCE_INSTRUCTION },
+      { role: "user", content: "Patch bounded candidate source." },
+    ],
+    text: {
+      format: {
+        type: "json_schema",
+        name: "living_source_patch",
+        strict: true,
+        schema: SOURCE_PATCH_JSON_SCHEMA,
+      },
+    },
+  };
+
+  await transport.send(sourceRequest);
+  assert.equal(invocation.prompt, "Patch bounded candidate source.");
+  assert.match(invocation.developerInstructions, /untrusted model output/);
+  assert.match(invocation.developerInstructions, /Do not call any tool/);
+
+  const reorderedSchema = JSON.parse(
+    JSON.stringify(SOURCE_PATCH_JSON_SCHEMA),
+    (_key, value: unknown) => {
+      if (
+        typeof value !== "object" ||
+        value === null ||
+        Array.isArray(value)
+      ) {
+        return value;
+      }
+      return Object.fromEntries(Object.entries(value).reverse());
+    },
+  ) as Readonly<Record<string, unknown>>;
+  await transport.send({
+    ...sourceRequest,
+    text: {
+      format: {
+        ...sourceRequest.text.format,
+        schema: reorderedSchema,
+      },
+    },
+  });
+
+  await assert.rejects(
+    () => transport.send({
+      ...sourceRequest,
+      input: [
+        { role: "developer", content: GOVERNANCE_INSTRUCTION },
+        { role: "user", content: "Patch bounded candidate source." },
+      ],
+    }),
     /modified model or output contract/,
   );
 });

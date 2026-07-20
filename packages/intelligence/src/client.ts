@@ -1,4 +1,7 @@
+import { createHash } from "node:crypto";
+
 import {
+  gpt56EvolutionBriefSchema,
   parseOpportunity,
   parseProductManifest,
   parseWorkflowEvent,
@@ -11,18 +14,36 @@ import { projectWorkflowCases, sha256 } from "@living-software/core";
 
 import { boundProductContext, buildEvidenceAliasEntries } from "./context.js";
 import { buildResponsesRequest } from "./prompt.js";
-import { modelEvolutionBriefSchema, type ModelEvolutionBrief } from "./schema.js";
+import {
+  modelEvolutionBriefSchema,
+  modelSourcePatchSchema,
+  type ModelEvolutionBrief,
+  type ModelSourcePatch,
+} from "./schema.js";
+import { buildSourcePatchRequest } from "./source-prompt.js";
 import { CODEX_CLI_GPT56_MODEL } from "./codex-transport.js";
 import { createFetchTransport } from "./transport.js";
 import type {
   BoundedProductContext,
   DraftEvolutionBriefInput,
   DraftEvolutionBriefResult,
+  DraftSourcePatchInput,
+  DraftSourcePatchResult,
   EvolutionBrief,
   Gpt56TransportModel,
   IntelligenceTokenUsage,
   IntelligenceTransport,
+  ResponsesRequest,
+  SourceCandidate,
+  SourcePatchProposal,
 } from "./types.js";
+
+export const SOURCE_CONTEXT_LIMITS = Object.freeze({
+  candidates: 3,
+  bytesPerCandidate: 64 * 1024,
+  totalBytes: 96 * 1024,
+  totalReplacementBytes: 32 * 1024,
+} as const);
 
 export class IntelligenceResponseError extends Error {
   constructor(
@@ -33,6 +54,7 @@ export class IntelligenceResponseError extends Error {
       | "incomplete"
       | "malformed_response"
       | "invalid_brief"
+      | "invalid_patch"
       | "timeout"
       | "unexpected_model",
   ) {
@@ -148,7 +170,7 @@ function extractResponseEnvelope(
     for (const contentValue of item.content) {
       const content = asRecord(contentValue);
       if (content?.type === "refusal") {
-        throw new IntelligenceResponseError("GPT-5.6 refused to draft an evolution brief", "refusal");
+        throw new IntelligenceResponseError("GPT-5.6 refused the structured proposal request", "refusal");
       }
       if (content?.type === "output_text" && typeof content.text === "string") {
         if (actualModel === null) {
@@ -278,13 +300,203 @@ function validateReferenceIntegrity(
   };
 }
 
+function sourceHash(content: string): string {
+  return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
+}
+
+function validSourcePath(candidate: string): boolean {
+  if (
+    candidate.length < 1 ||
+    candidate.length > 512 ||
+    candidate.includes("\\") ||
+    candidate.startsWith("/") ||
+    /^[A-Za-z]:/u.test(candidate) ||
+    candidate.includes("\0")
+  ) {
+    return false;
+  }
+  return candidate
+    .split("/")
+    .every((segment) => segment !== "" && segment !== "." && segment !== "..");
+}
+
+function validateSourceCandidates(
+  candidates: readonly SourceCandidate[],
+): readonly SourceCandidate[] {
+  if (
+    candidates.length < 1 ||
+    candidates.length > SOURCE_CONTEXT_LIMITS.candidates
+  ) {
+    throw new TypeError(
+      `Source patch context requires between 1 and ${SOURCE_CONTEXT_LIMITS.candidates} candidates`,
+    );
+  }
+  const paths = new Set<string>();
+  let totalBytes = 0;
+  const validated = candidates.map((candidate) => {
+    const bytes = Buffer.byteLength(candidate.content, "utf8");
+    if (
+      !validSourcePath(candidate.path) ||
+      paths.has(candidate.path) ||
+      !/^sha256:[a-f0-9]{64}$/u.test(candidate.preimageHash) ||
+      sourceHash(candidate.content) !== candidate.preimageHash ||
+      candidate.content.includes("\0") ||
+      bytes < 1 ||
+      bytes > SOURCE_CONTEXT_LIMITS.bytesPerCandidate
+    ) {
+      throw new TypeError(
+        "Source candidates must be unique, bounded, hash-exact repository-relative UTF-8 files",
+      );
+    }
+    paths.add(candidate.path);
+    totalBytes += bytes;
+    return Object.freeze({ ...candidate });
+  });
+  if (totalBytes > SOURCE_CONTEXT_LIMITS.totalBytes) {
+    throw new TypeError("Source patch context exceeds the aggregate byte limit");
+  }
+  return Object.freeze(validated);
+}
+
+function validatePatchReferenceIntegrity(
+  proposal: ModelSourcePatch,
+  input: DraftSourcePatchInput,
+  candidates: readonly SourceCandidate[],
+): SourcePatchProposal {
+  const issues: string[] = [];
+  if (proposal.appId !== input.brief.appId) issues.push("appId");
+  if (proposal.opportunityId !== input.brief.opportunityId) {
+    issues.push("opportunityId");
+  }
+  if (proposal.manifestHash !== input.brief.manifestHash) {
+    issues.push("manifestHash");
+  }
+  if (proposal.briefId !== input.brief.briefId) issues.push("briefId");
+  const target = candidates.find(
+    (candidate) => candidate.path === proposal.target.path,
+  );
+  if (
+    target === undefined ||
+    target.preimageHash !== proposal.target.preimageHash
+  ) {
+    issues.push("target");
+  }
+
+  if (target !== undefined) {
+    const ranges: Array<Readonly<{ start: number; end: number }>> = [];
+    let replacementBytes = 0;
+    let changed = false;
+    for (const edit of proposal.edits) {
+      const start = target.content.indexOf(edit.anchor);
+      if (start < 0 || start !== target.content.lastIndexOf(edit.anchor)) {
+        issues.push("anchor");
+        continue;
+      }
+      ranges.push({ start, end: start + edit.anchor.length });
+      replacementBytes += Buffer.byteLength(edit.replacement, "utf8");
+      if (edit.replacement !== edit.anchor) changed = true;
+    }
+    ranges.sort((left, right) => left.start - right.start);
+    if (
+      ranges.some((range, index) =>
+        index > 0 && range.start < ranges[index - 1]!.end
+      )
+    ) {
+      issues.push("overlappingAnchors");
+    }
+    if (replacementBytes > SOURCE_CONTEXT_LIMITS.totalReplacementBytes) {
+      issues.push("replacementBytes");
+    }
+    if (!changed) issues.push("noChange");
+  }
+
+  if (issues.length > 0) {
+    throw new IntelligenceResponseError(
+      `GPT-5.6 source patch failed schema/reference integrity checks: ${[...new Set(issues)].join(", ")}`,
+      "invalid_patch",
+    );
+  }
+  return proposal;
+}
+
+async function requestStructuredJson(
+  transport: IntelligenceTransport,
+  request: ResponsesRequest,
+  timeoutMs: number,
+): Promise<Readonly<{
+  value: unknown;
+  envelope: ResponseEnvelope;
+  transportKind: NonNullable<IntelligenceTransport["kind"]>;
+}>> {
+  const transportKind = transport.kind ?? "responses-api";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+  try {
+    response = await transport.send(request, { signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new IntelligenceResponseError("GPT-5.6 request timed out", "timeout");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+  if (response.status < 200 || response.status >= 300) {
+    throw new IntelligenceResponseError(
+      `OpenAI Responses API returned HTTP ${response.status}`,
+      "http_error",
+    );
+  }
+  const envelope = extractResponseEnvelope(response.body, transportKind);
+  if (
+    envelope.actualModel !== null &&
+    !/^gpt-5\.6(?:$|[-_])/u.test(envelope.actualModel)
+  ) {
+    throw new IntelligenceResponseError(
+      "OpenAI response reported a model outside the GPT-5.6 family",
+      "unexpected_model",
+    );
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(envelope.text) as unknown;
+  } catch {
+    throw new IntelligenceResponseError(
+      "GPT-5.6 returned malformed JSON",
+      "malformed_response",
+    );
+  }
+  return { value, envelope, transportKind };
+}
+
+function baseProvenance(
+  envelope: ResponseEnvelope,
+  transportKind: NonNullable<IntelligenceTransport["kind"]>,
+) {
+  return {
+    provider: "openai" as const,
+    transport: transportKind,
+    boundaryRequestedModel: "gpt-5.6" as const,
+    transportRequestedModel: envelope.transportRequestedModel,
+    actualResponseModel: envelope.actualModel,
+    responseId: envelope.responseId,
+    codexThreadId: envelope.codexThreadId,
+    responseStoreRequested: transportKind === "responses-api" ? false as const : null,
+    localSessionPersisted: transportKind === "codex-cli" ? false as const : null,
+    tokenUsage: envelope.tokenUsage,
+  };
+}
+
 export type IntelligenceClientOptions = Readonly<{
   timeoutMs?: number;
   maxOutputTokens?: number;
+  maxPatchOutputTokens?: number;
 }>;
 
 export type IntelligenceClient = Readonly<{
   draftEvolutionBrief(input: DraftEvolutionBriefInput): Promise<DraftEvolutionBriefResult>;
+  draftSourcePatch(input: DraftSourcePatchInput): Promise<DraftSourcePatchResult>;
 }>;
 
 export function createIntelligenceClient(
@@ -293,11 +505,19 @@ export function createIntelligenceClient(
 ): IntelligenceClient {
   const timeoutMs = options.timeoutMs ?? 30_000;
   const maxOutputTokens = options.maxOutputTokens ?? 2_400;
+  const maxPatchOutputTokens = options.maxPatchOutputTokens ?? 8_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) {
     throw new Error("timeoutMs must be an integer between 1 and 120000");
   }
   if (!Number.isInteger(maxOutputTokens) || maxOutputTokens < 256 || maxOutputTokens > 16_384) {
     throw new Error("maxOutputTokens must be an integer between 256 and 16384");
+  }
+  if (
+    !Number.isInteger(maxPatchOutputTokens) ||
+    maxPatchOutputTokens < 256 ||
+    maxPatchOutputTokens > 16_384
+  ) {
+    throw new Error("maxPatchOutputTokens must be an integer between 256 and 16384");
   }
 
   return {
@@ -314,35 +534,12 @@ export function createIntelligenceClient(
       const sampleIdSet = new Set(opportunity.evidence.sampleEventIds);
       const sampleAliasEntries = buildEvidenceAliasEntries(events).filter((entry) => sampleIdSet.has(entry.eventId));
       const request = buildResponsesRequest(opportunity, context, maxOutputTokens);
-      const transportKind = transport.kind ?? "responses-api";
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-      let response;
-      try {
-        response = await transport.send(request, { signal: controller.signal });
-      } catch (error) {
-        if (controller.signal.aborted) {
-          throw new IntelligenceResponseError("GPT-5.6 request timed out", "timeout");
-        }
-        throw error;
-      } finally {
-        clearTimeout(timer);
-      }
-      if (response.status < 200 || response.status >= 300) {
-        throw new IntelligenceResponseError(`OpenAI Responses API returned HTTP ${response.status}`, "http_error");
-      }
-
-      const envelope = extractResponseEnvelope(response.body, transportKind);
-      if (envelope.actualModel !== null && !/^gpt-5\.6(?:$|[-_])/.test(envelope.actualModel)) {
-        throw new IntelligenceResponseError("OpenAI response reported a model outside the GPT-5.6 family", "unexpected_model");
-      }
-      let parsedJson: unknown;
-      try {
-        parsedJson = JSON.parse(envelope.text);
-      } catch {
-        throw new IntelligenceResponseError("GPT-5.6 returned malformed JSON", "malformed_response");
-      }
-      const parsedBrief = modelEvolutionBriefSchema.safeParse(parsedJson);
+      const { value, envelope, transportKind } = await requestStructuredJson(
+        transport,
+        request,
+        timeoutMs,
+      );
+      const parsedBrief = modelEvolutionBriefSchema.safeParse(value);
       if (!parsedBrief.success) {
         throw new IntelligenceResponseError("GPT-5.6 returned an invalid EvolutionBrief", "invalid_brief");
       }
@@ -350,17 +547,42 @@ export function createIntelligenceClient(
       return {
         draft,
         provenance: {
-          provider: "openai",
-          transport: transportKind,
-          boundaryRequestedModel: "gpt-5.6",
-          transportRequestedModel: envelope.transportRequestedModel,
-          actualResponseModel: envelope.actualModel,
-          responseId: envelope.responseId,
-          codexThreadId: envelope.codexThreadId,
-          responseStoreRequested: transportKind === "responses-api" ? false : null,
-          localSessionPersisted: transportKind === "codex-cli" ? false : null,
-          tokenUsage: envelope.tokenUsage,
+          ...baseProvenance(envelope, transportKind),
           evidenceAliases: sampleAliasEntries,
+        },
+      };
+    },
+    async draftSourcePatch(input: DraftSourcePatchInput): Promise<DraftSourcePatchResult> {
+      const brief = gpt56EvolutionBriefSchema.parse(input.brief);
+      const candidates = validateSourceCandidates(input.candidates);
+      const request = buildSourcePatchRequest(
+        { brief, candidates },
+        maxPatchOutputTokens,
+      );
+      const { value, envelope, transportKind } = await requestStructuredJson(
+        transport,
+        request,
+        timeoutMs,
+      );
+      const parsed = modelSourcePatchSchema.safeParse(value);
+      if (!parsed.success) {
+        throw new IntelligenceResponseError(
+          "GPT-5.6 returned an invalid source patch proposal",
+          "invalid_patch",
+        );
+      }
+      return {
+        proposal: validatePatchReferenceIntegrity(
+          parsed.data,
+          { brief, candidates },
+          candidates,
+        ),
+        provenance: {
+          ...baseProvenance(envelope, transportKind),
+          sourceCandidates: candidates.map(({ path, preimageHash }) => ({
+            path,
+            preimageHash,
+          })),
         },
       };
     },

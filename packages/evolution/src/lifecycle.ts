@@ -16,8 +16,8 @@ import {
   evolutionReceiptSchema,
   gpt56EvolutionBriefSchema,
   identifierSchema,
-  installRecordSchema,
   intelligenceProvenanceSchema,
+  installRecordSchema,
   opportunitySchema,
   productManifestSchema,
   type EvolutionReceipt,
@@ -29,19 +29,16 @@ import {
   type Sha256,
 } from "@living-software/contracts";
 
-import {
-  compileLeadReviewNavigation,
-  verifyLeadReviewNavigation,
-} from "./adapter.js";
 import { canonicalJson, hashBytes, hashJson } from "./canonical.js";
 import {
-  SOURCE_EVOLUTION_ADAPTER,
+  SOURCE_EVOLUTION_POLICY,
   SOURCE_EVOLUTION_PROHIBITIONS,
-  SOURCE_EVOLUTION_TARGET_PATH,
+  SOURCE_EVOLUTION_TESTS,
   parseSourceEvolutionState,
   sourceEvolutionApplicationSchema,
   sourceEvolutionArtifactSchema,
   sourceEvolutionContractSchema,
+  sourcePatchModelProvenanceSchema,
   sourceEvolutionProofSchema,
   sourceEvolutionSummarySchema,
   type SourceEvolutionApplication,
@@ -50,16 +47,22 @@ import {
   type SourceEvolutionProof,
   type SourceEvolutionState,
   type SourceEvolutionSummary,
+  type SourcePatchModelProvenance,
 } from "./contracts.js";
 import { SourceEvolutionError } from "./errors.js";
+import {
+  compileModelPatch,
+  sourcePatchProposalSchema,
+  type SourcePatchProposal,
+} from "./model-patch.js";
 import {
   buildEvolutionReceipt,
   parseEvolutionReceiptStream,
   serializeEvolutionReceipt,
 } from "./receipts.js";
 
-const EVOLUTION_ID = /^evolution\.source\.[a-f0-9]{24}$/u;
-const STORAGE_ROOT = ".living/data/evolutions";
+const EVOLUTION_ID = /^evolution\.source\.v2\.[a-f0-9]{24}$/u;
+const STORAGE_ROOT = ".living/data/evolutions-v2";
 const ENGINE_ACTOR = {
   type: "system",
   component: "source-evolution-engine",
@@ -74,9 +77,11 @@ export type PrepareSourceEvolutionInput = Readonly<{
   manifest: ProductManifest;
   opportunity: Opportunity;
   brief: Gpt56EvolutionBrief;
-  modelProvenance: IntelligenceProvenance;
+  briefModelProvenance: IntelligenceProvenance;
+  patchProposal: SourcePatchProposal;
+  patchModelProvenance: SourcePatchModelProvenance;
   target: Readonly<{
-    path: typeof SOURCE_EVOLUTION_TARGET_PATH;
+    path: string;
     preimage: string;
   }>;
   clock?: Clock;
@@ -298,14 +303,12 @@ async function validateInstalledHost(
 
 async function readExpectedTarget(
   root: string,
+  targetPath: string,
   expectedContent: string,
   expectedHash: Sha256,
   mismatchCode: "TARGET_PREIMAGE_MISMATCH" | "TARGET_POSTIMAGE_MISMATCH",
 ): Promise<Readonly<{ path: string; mode: number }>> {
-  const target = await assertSafeRegularFile(
-    root,
-    SOURCE_EVOLUTION_TARGET_PATH,
-  );
+  const target = await assertSafeRegularFile(root, targetPath);
   const bytes = await readFile(target);
   if (
     hashBytes(bytes) !== expectedHash ||
@@ -323,48 +326,203 @@ async function readExpectedTarget(
 
 async function atomicReplaceTarget(
   root: string,
+  targetPath: string,
   expectedContent: string,
   expectedHash: Sha256,
   nextContent: string,
   evolutionId: string,
   mismatchCode: "TARGET_PREIMAGE_MISMATCH" | "TARGET_POSTIMAGE_MISMATCH",
 ): Promise<void> {
-  const target = await readExpectedTarget(
-    root,
-    expectedContent,
-    expectedHash,
-    mismatchCode,
-  );
-  const temporary = path.join(
-    path.dirname(target.path),
-    `.${path.basename(target.path)}.${evolutionId}.${randomUUID()}.tmp`,
-  );
-  const existingTemporary = await statOrUndefined(temporary);
-  if (existingTemporary !== undefined) {
+  const segments = safeSegments(targetPath);
+  const parentRelative = segments.slice(0, -1).join("/");
+  const parent = await assertSafeDirectory(root, parentRelative);
+  const targetPathAbsolute = path.join(parent, segments.at(-1)!);
+  const operation = mismatchCode === "TARGET_PREIMAGE_MISMATCH"
+    ? "apply"
+    : "rollback";
+  const transitionStem =
+    `.${path.basename(targetPathAbsolute)}.${evolutionId}.${operation}`;
+  const guardPath = path.join(parent, `${transitionStem}.living-guard`);
+  const temporary = path.join(parent, `${transitionStem}.living-next`);
+  const expectedBytes = Buffer.from(expectedContent, "utf8");
+  const nextBytes = Buffer.from(nextContent, "utf8");
+  const nextHash = hashBytes(nextBytes);
+
+  const inspect = async (
+    candidate: string,
+  ): Promise<Readonly<{ kind: "missing" } | {
+    kind: "file";
+    bytes: Buffer;
+    hash: Sha256;
+    mode: number;
+  }>> => {
+    const stats = await statOrUndefined(candidate);
+    if (stats === undefined) return { kind: "missing" };
+    if (!stats.isFile() || stats.isSymbolicLink()) {
+      throw new SourceEvolutionError(
+        "UNSAFE_TARGET",
+        "Source transition paths must remain regular files",
+      );
+    }
+    const bytes = await readFile(candidate);
+    const after = await lstat(candidate);
+    if (
+      !after.isFile() ||
+      after.isSymbolicLink() ||
+      after.dev !== stats.dev ||
+      after.ino !== stats.ino ||
+      after.size !== stats.size ||
+      after.mtimeMs !== stats.mtimeMs ||
+      bytes.length !== stats.size
+    ) {
+      throw new SourceEvolutionError(
+        "STORAGE_CONFLICT",
+        "A source transition file changed while it was inspected",
+      );
+    }
+    return {
+      kind: "file",
+      bytes,
+      hash: hashBytes(bytes),
+      mode: stats.mode,
+    };
+  };
+  const matches = (
+    inspected: Awaited<ReturnType<typeof inspect>>,
+    bytes: Buffer,
+    hash: Sha256,
+  ): boolean =>
+    inspected.kind === "file" &&
+    inspected.hash === hash &&
+    inspected.bytes.equals(bytes);
+  const mismatch = (message: string): never => {
+    throw new SourceEvolutionError(mismatchCode, message);
+  };
+
+  let target = await inspect(targetPathAbsolute);
+  let guard = await inspect(guardPath);
+
+  // Recovery is idempotent. If the exact postimage is already installed,
+  // remove only an exact captured preimage left by an interrupted transition.
+  if (matches(target, nextBytes, nextHash)) {
+    if (guard.kind === "file") {
+      if (!matches(guard, expectedBytes, expectedHash)) {
+        throw new SourceEvolutionError(
+          "STORAGE_CONFLICT",
+          "The source transition guard does not contain the exact prior image",
+        );
+      }
+      await unlink(guardPath);
+    }
+    const staleTemporary = await inspect(temporary);
+    if (staleTemporary.kind === "file") {
+      if (!matches(staleTemporary, nextBytes, nextHash)) {
+        throw new SourceEvolutionError(
+          "STORAGE_CONFLICT",
+          "The source transition temporary file has unexpected contents",
+        );
+      }
+      await unlink(temporary);
+    }
+    return;
+  }
+
+  if (target.kind === "file" && !matches(target, expectedBytes, expectedHash)) {
+    mismatch(
+      mismatchCode === "TARGET_PREIMAGE_MISMATCH"
+        ? "The target no longer matches the exact approved preimage"
+        : "Rollback requires the exact installed postimage",
+    );
+  }
+
+  if (target.kind === "file") {
+    if (guard.kind !== "missing") {
+      throw new SourceEvolutionError(
+        "STORAGE_CONFLICT",
+        "A source transition guard already exists before target capture",
+      );
+    }
+    // Capture first, then verify what was captured. A racing writer's bytes are
+    // preserved in the guard and are never overwritten by the approved image.
+    await rename(targetPathAbsolute, guardPath);
+    await injectFault("after-target-capture");
+    target = await inspect(targetPathAbsolute);
+    guard = await inspect(guardPath);
+    if (!matches(guard, expectedBytes, expectedHash)) {
+      if (target.kind === "missing") {
+        try {
+          await link(guardPath, targetPathAbsolute);
+          await unlink(guardPath);
+        } catch {
+          // Preserve the captured bytes for manual recovery when another writer
+          // has already recreated the target.
+        }
+      }
+      mismatch("The target changed while its exact preimage was being captured");
+    }
+  } else if (!matches(guard, expectedBytes, expectedHash)) {
+    throw new SourceEvolutionError(
+      "TRANSACTION_RECOVERY_FAILED",
+      "The target is missing and no exact captured preimage can resume the transition",
+    );
+  }
+
+  const existingTemporary = await inspect(temporary);
+  if (existingTemporary.kind === "file") {
+    if (!matches(existingTemporary, nextBytes, nextHash)) {
+      throw new SourceEvolutionError(
+        "STORAGE_CONFLICT",
+        "A prior source-evolution temporary file has unexpected contents",
+      );
+    }
+  } else {
+    const mode =
+      guard.kind === "file"
+        ? guard.mode
+        : 0o600;
+    const handle = await open(temporary, "wx", mode);
+    try {
+      await handle.writeFile(nextBytes);
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  }
+
+  try {
+    // Hard-link publication is an atomic no-overwrite operation. If another
+    // writer recreated the target after capture, EEXIST preserves their bytes
+    // and the exact prior image remains in the guard.
+    await link(temporary, targetPathAbsolute);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+    const appeared = await inspect(targetPathAbsolute);
+    if (!matches(appeared, nextBytes, nextHash)) {
+      throw new SourceEvolutionError(
+        "STORAGE_CONFLICT",
+        "Another writer recreated the target during the approved transition; no bytes were overwritten",
+        { cause: error },
+      );
+    }
+  }
+  const installed = await inspect(targetPathAbsolute);
+  if (!matches(installed, nextBytes, nextHash)) {
     throw new SourceEvolutionError(
       "STORAGE_CONFLICT",
-      "A prior source-evolution temporary file already exists",
+      "The published target does not match the exact approved postimage",
     );
   }
-  const handle = await open(temporary, "wx", target.mode);
-  try {
-    await handle.writeFile(nextContent, "utf8");
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
-  try {
-    await readExpectedTarget(
-      root,
-      expectedContent,
-      expectedHash,
-      mismatchCode,
+  await unlink(temporary).catch((error: NodeJS.ErrnoException) => {
+    if (error.code !== "ENOENT") throw error;
+  });
+  const finalGuard = await inspect(guardPath);
+  if (!matches(finalGuard, expectedBytes, expectedHash)) {
+    throw new SourceEvolutionError(
+      "STORAGE_CONFLICT",
+      "The captured source guard changed before transition completion",
     );
-    await rename(temporary, target.path);
-  } catch (error) {
-    await unlink(temporary).catch(() => undefined);
-    throw error;
   }
+  await unlink(guardPath);
 }
 
 function validateEvolutionId(evolutionId: string): void {
@@ -402,24 +560,27 @@ function storagePaths(evolutionId: string) {
 
 const LOCK_LEASE_MS = 60_000;
 
-type EvolutionLock = Readonly<{
+type LeaseLock = Readonly<{
   root: string;
   path: string;
   ownerToken: string;
   handle: Awaited<ReturnType<typeof open>>;
 }>;
 
-async function acquireEvolutionLock(
-  rootInput: string,
-  evolutionId: string,
-): Promise<EvolutionLock> {
-  validateEvolutionId(evolutionId);
-  const root = await repositoryRoot(rootInput);
-  const directory = await assertSafeDirectory(
-    root,
-    storagePaths(evolutionId).directory,
-  );
-  const lockPath = path.join(directory, "mutation.lock");
+type LeaseLockScope = "application" | "evolution";
+
+async function acquireLeaseLock(
+  root: string,
+  directory: string,
+  lockPath: string,
+  scope: LeaseLockScope,
+): Promise<LeaseLock> {
+  if (path.dirname(lockPath) !== directory || !inside(directory, lockPath)) {
+    throw new SourceEvolutionError(
+      "UNSAFE_TARGET",
+      `The ${scope} lock path escaped its storage directory`,
+    );
+  }
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const ownerToken = randomUUID();
     let handle;
@@ -431,7 +592,7 @@ async function acquireEvolutionLock(
       if (!stats.isFile() || stats.isSymbolicLink()) {
         throw new SourceEvolutionError(
           "UNSAFE_TARGET",
-          "The evolution lock is not a regular file",
+          `The ${scope} lock is not a regular file`,
         );
       }
       let existing: { ownerToken?: unknown; expiresAt?: unknown };
@@ -440,7 +601,7 @@ async function acquireEvolutionLock(
       } catch {
         throw new SourceEvolutionError(
           "EVOLUTION_BUSY",
-          "The evolution is locked by an unreadable owner record",
+          `The ${scope} is locked by an unreadable owner record`,
         );
       }
       if (
@@ -451,7 +612,7 @@ async function acquireEvolutionLock(
       ) {
         throw new SourceEvolutionError(
           "EVOLUTION_BUSY",
-          "Another process currently owns this evolution",
+          `Another process currently owns this ${scope}`,
         );
       }
       // The repository controls the lock contents, so the owner token must
@@ -460,7 +621,7 @@ async function acquireEvolutionLock(
       // is used as a no-overwrite capture before the stale path is unlinked.
       const stalePath = path.join(
         directory,
-        `mutation.lock.stale.${randomUUID()}.json`,
+        `${path.basename(lockPath)}.stale.${randomUUID()}.json`,
       );
       if (
         path.dirname(stalePath) !== directory ||
@@ -468,7 +629,7 @@ async function acquireEvolutionLock(
       ) {
         throw new SourceEvolutionError(
           "UNSAFE_TARGET",
-          "The stale-lock quarantine path escaped the evolution directory",
+          `The stale-lock quarantine path escaped the ${scope} directory`,
         );
       }
       try {
@@ -477,7 +638,7 @@ async function acquireEvolutionLock(
         if ((error as NodeJS.ErrnoException).code === "EEXIST") continue;
         throw new SourceEvolutionError(
           "EVOLUTION_BUSY",
-          "Another process changed or could not quarantine the evolution lock",
+          `Another process changed or could not quarantine the ${scope} lock`,
           { cause: error },
         );
       }
@@ -500,7 +661,7 @@ async function acquireEvolutionLock(
         ) {
           throw new SourceEvolutionError(
             "EVOLUTION_BUSY",
-            "Another process replaced the evolution lock during quarantine",
+            `Another process replaced the ${scope} lock during quarantine`,
           );
         }
         await unlink(lockPath);
@@ -509,7 +670,7 @@ async function acquireEvolutionLock(
         if (error instanceof SourceEvolutionError) throw error;
         throw new SourceEvolutionError(
           "EVOLUTION_BUSY",
-          "Another process changed the evolution lock during quarantine",
+          `Another process changed the ${scope} lock during quarantine`,
           { cause: error },
         );
       }
@@ -520,6 +681,7 @@ async function acquireEvolutionLock(
       await handle.writeFile(
         `${canonicalJson({
           schemaVersion: "living.source-evolution-lock/v1",
+          scope,
           ownerToken,
           acquiredAt: acquiredAt.toISOString(),
           expiresAt: new Date(acquiredAt.getTime() + LOCK_LEASE_MS).toISOString(),
@@ -536,11 +698,11 @@ async function acquireEvolutionLock(
   }
   throw new SourceEvolutionError(
     "EVOLUTION_BUSY",
-    "Unable to acquire the evolution lock",
+    `Unable to acquire the ${scope} lock`,
   );
 }
 
-async function releaseEvolutionLock(lock: EvolutionLock): Promise<void> {
+async function releaseLeaseLock(lock: LeaseLock): Promise<void> {
   await lock.handle.close();
   let existing: { ownerToken?: unknown };
   try {
@@ -561,6 +723,42 @@ async function releaseEvolutionLock(lock: EvolutionLock): Promise<void> {
   await unlink(lock.path);
 }
 
+async function acquireEvolutionLock(
+  rootInput: string,
+  evolutionId: string,
+): Promise<LeaseLock> {
+  validateEvolutionId(evolutionId);
+  const root = await repositoryRoot(rootInput);
+  const directory = await assertSafeDirectory(
+    root,
+    storagePaths(evolutionId).directory,
+  );
+  return acquireLeaseLock(
+    root,
+    directory,
+    path.join(directory, "mutation.lock"),
+    "evolution",
+  );
+}
+
+async function acquireApplicationLock(
+  rootInput: string,
+  appIdInput: string,
+): Promise<LeaseLock> {
+  const appId = identifierSchema.parse(appIdInput);
+  const root = await repositoryRoot(rootInput);
+  const directory = await assertSafeDirectory(root, STORAGE_ROOT);
+  const scopeHash = hashJson({
+    schemaVersion: "living.source-evolution-application-lock-scope/v1",
+    appId,
+  });
+  const lockPath = path.join(
+    directory,
+    `application.${scopeHash.slice(7, 31)}.mutation.lock`,
+  );
+  return acquireLeaseLock(root, directory, lockPath, "application");
+}
+
 async function withEvolutionLock<T>(
   root: string,
   evolutionId: string,
@@ -571,7 +769,7 @@ async function withEvolutionLock<T>(
     await recoverPendingTransaction(lock.root, evolutionId);
     return await action();
   } finally {
-    await releaseEvolutionLock(lock);
+    await releaseLeaseLock(lock);
   }
 }
 
@@ -654,7 +852,10 @@ function validateInputBindings(
   manifest: ProductManifest,
   opportunity: Opportunity,
   brief: Gpt56EvolutionBrief,
-  provenance: IntelligenceProvenance,
+  briefProvenance: IntelligenceProvenance,
+  patchProposal: SourcePatchProposal,
+  patchProvenance: SourcePatchModelProvenance,
+  targetPath: string,
 ): void {
   const mismatch = (message: string): never => {
     throw new SourceEvolutionError("INVALID_INPUT", message);
@@ -662,14 +863,16 @@ function validateInputBindings(
   if (
     app.appId !== manifest.appId ||
     app.appId !== opportunity.appId ||
-    app.appId !== brief.appId
+    app.appId !== brief.appId ||
+    app.appId !== patchProposal.appId
   ) {
     mismatch("App, manifest, opportunity, and brief app ids must match");
   }
   if (
     app.manifestHash !== manifest.contentHash ||
     app.manifestHash !== opportunity.manifestHash ||
-    app.manifestHash !== brief.manifestHash
+    app.manifestHash !== brief.manifestHash ||
+    app.manifestHash !== patchProposal.manifestHash
   ) {
     mismatch("App, manifest, opportunity, and brief manifest hashes must match");
   }
@@ -684,6 +887,8 @@ function validateInputBindings(
   }
   if (
     brief.opportunityId !== opportunity.opportunityId ||
+    patchProposal.opportunityId !== opportunity.opportunityId ||
+    patchProposal.briefId !== brief.briefId ||
     brief.evidenceCitations.eventSetHash !==
       opportunity.evidence.eventSetHash ||
     opportunity.evidence.bundle.sha256 !==
@@ -717,37 +922,46 @@ function validateInputBindings(
   ) {
     mismatch("Every affected product node must exist in the manifest");
   }
-  const targetNodeIds = new Set(
-    manifest.nodes
-      .filter((node) =>
-        node.provenance.sources.some(
-          (source) =>
-            source.path.replaceAll("\\", "/") ===
-            SOURCE_EVOLUTION_TARGET_PATH,
-        ),
-      )
-      .map((node) => node.id),
+  if (patchProposal.target.path !== targetPath) {
+    mismatch("The supplied target path must match the model proposal exactly");
+  }
+  const affectedNodeIds = new Set(
+    brief.proposedChange.affectedProductNodeIds,
   );
-  if (targetNodeIds.size === 0) {
-    mismatch("The manifest must include a node sourced from the target file");
+  const targetIsManifestSourced = manifest.nodes.some(
+    (node) =>
+      affectedNodeIds.has(node.id) &&
+      node.provenance.sources.some(
+        (source) => source.path.replaceAll("\\", "/") === targetPath,
+      ),
+  );
+  if (!targetIsManifestSourced) {
+    mismatch(
+      "The patch target must be sourced by an affected manifest product node",
+    );
   }
-  if (opportunity.signal.kind !== "backtracking") {
-    mismatch("This adapter accepts only a deterministic backtracking opportunity");
+  const targetCandidate = patchProvenance.sourceCandidates.find(
+    (candidate) => candidate.path === targetPath,
+  );
+  if (targetCandidate?.preimageHash !== patchProposal.target.preimageHash) {
+    mismatch(
+      "Patch provenance must bind the exact proposed target and preimage hash",
+    );
   }
-  if (provenance.transport === "codex-cli") {
+  if (briefProvenance.transport === "codex-cli") {
     if (
-      provenance.transportRequestedModel !== "gpt-5.6-terra" ||
-      provenance.responseId !== null ||
-      provenance.codexThreadId === null ||
-      provenance.localSessionPersisted !== false
+      briefProvenance.transportRequestedModel !== "gpt-5.6-terra" ||
+      briefProvenance.responseId !== null ||
+      briefProvenance.codexThreadId === null ||
+      briefProvenance.localSessionPersisted !== false
     ) {
       mismatch("Codex CLI model provenance is internally inconsistent");
     }
   } else if (
-    provenance.transportRequestedModel !== "gpt-5.6" ||
-    provenance.responseId === null ||
-    provenance.codexThreadId !== null ||
-    provenance.responseStoreRequested !== false
+    briefProvenance.transportRequestedModel !== "gpt-5.6" ||
+    briefProvenance.responseId === null ||
+    briefProvenance.codexThreadId !== null ||
+    briefProvenance.responseStoreRequested !== false
   ) {
     mismatch("Responses API model provenance is internally inconsistent");
   }
@@ -759,7 +973,10 @@ function validateStoredState(state: SourceEvolutionState): void {
     state.inputs.manifest,
     state.inputs.opportunity,
     state.inputs.brief,
-    state.modelProvenance,
+    state.modelProvenance.brief,
+    state.inputs.patchProposal,
+    state.modelProvenance.patch,
+    state.artifact.target.path,
   );
   const expectedStorage = storagePaths(state.evolutionId);
   if (
@@ -775,7 +992,28 @@ function validateStoredState(state: SourceEvolutionState): void {
       "Stored evolution source, paths, or input hashes no longer match",
     );
   }
-  verifyLeadReviewNavigation(state.source.preimage, state.source.postimage);
+  let compiled;
+  try {
+    compiled = compileModelPatch(
+      state.inputs.patchProposal,
+      state.source.preimage,
+    );
+  } catch (error) {
+    throw new SourceEvolutionError(
+      "STATE_TAMPERED",
+      "Stored model proposal no longer compiles against its exact preimage",
+      { cause: error },
+    );
+  }
+  if (
+    compiled.postimage !== state.source.postimage ||
+    compiled.postimageHash !== state.artifact.target.postimageHash
+  ) {
+    throw new SourceEvolutionError(
+      "STATE_TAMPERED",
+      "Stored postimage is not the deterministic result of its model proposal",
+    );
+  }
 }
 
 const SOURCE_LIFECYCLE_RECEIPT_KINDS = new Set<EvolutionReceipt["kind"]>([
@@ -840,6 +1078,131 @@ function pointedReceiptIndex(
     );
   }
   return index;
+}
+
+const PREPARATION_RECEIPT_KINDS = new Set<EvolutionReceipt["kind"]>([
+  "opportunity.detected",
+  "hypothesis.created",
+  "artifact.generated",
+  "artifact.compiled",
+  "proof.completed",
+]);
+
+function validatePreparationReceiptBindings(
+  state: SourceEvolutionState,
+  receipts: readonly EvolutionReceipt[],
+): void {
+  const expectedKinds: readonly EvolutionReceipt["kind"][] = [
+    "opportunity.detected",
+    "hypothesis.created",
+    "artifact.generated",
+    "artifact.compiled",
+    "proof.completed",
+  ];
+  if (
+    canonicalJson(receipts.slice(0, 5).map((receipt) => receipt.kind)) !==
+      canonicalJson(expectedKinds) ||
+    receipts
+      .slice(5)
+      .some((receipt) => PREPARATION_RECEIPT_KINDS.has(receipt.kind))
+  ) {
+    lifecycleReceiptError(
+      "The receipt chain must contain one exact model-proposal preparation sequence",
+    );
+  }
+
+  const opportunityRefs = {
+    manifestHash: state.bindings.manifestHash,
+    opportunityHash: state.bindings.opportunityHash,
+  };
+  const artifactRefs = {
+    ...opportunityRefs,
+    contractHash: state.contract.contentHash,
+    artifactHash: state.artifact.contentHash,
+  };
+  assertExactLifecycleReceipt(receipts[0], {
+    kind: "opportunity.detected",
+    actor: {
+      type: "system",
+      component: state.inputs.opportunity.detector.id,
+      version: state.inputs.opportunity.detector.version,
+    },
+    recordedAt: state.createdAt,
+    refs: opportunityRefs,
+    payload: {
+      sourceOpportunityId: state.inputs.opportunity.opportunityId,
+      sourceDetectedAt: state.inputs.opportunity.detectedAt,
+      bindingAction: "bound-existing-opportunity",
+    },
+  });
+  assertExactLifecycleReceipt(receipts[1], {
+    kind: "hypothesis.created",
+    actor: {
+      type: "model",
+      provider: "openai",
+      model: state.modelProvenance.brief.transportRequestedModel,
+      runId: `model-run.${state.bindings.briefModelProvenanceHash.slice(7, 31)}`,
+    },
+    recordedAt: state.createdAt,
+    refs: opportunityRefs,
+    payload: {
+      briefId: state.inputs.brief.briefId,
+      briefHash: state.bindings.briefHash,
+      modelProvenanceHash: state.bindings.briefModelProvenanceHash,
+      transport: state.modelProvenance.brief.transport,
+      briefRole: "evidence-interpretation-only",
+    },
+  });
+  assertExactLifecycleReceipt(receipts[2], {
+    kind: "artifact.generated",
+    actor: {
+      type: "model",
+      provider: "openai",
+      model: state.modelProvenance.patch.transportRequestedModel,
+      runId: `model-run.${state.bindings.patchModelProvenanceHash.slice(7, 31)}`,
+    },
+    recordedAt: state.createdAt,
+    refs: artifactRefs,
+    payload: {
+      proposalId: state.inputs.patchProposal.proposalId,
+      proposalHash: state.bindings.patchProposalHash,
+      targetPath: state.artifact.target.path,
+      patchModelProvenanceHash: state.bindings.patchModelProvenanceHash,
+      proposalRole: "untrusted-bounded-source-proposal",
+      applicationAuthority: false,
+    },
+  });
+  const compiled = compileModelPatch(
+    state.inputs.patchProposal,
+    state.source.preimage,
+  );
+  assertExactLifecycleReceipt(receipts[3], {
+    kind: "artifact.compiled",
+    actor: ENGINE_ACTOR,
+    recordedAt: state.createdAt,
+    refs: artifactRefs,
+    payload: {
+      policy: SOURCE_EVOLUTION_POLICY.key,
+      targetPath: state.artifact.target.path,
+      allowedFileCount: 1,
+      generation: "deterministic-exact-anchor-compilation",
+      proposalHash: state.bindings.patchProposalHash,
+      editCount: compiled.diff.editCount,
+      modelApplicationAuthority: false,
+    },
+  });
+  assertExactLifecycleReceipt(receipts[4], {
+    kind: "proof.completed",
+    actor: ENGINE_ACTOR,
+    recordedAt: state.createdAt,
+    refs: { ...artifactRefs, proofHash: state.proof.proofHash },
+    payload: {
+      verdict: "passed",
+      deterministicChecks: state.proof.checks.map((check) => check.id),
+      preimageHash: state.artifact.target.preimageHash,
+      postimageHash: state.artifact.target.postimageHash,
+    },
+  });
 }
 
 function validateLifecycleReceiptBindings(
@@ -948,7 +1311,7 @@ function validateLifecycleReceiptBindings(
     recordedAt: application.appliedAt,
     refs,
     payload: {
-      targetPath: SOURCE_EVOLUTION_TARGET_PATH,
+      targetPath: state.artifact.target.path,
       fromHash: state.artifact.target.preimageHash,
       toHash: state.artifact.target.postimageHash,
       approvedBy: approval.humanId,
@@ -992,7 +1355,7 @@ function validateLifecycleReceiptBindings(
     recordedAt: rollback.rolledBackAt,
     refs,
     payload: {
-      targetPath: SOURCE_EVOLUTION_TARGET_PATH,
+      targetPath: state.artifact.target.path,
       fromHash: state.artifact.target.postimageHash,
       toHash: state.artifact.target.preimageHash,
       trigger: "explicit-human-rollback",
@@ -1075,12 +1438,14 @@ async function loadEvolution(
       "State lifecycle pointers do not match the receipt chain",
     );
   }
+  validatePreparationReceiptBindings(state, receipts);
   validateLifecycleReceiptBindings(state, receipts);
   return { root, state, receipts, statePath, receiptsPath };
 }
 
 export type SourceEvolutionFaultPoint =
   | "after-journal"
+  | "after-target-capture"
   | "after-target"
   | "after-receipts"
   | "after-state";
@@ -1102,12 +1467,13 @@ async function injectFault(point: SourceEvolutionFaultPoint): Promise<void> {
 type PendingOperation = "approve" | "apply" | "rollback";
 
 type PendingTarget = Readonly<{
+  path: string;
   fromHash: Sha256;
   toHash: Sha256;
 }>;
 
 type PendingTransactionContent = Readonly<{
-  schemaVersion: "living.source-evolution-transaction/v1";
+  schemaVersion: "living.source-evolution-transaction/v2";
   transactionId: string;
   evolutionId: string;
   appId: string;
@@ -1153,7 +1519,7 @@ function parsePendingTransaction(input: unknown): PendingTransaction {
   ];
   if (
     Object.keys(record).sort().join("\0") !== expectedKeys.join("\0") ||
-    record.schemaVersion !== "living.source-evolution-transaction/v1" ||
+    record.schemaVersion !== "living.source-evolution-transaction/v2" ||
     typeof record.transactionId !== "string" ||
     typeof record.evolutionId !== "string" ||
     typeof record.appId !== "string" ||
@@ -1254,7 +1620,7 @@ function parsePendingTransaction(input: unknown): PendingTransaction {
       typeof record.target !== "object" ||
       Array.isArray(record.target) ||
       Object.keys(record.target).sort().join("\0") !==
-        ["fromHash", "toHash"].join("\0")
+        ["fromHash", "path", "toHash"].join("\0")
     ) {
       throw new SourceEvolutionError(
         "TRANSACTION_RECOVERY_FAILED",
@@ -1263,6 +1629,7 @@ function parsePendingTransaction(input: unknown): PendingTransaction {
     }
     const candidate = record.target as Record<string, unknown>;
     if (
+      typeof candidate.path !== "string" ||
       typeof candidate.fromHash !== "string" ||
       typeof candidate.toHash !== "string"
     ) {
@@ -1272,6 +1639,7 @@ function parsePendingTransaction(input: unknown): PendingTransaction {
       );
     }
     target = {
+      path: candidate.path as string,
       fromHash: candidate.fromHash as Sha256,
       toHash: candidate.toHash as Sha256,
     };
@@ -1279,11 +1647,13 @@ function parsePendingTransaction(input: unknown): PendingTransaction {
   const expectedTarget =
     operation === "apply"
       ? {
+          path: nextState.artifact.target.path,
           fromHash: nextState.artifact.target.preimageHash,
           toHash: nextState.artifact.target.postimageHash,
         }
       : operation === "rollback"
         ? {
+            path: nextState.artifact.target.path,
             fromHash: nextState.artifact.target.postimageHash,
             toHash: nextState.artifact.target.preimageHash,
           }
@@ -1295,7 +1665,7 @@ function parsePendingTransaction(input: unknown): PendingTransaction {
     );
   }
   return {
-    schemaVersion: "living.source-evolution-transaction/v1",
+    schemaVersion: "living.source-evolution-transaction/v2",
     transactionId: record.transactionId,
     evolutionId: record.evolutionId,
     appId: record.appId,
@@ -1332,40 +1702,6 @@ async function readPendingTransaction(
       { cause: error },
     );
   }
-}
-
-async function targetTransitionState(
-  root: string,
-  transaction: PendingTransaction,
-): Promise<"from" | "to"> {
-  if (transaction.target === null) return "to";
-  const targetPath = await assertSafeRegularFile(
-    root,
-    SOURCE_EVOLUTION_TARGET_PATH,
-  );
-  const bytes = await readFile(targetPath);
-  const preimage = transaction.nextState.source.preimage;
-  const postimage = transaction.nextState.source.postimage;
-  const fromContent =
-    transaction.operation === "apply" ? preimage : postimage;
-  const toContent =
-    transaction.operation === "apply" ? postimage : preimage;
-  if (
-    hashBytes(bytes) === transaction.target.toHash &&
-    bytes.equals(Buffer.from(toContent, "utf8"))
-  ) {
-    return "to";
-  }
-  if (
-    hashBytes(bytes) === transaction.target.fromHash &&
-    bytes.equals(Buffer.from(fromContent, "utf8"))
-  ) {
-    return "from";
-  }
-  throw new SourceEvolutionError(
-    "TRANSACTION_RECOVERY_FAILED",
-    "Host source matches neither side of the pending exact transition",
-  );
 }
 
 async function recoverPendingTransaction(
@@ -1441,30 +1777,29 @@ async function recoverPendingTransaction(
     finalReceipts.map(serializeEvolutionReceipt).join(""),
     { appId: transaction.appId, evolutionId },
   );
+  validatePreparationReceiptBindings(transaction.nextState, finalReceipts);
   validateLifecycleReceiptBindings(transaction.nextState, finalReceipts);
 
   if (transaction.target !== null) {
-    const transitionState = await targetTransitionState(root, transaction);
-    if (transitionState === "from") {
-      const fromContent =
-        transaction.operation === "apply"
-          ? transaction.nextState.source.preimage
-          : transaction.nextState.source.postimage;
-      const toContent =
-        transaction.operation === "apply"
-          ? transaction.nextState.source.postimage
-          : transaction.nextState.source.preimage;
-      await atomicReplaceTarget(
-        root,
-        fromContent,
-        transaction.target.fromHash,
-        toContent,
-        evolutionId,
-        transaction.operation === "apply"
-          ? "TARGET_PREIMAGE_MISMATCH"
-          : "TARGET_POSTIMAGE_MISMATCH",
-      );
-    }
+    const fromContent =
+      transaction.operation === "apply"
+        ? transaction.nextState.source.preimage
+        : transaction.nextState.source.postimage;
+    const toContent =
+      transaction.operation === "apply"
+        ? transaction.nextState.source.postimage
+        : transaction.nextState.source.preimage;
+    await atomicReplaceTarget(
+      root,
+      transaction.target.path,
+      fromContent,
+      transaction.target.fromHash,
+      toContent,
+      evolutionId,
+      transaction.operation === "apply"
+        ? "TARGET_PREIMAGE_MISMATCH"
+        : "TARGET_POSTIMAGE_MISMATCH",
+    );
     await injectFault("after-target");
   }
   if (currentReceipts.length !== finalReceipts.length) {
@@ -1522,6 +1857,7 @@ async function commitLifecycleTransaction(
   if (target !== null) {
     await readExpectedTarget(
       loaded.root,
+      target.path,
       operation === "apply"
         ? nextState.source.preimage
         : nextState.source.postimage,
@@ -1533,7 +1869,7 @@ async function commitLifecycleTransaction(
   }
 
   const content: PendingTransactionContent = {
-    schemaVersion: "living.source-evolution-transaction/v1",
+    schemaVersion: "living.source-evolution-transaction/v2",
     transactionId: `transaction.${operation}.${nextState.chainHead.slice(7, 31)}`,
     evolutionId: loaded.state.evolutionId,
     appId: loaded.state.app.appId,
@@ -1569,37 +1905,22 @@ async function commitLifecycleTransaction(
   return recovered;
 }
 
-function makeContract(): SourceEvolutionContract {
+function makeContract(targetPath: string): SourceEvolutionContract {
   const content = {
-    schemaVersion: "living.source-evolution-contract/v1" as const,
-    adapter: SOURCE_EVOLUTION_ADAPTER,
+    schemaVersion: "living.source-evolution-contract/v2" as const,
+    policy: SOURCE_EVOLUTION_POLICY,
     target: {
-      path: SOURCE_EVOLUTION_TARGET_PATH,
+      path: targetPath,
       allowedFileCount: 1 as const,
-      mutationMode: "exact-source-transform" as const,
+      mutationMode: "exact-model-edit-program" as const,
     },
-    requiredHooks: [
-      "lead-review-navigation",
-      "previous-lead-button",
-      "lead-review-position",
-      "next-lead-button",
-    ],
     prohibitions: [...SOURCE_EVOLUTION_PROHIBITIONS],
-    deterministicTests: [
-      "adapter.exact",
-      "binding.exact",
-      "target.single-file",
-      "target.preimage-hash",
-      "patch.deterministic",
-      "ui.hooks-exact",
-      "navigation.host-derived",
-      "authority.model-free",
-      "prohibitions.static",
-      "rollback.exact-postimage",
-    ],
+    deterministicTests: [...SOURCE_EVOLUTION_TESTS],
     generation: {
-      kind: "deterministic-adapter" as const,
-      modelOutputAccepted: false as const,
+      kind: "model-proposed-bounded-edits" as const,
+      modelOutputAcceptedAsProposal: true as const,
+      modelApplicationAuthority: false as const,
+      filesystemAuthorityOwnedByEngine: true as const,
       arbitraryCodeAccepted: false as const,
       gitInvocationAllowed: false as const,
     },
@@ -1641,33 +1962,50 @@ export async function prepareSourceEvolution(
   const manifest = productManifestSchema.parse(input.manifest);
   const opportunity = opportunitySchema.parse(input.opportunity);
   const brief = gpt56EvolutionBriefSchema.parse(input.brief);
-  const modelProvenance = intelligenceProvenanceSchema.parse(
-    input.modelProvenance,
+  const briefModelProvenance = intelligenceProvenanceSchema.parse(
+    input.briefModelProvenance,
   );
-  if (input.target.path !== SOURCE_EVOLUTION_TARGET_PATH) {
-    throw new SourceEvolutionError(
-      "INVALID_INPUT",
-      `The adapter can modify only ${SOURCE_EVOLUTION_TARGET_PATH}`,
-    );
-  }
-  validateInputBindings(app, manifest, opportunity, brief, modelProvenance);
+  const patchProposal = sourcePatchProposalSchema.parse(input.patchProposal);
+  const patchModelProvenance = sourcePatchModelProvenanceSchema.parse(
+    input.patchModelProvenance,
+  );
+  validateInputBindings(
+    app,
+    manifest,
+    opportunity,
+    brief,
+    briefModelProvenance,
+    patchProposal,
+    patchModelProvenance,
+    input.target.path,
+  );
 
   const root = await repositoryRoot(input.root);
   await validateInstalledHost(root, app);
   const preimageHash = hashBytes(input.target.preimage);
+  if (patchProposal.target.preimageHash !== preimageHash) {
+    throw new SourceEvolutionError(
+      "TARGET_PREIMAGE_MISMATCH",
+      "The proposal is not bound to the exact supplied target preimage",
+    );
+  }
   await readExpectedTarget(
     root,
+    input.target.path,
     input.target.preimage,
     preimageHash,
     "TARGET_PREIMAGE_MISMATCH",
   );
-  const postimage = compileLeadReviewNavigation(input.target.preimage);
-  const postimageHash = hashBytes(postimage);
+  const compiled = compileModelPatch(patchProposal, input.target.preimage);
+  const postimage = compiled.postimage;
+  const postimageHash = compiled.postimageHash;
   const appHash = hashJson(app);
   const manifestInputHash = hashJson(manifest);
   const opportunityHash = hashJson(opportunity);
   const briefHash = hashJson(brief);
-  const modelProvenanceHash = hashJson(modelProvenance);
+  const briefModelProvenanceHash = hashJson(briefModelProvenance);
+  const patchProposalHash = hashJson(patchProposal);
+  const patchModelProvenanceHash = hashJson(patchModelProvenance);
   const bindings = {
     appHash,
     manifestHash: manifest.contentHash,
@@ -1676,38 +2014,44 @@ export async function prepareSourceEvolution(
     opportunityHash,
     briefId: brief.briefId,
     briefHash,
-    modelProvenanceHash,
+    briefModelProvenanceHash,
+    patchProposalId: patchProposal.proposalId,
+    patchProposalHash,
+    patchModelProvenanceHash,
   };
   const identityHash = hashJson({
-    schemaVersion: "living.source-evolution-identity/v1",
-    adapter: SOURCE_EVOLUTION_ADAPTER,
+    schemaVersion: "living.source-evolution-identity/v2",
+    policy: SOURCE_EVOLUTION_POLICY,
     app,
     manifest,
     opportunity,
     brief,
-    modelProvenance,
+    briefModelProvenance,
+    patchProposal,
+    patchModelProvenance,
     target: { path: input.target.path, preimageHash },
   });
-  const evolutionId = `evolution.source.${identityHash.slice(7, 31)}`;
-  const contract = makeContract();
+  const evolutionId = `evolution.source.v2.${identityHash.slice(7, 31)}`;
+  const contract = makeContract(input.target.path);
   const artifactContent = {
-    schemaVersion: "living.source-evolution-artifact/v1" as const,
-    artifactId: `artifact.source.${identityHash.slice(7, 31)}`,
-    adapter: SOURCE_EVOLUTION_ADAPTER,
+    schemaVersion: "living.source-evolution-artifact/v2" as const,
+    artifactId: `artifact.source.v2.${identityHash.slice(7, 31)}`,
+    policy: SOURCE_EVOLUTION_POLICY,
     contractHash: contract.contentHash,
     bindings,
-    interpretation: {
-      briefRole: "evidence-interpretation-only" as const,
-      implementsBrief: false as const,
-      adapterCandidateBasis: "deterministic-opportunity-and-host" as const,
+    generation: {
+      proposalOrigin: "gpt-5.6" as const,
+      proposalRole: "untrusted-bounded-source-proposal" as const,
+      compiler: "exact-anchor-engine/v1" as const,
+      modelAppliedSource: false as const,
     },
     target: {
-      path: SOURCE_EVOLUTION_TARGET_PATH,
+      path: input.target.path,
       allowedFileCount: 1 as const,
       preimageHash,
       postimageHash,
     },
-    transform: SOURCE_EVOLUTION_ADAPTER.key,
+    transform: "bounded-exact-anchor-edits/v1" as const,
   };
   const artifact: SourceEvolutionArtifact =
     sourceEvolutionArtifactSchema.parse({
@@ -1715,12 +2059,34 @@ export async function prepareSourceEvolution(
       contentHash: hashJson(artifactContent),
     });
   const proofContent = {
-    schemaVersion: "living.source-evolution-proof/v1" as const,
-    proofId: `proof.source.${artifact.contentHash.slice(7, 31)}`,
+    schemaVersion: "living.source-evolution-proof/v2" as const,
+    proofId: `proof.source.v2.${artifact.contentHash.slice(7, 31)}`,
     contractHash: contract.contentHash,
     artifactHash: artifact.contentHash,
-    target: { path: SOURCE_EVOLUTION_TARGET_PATH, preimageHash, postimageHash },
-    checks: verifyLeadReviewNavigation(input.target.preimage, postimage),
+    target: { path: input.target.path, preimageHash, postimageHash },
+    checks: [
+      {
+        id: "binding.exact" as const,
+        status: "passed" as const,
+        detail: "Application, manifest, opportunity, brief, proposal, and both model runs are hash-bound.",
+      },
+      {
+        id: "target.manifest-sourced" as const,
+        status: "passed" as const,
+        detail: "The target is sourced by a manifest node named in the brief's affected nodes.",
+      },
+      ...compiled.checks,
+      {
+        id: "authority.engine-owned" as const,
+        status: "passed" as const,
+        detail: "The model proposed edits only; deterministic engine and human approval retain mutation authority.",
+      },
+      {
+        id: "rollback.exact-postimage" as const,
+        status: "passed" as const,
+        detail: "Rollback is allowed only from the exact compiled postimage hash.",
+      },
+    ],
     verdict: "passed" as const,
   };
   const proof: SourceEvolutionProof = sourceEvolutionProofSchema.parse({
@@ -1755,16 +2121,42 @@ export async function prepareSourceEvolution(
     actor: {
       type: "model",
       provider: "openai",
-      model: modelProvenance.transportRequestedModel,
-      runId: `model-run.${modelProvenanceHash.slice(7, 31)}`,
+      model: briefModelProvenance.transportRequestedModel,
+      runId: `model-run.${briefModelProvenanceHash.slice(7, 31)}`,
     },
     refs: { manifestHash: manifest.contentHash, opportunityHash },
     payload: {
       briefId: brief.briefId,
       briefHash,
-      modelProvenanceHash,
-      transport: modelProvenance.transport,
+      modelProvenanceHash: briefModelProvenanceHash,
+      transport: briefModelProvenance.transport,
       briefRole: "evidence-interpretation-only",
+    },
+  });
+  appendReceipt(receipts, {
+    appId: app.appId,
+    evolutionId,
+    recordedAt,
+    kind: "artifact.generated",
+    actor: {
+      type: "model",
+      provider: "openai",
+      model: patchModelProvenance.transportRequestedModel,
+      runId: `model-run.${patchModelProvenanceHash.slice(7, 31)}`,
+    },
+    refs: {
+      manifestHash: manifest.contentHash,
+      opportunityHash,
+      contractHash: contract.contentHash,
+      artifactHash: artifact.contentHash,
+    },
+    payload: {
+      proposalId: patchProposal.proposalId,
+      proposalHash: patchProposalHash,
+      targetPath: input.target.path,
+      patchModelProvenanceHash,
+      proposalRole: "untrusted-bounded-source-proposal",
+      applicationAuthority: false,
     },
   });
   appendReceipt(receipts, {
@@ -1780,14 +2172,13 @@ export async function prepareSourceEvolution(
       artifactHash: artifact.contentHash,
     },
     payload: {
-      adapter: SOURCE_EVOLUTION_ADAPTER.key,
-      targetPath: SOURCE_EVOLUTION_TARGET_PATH,
+      policy: SOURCE_EVOLUTION_POLICY.key,
+      targetPath: input.target.path,
       allowedFileCount: 1,
-      generation: "deterministic-adapter",
-      modelCodeAccepted: false,
-      briefRole: "evidence-interpretation-only",
-      implementsBrief: false,
-      adapterCandidateBasis: "deterministic-opportunity-and-host",
+      generation: "deterministic-exact-anchor-compilation",
+      proposalHash: patchProposalHash,
+      editCount: compiled.diff.editCount,
+      modelApplicationAuthority: false,
     },
   });
   appendReceipt(receipts, {
@@ -1813,13 +2204,16 @@ export async function prepareSourceEvolution(
 
   const storage = storagePaths(evolutionId);
   const state = parseSourceEvolutionState({
-    schemaVersion: "living.source-evolution-state/v1",
+    schemaVersion: "living.source-evolution-state/v2",
     evolutionId,
     app,
     status: "prepared",
     bindings,
-    inputs: { manifest, opportunity, brief },
-    modelProvenance,
+    inputs: { manifest, opportunity, brief, patchProposal },
+    modelProvenance: {
+      brief: briefModelProvenance,
+      patch: patchModelProvenance,
+    },
     contract,
     artifact,
     proof,
@@ -1993,7 +2387,7 @@ async function applySourceEvolutionUnlocked(
       proofHash: state.proof.proofHash,
     },
     payload: {
-      targetPath: SOURCE_EVOLUTION_TARGET_PATH,
+      targetPath: state.artifact.target.path,
       fromHash: state.artifact.target.preimageHash,
       toHash: state.artifact.target.postimageHash,
       approvedBy: state.approval.humanId,
@@ -2013,6 +2407,7 @@ async function applySourceEvolutionUnlocked(
     updatedAt: recordedAt,
   });
   return commitLifecycleTransaction(loaded, next, [receipt], "apply", {
+    path: state.artifact.target.path,
     fromHash: state.artifact.target.preimageHash,
     toHash: state.artifact.target.postimageHash,
   });
@@ -2048,7 +2443,7 @@ async function rollbackSourceEvolutionUnlocked(
       proofHash: state.proof.proofHash,
     },
     payload: {
-      targetPath: SOURCE_EVOLUTION_TARGET_PATH,
+      targetPath: state.artifact.target.path,
       fromHash: state.artifact.target.postimageHash,
       toHash: state.artifact.target.preimageHash,
       trigger: "explicit-human-rollback",
@@ -2069,6 +2464,7 @@ async function rollbackSourceEvolutionUnlocked(
     updatedAt: recordedAt,
   });
   return commitLifecycleTransaction(loaded, next, [receipt], "rollback", {
+    path: state.artifact.target.path,
     fromHash: state.artifact.target.postimageHash,
     toHash: state.artifact.target.preimageHash,
   });
@@ -2081,10 +2477,123 @@ async function getEvolutionStatusUnlocked(
   return (await loadEvolution(root, evolutionId)).state;
 }
 
+async function readEvolutionApplicationIdentity(
+  rootInput: string,
+  evolutionId: string,
+): Promise<Readonly<{ root: string; appId: string }>> {
+  validateEvolutionId(evolutionId);
+  const root = await repositoryRoot(rootInput);
+  const paths = storagePaths(evolutionId);
+  await assertSafeDirectory(root, paths.directory);
+  const statePath = await assertSafeRegularFile(root, paths.statePath);
+  let state: SourceEvolutionState;
+  try {
+    state = parseSourceEvolutionState(
+      JSON.parse(await readFile(statePath, "utf8")),
+    );
+    validateStoredState(state);
+  } catch (error) {
+    if (error instanceof SourceEvolutionError) throw error;
+    throw new SourceEvolutionError(
+      "STATE_TAMPERED",
+      "Evolution state failed strict validation while deriving its application lock",
+      { cause: error },
+    );
+  }
+  if (state.evolutionId !== evolutionId) {
+    throw new SourceEvolutionError(
+      "STATE_TAMPERED",
+      "Evolution directory and state ids do not match",
+    );
+  }
+  return { root, appId: state.app.appId };
+}
+
+async function applicationEvolutionStates(
+  root: string,
+  appId: string,
+): Promise<readonly SourceEvolutionState[]> {
+  const base = path.join(root, ...safeSegments(STORAGE_ROOT));
+  await assertSafeDirectory(root, STORAGE_ROOT);
+  const entries = await readdir(base, { withFileTypes: true });
+  const states: SourceEvolutionState[] = [];
+  for (const entry of entries.sort((left, right) =>
+    left.name.localeCompare(right.name),
+  )) {
+    if (!EVOLUTION_ID.test(entry.name)) continue;
+    if (!entry.isDirectory() || entry.isSymbolicLink()) {
+      throw new SourceEvolutionError(
+        "UNSAFE_TARGET",
+        `Evolution storage entry is not a real directory: ${entry.name}`,
+      );
+    }
+    const identity = await readEvolutionApplicationIdentity(root, entry.name);
+    if (identity.appId !== appId) continue;
+    const state = await withEvolutionLock(root, entry.name, () =>
+      getEvolutionStatusUnlocked(root, entry.name),
+    );
+    if (state.app.appId !== appId) {
+      throw new SourceEvolutionError(
+        "STORAGE_CONFLICT",
+        "An evolution changed application identity while its application lock was held",
+      );
+    }
+    states.push(state);
+  }
+  return states;
+}
+
+async function withApplicationMutationLock<T>(
+  root: string,
+  evolutionId: string,
+  rejectActiveSibling: boolean,
+  action: () => Promise<T>,
+): Promise<T> {
+  const identity = await readEvolutionApplicationIdentity(root, evolutionId);
+  const applicationLock = await acquireApplicationLock(
+    identity.root,
+    identity.appId,
+  );
+  try {
+    if (rejectActiveSibling) {
+      const states = await applicationEvolutionStates(
+        applicationLock.root,
+        identity.appId,
+      );
+      const conflict = states.find(
+        (state) =>
+          state.evolutionId !== evolutionId &&
+          (state.status === "approved" || state.status === "applied"),
+      );
+      if (conflict !== undefined) {
+        throw new SourceEvolutionError(
+          "INVALID_TRANSITION",
+          `Application '${identity.appId}' already has active sibling evolution '${conflict.evolutionId}' in '${conflict.status}' state`,
+        );
+      }
+    }
+    return await withEvolutionLock(applicationLock.root, evolutionId, async () => {
+      const state = await getEvolutionStatusUnlocked(
+        applicationLock.root,
+        evolutionId,
+      );
+      if (state.app.appId !== identity.appId) {
+        throw new SourceEvolutionError(
+          "STORAGE_CONFLICT",
+          "The evolution changed application identity before mutation",
+        );
+      }
+      return action();
+    });
+  } finally {
+    await releaseLeaseLock(applicationLock);
+  }
+}
+
 export async function approveSourceEvolution(
   input: ApproveSourceEvolutionInput,
 ): Promise<SourceEvolutionState> {
-  return withEvolutionLock(input.root, input.evolutionId, () =>
+  return withApplicationMutationLock(input.root, input.evolutionId, true, () =>
     approveSourceEvolutionUnlocked(input),
   );
 }
@@ -2092,7 +2601,7 @@ export async function approveSourceEvolution(
 export async function applySourceEvolution(
   input: ApplySourceEvolutionInput,
 ): Promise<SourceEvolutionState> {
-  return withEvolutionLock(input.root, input.evolutionId, () =>
+  return withApplicationMutationLock(input.root, input.evolutionId, true, () =>
     applySourceEvolutionUnlocked(input),
   );
 }
@@ -2100,7 +2609,7 @@ export async function applySourceEvolution(
 export async function rollbackSourceEvolution(
   input: RollbackSourceEvolutionInput,
 ): Promise<SourceEvolutionState> {
-  return withEvolutionLock(input.root, input.evolutionId, () =>
+  return withApplicationMutationLock(input.root, input.evolutionId, false, () =>
     rollbackSourceEvolutionUnlocked(input),
   );
 }

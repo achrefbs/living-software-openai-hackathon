@@ -1,65 +1,89 @@
 # Demo plan
 
-The final public YouTube video must be shorter than three minutes, include audio, show the project working, and explain how Codex and GPT-5.6 were used. Record only behavior reproduced from the exact submission commit.
+The public YouTube video must be under three minutes, include audio, and show behavior reproduced from the exact submission commit.
 
 ## Target cut
 
-### 0:00-0:15 — The problem and boundary
+### 0:00-0:15 — Promise and boundary
 
-- State the promise: a supported application can expose workflow and layout evidence and receive a bounded improvement draft.
-- Name the current support honestly: TypeScript Next.js App Router 15.3+ with `src/app`.
-- Clarify that the model proposes; it cannot change or activate the host.
+- “Install Living Software, use your app, and let it propose an improvement from the workflow it observed.”
+- State current support: TypeScript Next.js App Router 15.3+ using `src/app`.
+- State the trust line: GPT authors the proposal; a human and deterministic engine control source writes.
 
-### 0:15-0:50 — Discover and install
+### 0:15-0:35 — Install
 
-- Show the documented Windows 11 / Node.js 22-or-newer setup; the current proof runtime is Node.js 24.14.1.
-- Run `npm run build:cli` and `npm run living -- map --root <next-app>`, then show the source-linked Product Manifest, observation runtime map, and metric catalog.
-- Run `init --root` first as a dry-run, then with explicit `--synthetic --apply`.
-- Point out the create-only file list, hash journal, self-contained generated code, and unchanged host `package.json`.
+Run:
 
-### 0:50-1:30 — Capture and analyze a workflow
+```bash
+npm run living -- install --root ../crm-workflow-lab --synthetic
+```
 
-- Run `doctor --root --synthetic`, start the host, and drive its public UI with the independent synthetic simulator.
-- Show Living's separate hash-linked `.living/data/releases/<manifest-hash>/events.ndjson` evidence and run `analyze --root`.
-- Show projected workflows, technical metrics, and a threshold-based friction opportunity only if the completed run actually produces one.
-- Explain that precise CSS-pixel geometry can support a layout hypothesis, while text, values, keystrokes, query strings, DOM, cookies, headers, request bodies, screenshots, and persistent user identifiers are excluded.
-- Compare simulator truth only after Living's analysis; do not imply Living ingested the simulator trace.
+Show the mapped-node summary and that observation is ready. Explain that installation is create-only and hash-journaled.
 
-### 1:30-2:00 — GPT-5.6 contributes materially
+### 0:35-0:58 — Observe
 
-- Open the connected Evolution Review and show the CRM-bound “GPT-5.6 evidence interpretation,” the independent deterministic candidate, and the explicit “Waiting for approval · Not live” state.
-- Point out that Codex CLI did not report an authoritative actual response model; Studio preserves that as “Not reported” instead of inventing provenance.
-- Use the committed sanitized neutral proof for the credential-free judge path. It appears in the neutral fixture flow, not beside an unrelated connected CRM proposal. Optionally run `npm run demo:gpt56:cli` only when saved Codex authentication is available.
-- Explain that the connected Prepare command sends only the verified, bounded supporting event subset; GPT interprets evidence but does not generate executable code, approve, or apply it.
+- Start the independent CRM and exercise its UI with the simulator or visible browser actions.
+- Explain what Living captures: routes, mapped actions, timing, friction and CSS-pixel geometry.
+- State what it excludes: content, values, DOM, screenshots, secrets and persistent identity.
 
-### 2:00-2:25 — Living Studio
+### 0:58-1:35 — GPT invents the proposal
 
-- Run `npm run studio:sync -- --root <next-app>` after the synthetic capture.
-- Open Product Map, Workflows, Opportunities, Evolutions, and Receipts.
-- Show the **Captured snapshot** and **Synthetic capture** provenance labels plus one preview state.
-- Open the Current vs Proposed route. Point to the unchanged real CRM on the left and the isolated preview's new Previous/Next row on the right.
-- Show that the page says what triggered the proposal, identifies the one changed file, and routes to a separate Approve step; approval itself still does not edit the CRM.
-- Describe Studio accurately: observation is automatic while the CRM is exercised, but analysis/sync are explicitly rerun in this MVP. Prepare, Approve, and Apply are separate human actions.
+Run:
 
-### 2:25-2:50 — Remove and assign authority
+```bash
+npm run living -- improve --root ../crm-workflow-lab --provider codex
+```
 
-- Preview `uninstall --root`, then apply it and show the hash-guarded result.
-- State that captured evidence and any modified generated file are preserved.
-- Summarize Codex work: rule review, architecture, implementation, tests, integration, and documentation.
-- Summarize entrant decisions: product thesis, tool/host separation, privacy boundary, and scope.
+- Show the detected evidence, interpretation, chosen file, exact GPT-authored edits, model provenance, proof result and evolution ID.
+- Say that the engine did not contain the proposed CRM fix. GPT chose the change from up to three manifest-bound UI candidates capped at 96 KB.
+- Explain the enforced envelope: one existing UI file, one to eight exact edits, no tools, no API/server/process/secret/dynamic-code/dependency authority.
+- Point out “prepared”: the CRM source is still unchanged.
 
-### 2:50-2:59 — Close
+If using the API, select it explicitly with `--provider api`; never imply fallback.
 
+### 1:35-1:58 — Visualize in Studio
+
+Run `studio:sync`, open Evolution Review, then Current vs Proposed if the verified preview is available.
+
+- Show trigger -> model reasoning -> exact code proposal -> static proof -> human gate.
+- Keep the unchanged host and proposal visually distinct.
+- Do not describe the preview as approval, application or runtime proof.
+
+### 1:58-2:25 — Approve and apply
+
+After visibly reviewing the proposal:
+
+```bash
+npm run living -- approve --root ../crm-workflow-lab --evolution <id> --actor demo --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+```
+
+- Explain that this records human approval of exact hashes, then writes that same approved postimage.
+- Reload/build the CRM and show the actual visible change.
+- Do not call source application “success” until the running host is shown.
+
+### 2:25-2:45 — Roll back
+
+```bash
+npm run living -- rollback --root ../crm-workflow-lab --evolution <id> --actor demo
+```
+
+Reload the CRM and show the exact original state. Show the receipt chain in terminal or Studio.
+
+### 2:45-2:59 — Close honestly
+
+- Codex built, reviewed and tested the system.
+- GPT-5.6 interpreted real evidence and authored the exact proposal.
+- “Today it governs one-file UI changes. It does not yet automatically measure the post-change workflow.”
 - “Software that earns the right to evolve.”
 
 ## Recording gates
 
-- [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
-- [x] Real GPT-5.6 Terra run completed and evidence preserved.
-- [ ] `npm install`, `npm run build:cli`, `npm run typecheck`, `npm run test`, and `npm run demo:neutral` pass on a fresh Windows 11 / Node.js 22-or-newer checkout.
-- [ ] Required judge path that does not require rebuilding from scratch is implemented and verified before it is claimed.
-- [ ] `npm run dev:studio` starts the five-route Studio.
-- [ ] No arbitrary-Node, business-outcome, production collector, live-ingestion, activation, or governed lifecycle rollback claim exceeds the current implementation.
-- [ ] Video is below 2:59 and publicly viewable without login.
-- [ ] Audio explains both Codex and GPT-5.6 usage.
-- [ ] Only synthetic data and licensed/original media appear.
+- [x] Independent supported-host installation, capture, privacy and removal proof exists.
+- [x] Real GPT-5.6 transport proof exists.
+- [ ] Fresh-clone build/test path passes from the exact video commit.
+- [ ] Live generic GPT-authored source proposal is recorded from that commit.
+- [ ] Proposal shown in the video is not fixture-only or hardcoded.
+- [ ] Exact approval, runtime-visible application and rollback are shown.
+- [ ] No automatic measurement or semantic-safety claim exceeds the implementation.
+- [ ] Video is under 2:59, public without login and uses only synthetic data/licensed media.
+- [ ] Audio explains both Codex and GPT-5.6.

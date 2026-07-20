@@ -1,26 +1,63 @@
 # Security and trust model
 
-Living Software treats host source, observed events, and model output as untrusted. The current automatic slice may create only its declared observation artifacts after explicit `--apply`; it does not change host business logic or layout, install a generated capability, approve a proposal, or activate behavior.
+Living Software treats host source, observed events, and every model response as untrusted. GPT-5.6 may author a bounded source proposal, but it receives no host tools and never owns filesystem, approval, application, or rollback authority.
 
-## Controls implemented now
+## Implemented authority boundaries
 
-| Component | Current authority | Current boundary |
+| Component | Authority | Fail-closed boundary |
 | --- | --- | --- |
-| Versioned contracts | Strictly parse known discovery, installation, observation, metric, workflow, opportunity, capability, host-interface, receipt, and Studio shapes | Unknown or malformed input is rejected; parsing does not grant authority |
-| Static discovery | Read bounded TypeScript and Next.js App Router structure and derive source-linked nodes, edges, route templates, and runtime locators | Current support is Next.js App Router 15.3+ with `src/app`; the scanner does not import modules, evaluate JSX, execute scripts, load arbitrary configuration, or follow paths outside the repository |
-| CLI and installer | Preview `map`, `init`, `doctor`, `analyze`, and `uninstall` operations; create or remove documented artifacts only after explicit `--apply` | `init` and `uninstall` are dry-run by default; writes are repository-relative, symlink-safe, atomic, preimage-checked, content-hashed, and journaled; existing files are not overwritten |
-| Generated observer | Observe mapped route/action events, sanitized errors, performance and friction signals, and bounded viewport/CSS-pixel geometry | No text, form values, keystrokes, query strings or hashes, DOM or HTML, cookies, headers, request bodies, screenshots, or persistent user/cross-tab identifiers |
-| Local collector | Accept bounded same-origin event batches and append hash-linked records to a manifest-scoped log under `.living/data/releases/` | Strict validation, ordering, duplicate, tamper, release-isolation, size, and rate checks; no read endpoint; single-process local proof only, with no production authentication, database durability, or multi-instance coordination |
-| Workflow and metric analyzer | Deterministically project cases and variants, calculate technical metrics, and emit an opportunity only when configured thresholds pass | No automatic knowledge of business outcomes or causality, no model inference, and no host mutation |
-| Host SDK | Validate explicitly declared events, enforce bounded queues and batches, and reject sensitive metadata keys | No arbitrary payload capture; transport is supplied by the host |
-| GPT-5.6 intelligence | Draft a strict `EvolutionBrief` from a hash-verified, privacy-minimized neutral manifest/opportunity/event context | The current runner consumes neutral replay evidence, not automatic host evidence; no raw event IDs, paths, symbols, metadata, release data, or user/session/subject identifiers leave; no host-tool authority, permissions, approval, or activation is granted; schema and references are revalidated locally |
-| Living Studio | Display five surfaces from a labeled neutral fixture or validated synthetic-only static snapshot, plus a privacy-minimized projection of the strictly parsed committed GPT-5.6 proof | Read-only; no live host connection, observer ingestion, model call, lifecycle action, or claim that the static bridge is live; any app, manifest, opportunity, or event-set mismatch fails to a separate-run state |
+| Discovery | Read supported TypeScript/Next.js source and derive a source-linked manifest | Next.js App Router 15.3+ using `src/app`; no module import, JSX execution, host scripts, arbitrary configuration, or path escape |
+| Installer | Create declared observation files after explicit installation | Create-only, repository-relative, symlink-safe, atomic and hash-journaled; no `package.json` edit or overwrite |
+| Observer and collector | Record bounded same-origin workflow, performance, friction and CSS-pixel geometry evidence | No text, form values, keystrokes, query strings, DOM/HTML, cookies, headers, bodies, screenshots, or persistent user identifiers |
+| Analyzer | Deterministically derive workflows, metrics and the current threshold-based backtracking opportunity | No model inference, business-outcome truth, causality, or host mutation |
+| GPT brief call | Interpret one exact privacy-minimized opportunity | Strict schema and evidence references; no tools, approval or source authority |
+| Source projection | Read UI files linked by the brief's affected manifest nodes | At most 3 regular UTF-8 files, 64 KB each and 96 KB total; only eligible existing source; symlinks and read races fail closed |
+| GPT patch call | Select one supplied candidate and author 1-8 exact anchor/replacement edits | Strict schema; no terminal, filesystem, browser, network tool, or access to any unprojected file |
+| Patch engine | Validate and deterministically compile the untrusted proposal | Exact target/preimage, allowed path and extension, unique exact anchors, static authority guards, bounded diff and one postimage |
+| Human approval | Authorize the exact contract, artifact and proof | Caller-supplied artifact and proof hashes plus the engine-bound stored contract and current receipt revision are required; the operator label is audit metadata, not authenticated identity |
+| Application and rollback | Engine writes one approved postimage or restores one preimage | Exact source hashes, capture-then-verify with no-overwrite publication, journal recovery, append-only receipts, exact-postimage rollback |
+| Studio | Visualize snapshots, proposals, proofs and receipts; expose a loopback development broker | Exact connection/evidence/lifecycle identity checks; comparison alone has no mutation authority |
 
-The intelligence boundary has two explicit transports with no automatic fallback. The Responses API path uses `store: false`, fixed `gpt-5.6` selection, bounded output tokens, no requested tools, and an abort timeout; `OPENAI_API_KEY` is read only when a request is sent and must never be committed or logged. The current Codex CLI path reuses saved authentication, pins `gpt-5.6-terra` (GPT-5.6 Terra) and medium reasoning, runs from a private read-only temporary workspace, ignores user/project instructions, explicitly disables every installed host-capable feature surface, clears the model-shell environment, uses ephemeral session files, bounds streams before buffering output files, and rejects any surfaced item beyond reasoning and the final message. The read-only sandbox and isolated workspace remain the outer effect boundary; JSONL rejection is an additional acceptance gate, not a claim that Codex has no internal control surfaces. Provenance records the exact transport-requested model but does not expose an unreported CLI actual-model or API-storage claim; CLI thread ID and usage remain separate. Automated tests use both injected transports and a real fake-CLI subprocess harness. Application validation proves schema and reference integrity, not that model prose is semantically true; every brief remains a human-reviewed hypothesis. A successful live run is preserved in [`docs/proof/gpt56-live-codex-cli.json`](docs/proof/gpt56-live-codex-cli.json). Studio's projector excludes sample event IDs and evidence-alias mappings, preserves `actualResponseModel: null` as “not reported,” and exposes no approval or activation authority.
+## Model-authored source proposal
+
+Living intentionally allows GPT-5.6 to invent the proposed UI change. It confines that creativity before and after the request:
+
+1. The evidence brief may reference only product nodes bound to the exact manifest and opportunity.
+2. Living maps those nodes to eligible source provenance below `src/app` or `src/components`.
+3. It sends no more than three candidate files, no file larger than 64 KB, and no more than 96 KB in total.
+4. The model is instructed to select exactly one candidate and return one to eight exact anchor/replacement edits.
+5. Both the brief and patch calls use strict Structured Outputs and no requested tools. The Codex CLI transport runs from a private read-only temporary workspace with installed host-capable features disabled; the Responses API transport uses `store: false`.
+6. Living revalidates the response locally. Model prose or source comments never become authority.
+
+Eligible patch targets are existing `.ts`, `.tsx`, `.js`, `.jsx`, or `.css` files below `src/app` or `src/components`. Route handlers, API directories, tests, E2E files, configuration, hidden paths, declarations, lock files, new files, multiple files and dependencies are excluded.
+
+Each proposal must bind the exact candidate path and SHA-256 preimage. Its anchors must be unique, occur exactly once and not overlap. The compiler permits one to eight edits, bounds each anchor and replacement, caps the aggregate diff at 128 KB and 2,000 changed lines, and caps source/postimage size at 2 MB.
+
+Replacement guards reject declared:
+
+- server directives and server request/header APIs;
+- network, process, filesystem and host-module authority;
+- dynamic import, CommonJS execution, `eval` and dynamic functions;
+- raw HTML execution, script tags and JavaScript URLs;
+- browser storage, global navigation, workers, form submission, external URLs/CSS imports, and programmatic or dynamic resource loaders;
+- secret-, credential- and API-key-bearing tokens;
+- Git, dependency, multi-file and new-file authority.
+
+These are static defense-in-depth checks, not a semantic proof that arbitrary generated UI is correct or secure. A passing proposal may still have a product, accessibility, styling, type or build defect. The human must inspect the exact edit preview, and the host must be built or reloaded and verified after application.
+
+## Approval, application and rollback
+
+`living improve --provider <codex|api>` can prepare a proposal but cannot approve or write source. Prepared state binds the app, manifest, opportunity, supporting event set, both GPT runs, selected candidate, proposal, contract, artifact, proof, preimage and postimage.
+
+`living approve --evolution <id> --actor <operator> --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply` is an explicit human action. The caller must resupply the two exact hashes shown during review; Living rejects a changed or mistyped digest. It then records that approval and asks the engine to write only the bound postimage. Omitting `--apply` keeps approval and application separate.
+
+Application fails if the source no longer equals the approved preimage. Rollback fails unless it still equals the applied postimage. Transactions and receipts are recovered and revalidated after interruption. The model cannot satisfy any lifecycle transition.
+
+Approval, application, and rollback are serialized by an application-scoped lease lock within the repository. Approval or application rejects another same-app evolution already in `approved` or `applied`; exact rollback releases that active slot.
 
 ## Installation and removal safety
 
-The root-mode installer generates only:
+The root-mode installer creates only:
 
 ```text
 .living/config.json
@@ -35,35 +72,29 @@ src/living-collector.generated.ts
 src/app/api/living/events/route.ts
 ```
 
-The generated observer and collector are self-contained; installation does not edit `package.json`. An existing target file causes a conflict. Repeating an identical installation is a no-op. Uninstall removes only unchanged files whose hashes match `.living/install-record.json`; it preserves modified generated files, every file below `.living/data`, and the data ignore rule for manual review. New evidence is isolated by manifest hash; a compatible legacy `.living/data/events.ndjson` remains readable but is never mixed with another release.
+An existing target file is a conflict. Repeating an identical installation is a no-op. Uninstall removes only unchanged files whose hashes match the install record; modified files and captured evidence are preserved.
 
 ## Data policy
 
-The neutral replay and current Studio use synthetic fixtures. The automatic integration proof also uses a separately built synthetic CRM simulator; its traces and scenario labels are not ingested by Living and are compared only after Living's analysis.
+- Event schemas reject unknown fields and sensitive metadata keys.
+- Capture uses mapped identities and bounded primitives, not page content.
+- Per-tab session identifiers are ephemeral.
+- Evidence logs are manifest-scoped append-only hash chains; hashing provides integrity, not encryption.
+- Raw event IDs become local aliases before model interpretation; identities, metadata and unrelated source are omitted.
+- Candidate source text is sent only because source authorship requires it. Operators must use Living only on code they are authorized to disclose to the explicitly selected OpenAI transport.
+- API keys are read only at request time and must never be committed or logged.
+- Synthetic provenance remains visible in evidence and Studio.
 
-- Event schemas reject unknown top-level fields.
-- Metadata is deny-by-default and rejects sensitive key patterns including names, messages, contact details, credentials, tokens, and free-form text.
-- Normal observation captures mapped identities and bounded numbers, booleans, and enums rather than content.
-- Per-tab session identifiers are ephemeral; persistent user and cross-tab identifiers are excluded.
-- Queue size, batch size, request size, object depth, key count, and string length are bounded.
-- Values are not copied into privacy error messages.
-- Collector records form an append-only hash chain, but hashing is integrity evidence, not encryption or access control.
-- Synthetic provenance stays visible in configuration, replay output, and Studio.
-- Before the current neutral model call, raw event IDs become opaque aliases and host display text, source details, metadata, release data, and identity-bearing fields are omitted.
-- Real inboxes, customer records, credentials, request bodies, keystrokes, cookies, DOM snapshots, screenshots, and secrets are outside the current data boundary.
+## Operational limits
 
-## Current operational limits
-
-- The automatic adapter is not universal Node or arbitrary-codebase support.
-- The local collector is a same-origin, single-process development proof, not a production telemetry service.
-- The evidence file is local and Git-ignored but is not encrypted by Living.
-- Automatic host evidence reaches Studio only through explicit validated synthetic static sync; it is not sent to GPT-5.6. The committed neutral proof is display-only and unrelated to the active CRM or fixture unless all four evidence identities match; relation still grants no lifecycle authority.
-- Simulator output is an independent post-run oracle, not a discovery input.
-
-## Future lifecycle, not a current claim
-
-Declarative broker execution, proof bundles, separate contract and activation approvals, hash-linked receipts, capability activation, disable, and rollback are represented in contracts or product direction but are not implemented end to end. Before any runtime capability is added, it must enforce default-deny operations, exact versions and schemas, call budgets, confirmation requirements, deterministic proof, explicit human approval, and reversible activation.
+- Current discovery/install support is not universal Node support.
+- The collector and Studio broker are local development proof surfaces, not authenticated multi-instance production services.
+- Evolution/application locks use a fixed 60-second local lease without heartbeat; an unusually long or stalled transition may be treated as stale and should be retried only after inspecting the ledger and host source.
+- Model output is not a substitute for code review, typechecking, tests, accessibility review or runtime verification.
+- Source application is not evidence that the product improved.
+- Automatic post-change capture and before/after measurement are not implemented.
+- Studio sync is explicit, not continuous live ingestion.
 
 ## Reporting a vulnerability
 
-Do not open a public issue if it would expose a secret or unsafe execution path. Contact the repository owner privately with reproduction steps, affected commit, and impact.
+Do not open a public issue if it would expose a secret or unsafe execution path. Contact the repository owner privately with reproduction steps, affected commit and impact.

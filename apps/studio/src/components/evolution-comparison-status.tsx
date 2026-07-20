@@ -125,17 +125,17 @@ export function EvolutionComparisonStatus({
   const showComparison = presentation?.canCompare === true && verified;
   const sourceStateTitle =
     status?.phase === "draft_ready"
-      ? "The real CRM is still unchanged"
+      ? "The connected application is still unchanged"
       : status?.phase === "approved"
         ? "Approved, but still not applied"
         : status?.phase === "active"
-          ? "The approved change is now in the CRM source"
+          ? "The approved change is now in the application source"
           : status?.phase === "rolled_back"
-            ? "The original CRM source was restored"
-            : "Checking the current CRM state";
+            ? "The original application source was restored"
+            : "Checking the connected application";
   const sourceStateDetail =
     status?.phase === "draft_ready"
-      ? "The right side is an isolated preview. No approval exists and no CRM source has been edited."
+      ? "The right side is an isolated preview of GPT-5.6's proposed code. No approval exists and no application source has been edited."
       : status?.phase === "approved"
         ? "A person approved the exact artifact, but the separate Apply action has not run."
         : "Studio keeps proposal, approval, and source application as separate lifecycle states.";
@@ -170,14 +170,14 @@ export function EvolutionComparisonStatus({
           </strong>
           <p>
             {showComparison && status?.phase === "draft_ready"
-              ? "The current CRM matches the reviewed preimage, and the proposed preview matches the proved postimage."
+              ? "The connected application matches the reviewed preimage, and the proposed preview matches the proved postimage."
               : presentation?.notice ?? "Reading the governed lifecycle state."}
           </p>
           {presentation?.canCompare === true && !verified && (
             <p role="alert">
               {hostPreimageVerified
                 ? "The preview is hidden because its evolution and postimage identity could not be verified."
-                : "Both frames are hidden because the connected CRM source no longer matches the governed preimage."}
+                : "Both frames are hidden because the connected application source no longer matches the governed preimage."}
               {hostPreimageVerified && previewError !== null
                 ? ` ${previewError}`
                 : ""}
@@ -205,32 +205,34 @@ export function EvolutionComparisonStatus({
         <>
           <section className="comparison-change-focus">
             <div>
-              <p className="eyebrow">Where to look</p>
-              <strong>The proposal adds one navigation row above the lead details.</strong>
+              <p className="eyebrow">GPT-5.6 authored this change</p>
+              <strong>
+                {status.proposalSummary ?? status.title ?? "GPT-authored source proposal"}
+              </strong>
             </div>
-            <span>Previous lead · 1 of 36 · Next lead</span>
+            <span>{status.targetPath ?? "Target unavailable"}</span>
           </section>
-          <section aria-label="CRM version comparison" className="comparison-grid">
+          <section aria-label="Application version comparison" className="comparison-grid">
             <article className="comparison-frame comparison-current">
               <header>
                 <div>
-                  <p className="eyebrow">Before · Real CRM</p>
-                  <h2>No lead-to-lead navigation</h2>
-                  <p>Opening another lead requires returning to the Leads list.</p>
+                  <p className="eyebrow">Before · Connected application</p>
+                  <h2>Current source behavior</h2>
+                  <p>This frame runs the exact preimage reviewed by Living.</p>
                 </div>
                 <Badge tone="neutral">Unchanged</Badge>
               </header>
               <div className="comparison-frame-marker comparison-old-marker">
-                Current lead page: no navigation row
+                Current: {status.targetPath}
               </div>
               <iframe
                 loading="eager"
                 sandbox="allow-same-origin allow-scripts"
                 src={hostUrl}
-                title="Current CRM"
+                title="Current application"
               />
               <a href={hostUrl} rel="noopener noreferrer" target="_blank">
-                Open current CRM in a new tab
+                Open current application in a new tab
               </a>
             </article>
 
@@ -238,19 +240,22 @@ export function EvolutionComparisonStatus({
               <header>
                 <div>
                   <p className="eyebrow">After · Isolated preview</p>
-                  <h2>Previous and Next controls added</h2>
-                  <p>The new row keeps reviewers inside the lead-detail flow.</p>
+                  <h2>GPT-authored proposed behavior</h2>
+                  <p>
+                    {status.proposalRationale ??
+                      "This verified frame runs the exact postimage proposed by GPT-5.6."}
+                  </p>
                 </div>
                 <Badge tone="info">Preview only</Badge>
               </header>
               <div className="comparison-frame-marker comparison-new-marker">
-                New in this proposal: lead navigation
+                Proposed change: {status.targetPath}
               </div>
               <iframe
                 loading="eager"
                 sandbox="allow-same-origin allow-scripts"
                 src={previewUrl}
-                title="Verified isolated proposed CRM preview"
+                title="Verified isolated proposed application preview"
               />
               <a href={previewUrl} rel="noopener noreferrer" target="_blank">
                 Open verified preview in a new tab

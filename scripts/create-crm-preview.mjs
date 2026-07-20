@@ -16,7 +16,6 @@ import { pathToFileURL } from "node:url";
 import {
   getEvolutionStatus,
   listEvolutionStatuses,
-  SOURCE_EVOLUTION_TARGET_PATH,
 } from "../packages/evolution/dist/index.js";
 
 const PREVIEW_ROUTE_PATH = "src/app/api/living-preview/route.ts";
@@ -224,11 +223,12 @@ export async function createCrmPreview(options) {
   if (state.status !== "prepared" && state.status !== "approved") {
     throw new TypeError("Preview creation requires a prepared or approved evolution");
   }
-  if (state.artifact.target.path !== SOURCE_EVOLUTION_TARGET_PATH) {
-    throw new TypeError("Evolution target is not supported by the CRM preview");
+  const targetPath = assertSafeTrackedPath(state.artifact.target.path);
+  if (!trackedFiles.includes(targetPath)) {
+    throw new TypeError("Evolution target is not a tracked preview source file");
   }
   const targetSource = await readFile(
-    path.join(root, ...SOURCE_EVOLUTION_TARGET_PATH.split("/")),
+    path.join(root, ...targetPath.split("/")),
   );
   if (sha256(targetSource) !== state.artifact.target.preimageHash) {
     throw new TypeError("Connected CRM no longer matches the prepared preimage");
@@ -253,7 +253,7 @@ export async function createCrmPreview(options) {
     }
     const outputTarget = path.join(
       resolvedOut,
-      ...SOURCE_EVOLUTION_TARGET_PATH.split("/"),
+      ...targetPath.split("/"),
     );
     await writeFile(outputTarget, state.source.postimage, {
       encoding: "utf8",

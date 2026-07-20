@@ -4,6 +4,7 @@ import type {
   ResponsesRequest,
   TransportResponse,
 } from "./types.js";
+import { assertIntelligenceRequestContract } from "./request-contract.js";
 
 export class MissingApiKeyError extends Error {
   constructor() {
@@ -28,6 +29,7 @@ export function createFetchTransport(
   return {
     kind: "responses-api",
     async send(request: ResponsesRequest, sendOptions): Promise<TransportResponse> {
+      assertIntelligenceRequestContract(request);
       const apiKey = getApiKey();
       if (apiKey === undefined || apiKey.trim() === "") {
         throw new MissingApiKeyError();

@@ -11,7 +11,10 @@ import {
   resolve,
 } from "node:path";
 
-import { GOVERNANCE_INSTRUCTION } from "./prompt.js";
+import {
+  assertIntelligenceRequestContract,
+  governanceForRequest,
+} from "./request-contract.js";
 import type {
   IntelligenceTransport,
   ResponsesRequest,
@@ -54,12 +57,14 @@ export const CODEX_CLI_DISABLED_FEATURES = [
   "workspace_dependencies",
 ] as const;
 export const CODEX_CLI_GPT56_MODEL = "gpt-5.6-terra" as const;
-const CODEX_CLI_DEVELOPER_INSTRUCTIONS = [
-  GOVERNANCE_INSTRUCTION,
-  "This is a non-interactive structured-output invocation.",
-  "Do not call any tool, inspect any file, browse, execute commands, plan work, or modify anything.",
-  "Return only one JSON object conforming to the supplied output schema.",
-].join("\n");
+function codexCliDeveloperInstructions(request: ResponsesRequest): string {
+  return [
+    governanceForRequest(request),
+    "This is a non-interactive structured-output invocation.",
+    "Do not call any tool, inspect any file, browse, execute commands, plan work, or modify anything.",
+    "Return only one JSON object conforming to the supplied output schema.",
+  ].join("\n");
+}
 
 export class CodexCliUnavailableError extends Error {
   constructor(message = "Codex CLI is not installed or is not available on PATH") {
@@ -242,11 +247,12 @@ function codexEnvironment(): NodeJS.ProcessEnv {
 }
 
 function buildPrompt(request: ResponsesRequest): string {
+  const governance = governanceForRequest(request);
   const developer = request.input.filter((message) => message.role === "developer");
   const user = request.input.filter((message) => message.role === "user");
   if (
     developer.length !== 1 ||
-    developer[0]?.content !== GOVERNANCE_INSTRUCTION ||
+    developer[0]?.content !== governance ||
     user.length !== 1
   ) {
     throw new CodexCliExecutionError(
@@ -254,21 +260,6 @@ function buildPrompt(request: ResponsesRequest): string {
     );
   }
   return user[0]!.content;
-}
-
-function validateRequestContract(request: ResponsesRequest): void {
-  if (
-    request.model !== "gpt-5.6" ||
-    request.store !== false ||
-    request.reasoning?.effort !== "medium" ||
-    request.text?.format?.type !== "json_schema" ||
-    request.text.format.name !== "living_evolution_brief" ||
-    request.text.format.strict !== true
-  ) {
-    throw new CodexCliExecutionError(
-      "Codex CLI transport rejected a modified model or output contract",
-    );
-  }
 }
 
 function record(value: unknown): Record<string, unknown> | undefined {
@@ -604,10 +595,17 @@ export function createCodexCliTransport(
   return {
     kind: "codex-cli",
     async send(request: ResponsesRequest, sendOptions): Promise<TransportResponse> {
-      validateRequestContract(request);
+      try {
+        assertIntelligenceRequestContract(request);
+      } catch (error) {
+        throw new CodexCliExecutionError(
+          "Codex CLI transport rejected a modified model or output contract" +
+            (error instanceof Error ? `: ${error.message}` : ""),
+        );
+      }
       const result = await run({
         prompt: buildPrompt(request),
-        developerInstructions: CODEX_CLI_DEVELOPER_INSTRUCTIONS,
+        developerInstructions: codexCliDeveloperInstructions(request),
         schema: request.text.format.schema,
         model: CODEX_CLI_GPT56_MODEL,
         reasoningEffort: request.reasoning.effort,

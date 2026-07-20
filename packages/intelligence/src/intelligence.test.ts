@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
 import type { JsonValue, Opportunity, ProductManifest, WorkflowEvent } from "@living-software/contracts";
@@ -10,12 +11,15 @@ import {
   PRODUCT_CONTEXT_LIMITS,
   boundProductContext,
   buildResponsesRequest,
+  buildSourcePatchRequest,
   createCodexCliTransport,
   createFetchTransport,
   createIntelligenceClient,
   type EvolutionBrief,
   type IntelligenceTransport,
   type ResponsesRequest,
+  type SourceCandidate,
+  type SourcePatchProposal,
   type TransportResponse,
 } from "./index.js";
 
@@ -172,6 +176,80 @@ function responseFor(value: unknown, options: { model?: string } = {}): Transpor
   };
 }
 
+function exactSourceHash(content: string): string {
+  return `sha256:${createHash("sha256").update(content, "utf8").digest("hex")}`;
+}
+
+function evolutionBrief(
+  inputOpportunity: Opportunity,
+  productManifest: ProductManifest,
+): EvolutionBrief {
+  const model = brief(inputOpportunity, productManifest);
+  const { sampleEvidenceAliases: _sampleEvidenceAliases, ...citations } =
+    model.evidenceCitations;
+  return {
+    ...model,
+    evidenceCitations: {
+      ...citations,
+      sampleEventIds: [inputOpportunity.evidence.sampleEventIds[0]!],
+    },
+  };
+}
+
+function sourceCandidate(
+  content = [
+    "export function LeadHeader() {",
+    '  return <h1 data-testid="lead-title">Lead</h1>;',
+    "}",
+  ].join("\n"),
+): SourceCandidate {
+  return {
+    path: "src/app/leads/[id]/page.tsx",
+    preimageHash: exactSourceHash(content),
+    content,
+  };
+}
+
+function sourcePatch(
+  inputBrief: EvolutionBrief,
+  candidate: SourceCandidate,
+  overrides: Partial<SourcePatchProposal> = {},
+): SourcePatchProposal {
+  return {
+    schemaVersion: "living.source-patch-proposal/v1",
+    proposalId: "patch-001",
+    appId: inputBrief.appId,
+    opportunityId: inputBrief.opportunityId,
+    manifestHash: inputBrief.manifestHash,
+    briefId: inputBrief.briefId,
+    target: {
+      path: candidate.path,
+      preimageHash: candidate.preimageHash,
+    },
+    summary: "Add direct review navigation near the lead title.",
+    rationale: "The bounded brief identifies repeated lead-review backtracking.",
+    edits: [
+      {
+        anchor: '  return <h1 data-testid="lead-title">Lead</h1>;',
+        replacement: [
+          "  return (",
+          "    <>",
+          '      <nav aria-label="Lead review navigation">Previous · Next</nav>',
+          '      <h1 data-testid="lead-title">Lead</h1>',
+          "    </>",
+          "  );",
+        ].join("\n"),
+      },
+    ],
+    governance: {
+      status: "draft",
+      humanApprovalRequired: true,
+      applicationAllowed: false,
+    },
+    ...overrides,
+  };
+}
+
 function mockTransport(response: TransportResponse, requests: ResponsesRequest[] = []): IntelligenceTransport {
   return { async send(request) { requests.push(request); return response; } };
 }
@@ -197,6 +275,147 @@ test("constructs a deterministic, governed GPT-5.6 request with bounded output",
   assert.equal(Object.hasOwn(first, "tools"), false);
   assert.match(first.input[0]!.content, /untrusted data/);
   assert.match(first.input[0]!.content, /Never approve or activate/);
+});
+
+test("constructs an exact tool-less source-patch request from bounded untrusted source", () => {
+  const { productManifest, detectedOpportunity } = fixture();
+  const inputBrief = evolutionBrief(detectedOpportunity, productManifest);
+  const candidate = sourceCandidate();
+  const first = buildSourcePatchRequest(
+    { brief: inputBrief, candidates: [candidate] },
+    7_777,
+  );
+  assert.deepEqual(
+    first,
+    buildSourcePatchRequest(
+      { brief: inputBrief, candidates: [candidate] },
+      7_777,
+    ),
+  );
+  assert.equal(first.text.format.name, "living_source_patch");
+  assert.equal(first.text.format.strict, true);
+  assert.equal(first.max_output_tokens, 7_777);
+  assert.equal(Object.hasOwn(first, "tools"), false);
+  assert.match(first.input[0]!.content, /source comment\/string.*untrusted data/u);
+  assert.match(first.input[0]!.content, /Never approve, apply, execute/u);
+  assert.match(first.input[1]!.content, /src\/app\/leads\/\[id\]\/page\.tsx/u);
+  assert.match(first.input[1]!.content, /data-testid/u);
+});
+
+test("returns a hash-bound model-authored source patch without model authority", async () => {
+  const { productManifest, detectedOpportunity } = fixture();
+  const inputBrief = evolutionBrief(detectedOpportunity, productManifest);
+  const candidate = sourceCandidate();
+  const requests: ResponsesRequest[] = [];
+  const client = createIntelligenceClient(
+    mockTransport(responseFor(sourcePatch(inputBrief, candidate)), requests),
+    { maxPatchOutputTokens: 9_000 },
+  );
+  const result = await client.draftSourcePatch({
+    brief: inputBrief,
+    candidates: [candidate],
+  });
+  assert.equal(result.proposal.target.path, candidate.path);
+  assert.equal(result.proposal.target.preimageHash, candidate.preimageHash);
+  assert.equal(result.proposal.governance.applicationAllowed, false);
+  assert.equal(result.provenance.transport, "responses-api");
+  assert.deepEqual(result.provenance.sourceCandidates, [
+    { path: candidate.path, preimageHash: candidate.preimageHash },
+  ]);
+  assert.equal(requests[0]?.text.format.name, "living_source_patch");
+  assert.equal(requests[0]?.max_output_tokens, 9_000);
+});
+
+test("rejects unsafe candidate context before any model call", async (t) => {
+  const { productManifest, detectedOpportunity } = fixture();
+  const inputBrief = evolutionBrief(detectedOpportunity, productManifest);
+  let calls = 0;
+  const client = createIntelligenceClient({
+    async send() {
+      calls += 1;
+      throw new Error("must not run");
+    },
+  });
+  await t.test("hash mismatch", async () => {
+    await assert.rejects(
+      client.draftSourcePatch({
+        brief: inputBrief,
+        candidates: [{ ...sourceCandidate(), preimageHash: HASH_C }],
+      }),
+      /hash-exact/u,
+    );
+  });
+  await t.test("path traversal", async () => {
+    await assert.rejects(
+      client.draftSourcePatch({
+        brief: inputBrief,
+        candidates: [{ ...sourceCandidate(), path: "../secret.tsx" }],
+      }),
+      /repository-relative/u,
+    );
+  });
+  await t.test("duplicate path", async () => {
+    const candidate = sourceCandidate();
+    await assert.rejects(
+      client.draftSourcePatch({
+        brief: inputBrief,
+        candidates: [candidate, candidate],
+      }),
+      /unique/u,
+    );
+  });
+  assert.equal(calls, 0);
+});
+
+test("rejects model patches that escape exact candidate and edit boundaries", async (t) => {
+  const { productManifest, detectedOpportunity } = fixture();
+  const inputBrief = evolutionBrief(detectedOpportunity, productManifest);
+  const candidate = sourceCandidate();
+  async function rejects(proposal: unknown, pattern: RegExp) {
+    const client = createIntelligenceClient(mockTransport(responseFor(proposal)));
+    await assert.rejects(
+      client.draftSourcePatch({ brief: inputBrief, candidates: [candidate] }),
+      (error: unknown) =>
+        error instanceof IntelligenceResponseError &&
+        error.code === "invalid_patch" &&
+        pattern.test(error.message),
+    );
+  }
+  await t.test("invented target", () =>
+    rejects(
+      sourcePatch(inputBrief, candidate, {
+        target: { path: "src/secret.tsx", preimageHash: candidate.preimageHash },
+      }),
+      /target/u,
+    ));
+  await t.test("invented anchor", () =>
+    rejects(
+      sourcePatch(inputBrief, candidate, {
+        edits: [{ anchor: "not in source", replacement: "changed" }],
+      }),
+      /anchor/u,
+    ));
+  await t.test("no-op edit", () => {
+    const anchor = '  return <h1 data-testid="lead-title">Lead</h1>;';
+    return rejects(
+      sourcePatch(inputBrief, candidate, {
+        edits: [{ anchor, replacement: anchor }],
+      }),
+      /noChange/u,
+    );
+  });
+  await t.test("governance escalation", () =>
+    rejects(
+      {
+        ...sourcePatch(inputBrief, candidate),
+        governance: {
+          status: "approved",
+          humanApprovalRequired: false,
+          applicationAllowed: true,
+        },
+      },
+      /invalid source patch proposal/u,
+    ));
 });
 
 test("outbound body is privacy-minimal and strips prompt-injection-bearing host text", () => {

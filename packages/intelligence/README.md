@@ -1,8 +1,11 @@
 # `@living-software/intelligence`
 
-This package gives GPT-5.6 one narrow, material role in Living Software: interpret a validated opportunity, its hash-verified workflow evidence, and a bounded product-map context, then draft an `EvolutionBrief` hypothesis for human review.
+This package gives GPT-5.6 two material but bounded roles:
 
-It does **not** approve or activate changes, mutate a host application, or expose host tools to the model. Every response is constrained by a strict Structured Outputs schema and then validated again in the application. Those checks establish schema and reference integrity—not semantic truth. The draft remains a hypothesis that requires human review.
+1. interpret a validated workflow opportunity as a strict `EvolutionBrief`;
+2. author a strict one-file source-patch proposal from a small manifest-bound UI source projection.
+
+GPT is creative inside that proposal. It does **not** receive approval, application, rollback, terminal, filesystem, browser or network-tool authority. Both outputs remain untrusted drafts and are revalidated by Living.
 
 ## Runtime
 
@@ -14,16 +17,44 @@ import {
 
 const intelligence = createIntelligenceClient(createCodexCliTransport(), {
   timeoutMs: 120_000,
+  maxPatchOutputTokens: 8_000,
 });
-const result = await intelligence.draftEvolutionBrief({
+
+const brief = await intelligence.draftEvolutionBrief({
   opportunity,
   manifest,
   evidenceEvents,
 });
+
+const patch = await intelligence.draftSourcePatch({
+  brief: brief.draft,
+  candidates,
+});
 ```
 
-The library default remains the Responses API transport. The Build Week demo explicitly selects `createCodexCliTransport()` so it can reuse saved Codex authentication; `--provider api` selects the API path later. There is no automatic fallback. Set `OPENAI_API_KEY` only in the runtime environment for the API transport. Tests use injected offline transports and make no network calls.
+The caller must construct `candidates` from affected manifest-node provenance. Living's CLI and Studio orchestrators limit this projection to at most three eligible existing UI files, 64 KB per file and 96 KB total. The patch schema requires exactly one supplied path and preimage hash plus one to eight exact anchor/replacement edits.
 
-Before any network call, the client recomputes the canonical manifest and event-set hashes, validates sample IDs, projected-case/session counts and app/manifest links, and verifies observed/synthetic origin. Outbound context contains only bounded identifiers, enums, counts, and normalized events. Raw event IDs are replaced with deterministic opaque aliases; source paths, symbols, release revisions, event metadata, session/actor/subject IDs, and host display text are excluded. Validated aliases are mapped back to event IDs only in the local result and its provenance.
+The package validates request contracts, strict Structured Outputs, provider provenance and result references. The evolution engine separately validates target eligibility, exact hashes and anchors, static authority patterns and diff bounds before creating a prepared artifact. Schema and static checks do not prove semantic correctness.
 
-Both paths stay in the GPT-5.6 family, use medium reasoning, a strict JSON schema, and a configurable abort timeout. The API requests `gpt-5.6` with `store: false`, no requested tools, and bounded output tokens. The authenticated CLI requests `gpt-5.6-terra` (GPT-5.6 Terra), runs from a private read-only temporary workspace, ignores user/project instructions, explicitly disables every installed host-capable feature surface, clears the model-shell environment, uses ephemeral session files, bounds streams before reading a regular output file, and rejects any surfaced item beyond reasoning and the final message. Results preserve the logical boundary model and exact transport-requested model, keep API response IDs and CLI thread IDs separate, and never claim an actual model or API storage value that the CLI did not report. Synthetic drafts carry a deterministic `synthetic-only` evidence scope and can never claim production generalization.
+## Providers
+
+The Build Week terminal flow requires an explicit provider:
+
+```bash
+living improve --root <next-app> --provider codex
+living improve --root <next-app> --provider api
+```
+
+- `codex` uses saved Codex authentication and requests `gpt-5.6-terra`.
+- `api` requires `OPENAI_API_KEY`, requests `gpt-5.6`, and sets `store: false`.
+- There is no automatic fallback.
+
+Both use medium reasoning, strict JSON schemas, bounded output and a configurable timeout. The product requests no tools. The Codex transport runs in a private read-only temporary workspace, ignores user/project instructions, disables installed host-capable feature surfaces, clears the model-shell environment, uses ephemeral files, and rejects surfaced items beyond reasoning and the final message.
+
+## Evidence and source minimization
+
+Before the brief call, Living recomputes manifest/event-set hashes and validates app, opportunity, event, origin, time-window and case/session links. Raw event IDs become opaque aliases; host display text, paths, unrelated source, metadata, release data and user/session/subject identities are excluded.
+
+The patch call receives the validated brief and only the bounded candidate source text needed to author the proposal. Source contents and all embedded comments/strings are explicitly treated as untrusted data, not instructions. Operators must have authority to disclose candidate code to the selected OpenAI transport.
+
+The returned provenance preserves requested model, transport, run ID and provider-specific storage/session facts without inventing fields the transport did not report.
