@@ -6,7 +6,7 @@ Every claim must point to runnable behavior, a test, a commit or a preserved art
 | --- | --- | --- |
 | Technological Implementation | Versioned contracts; bounded Next.js discovery; create-only installer; browser observer and hash-linked collector; deterministic workflows/metrics/opportunity; explicit GPT-5.6 transports; manifest-bound 3-file/96-KB source projection; GPT-authored one-file 1-8-edit proposal; static proof; caller-supplied artifact/proof-hash approval; exact-preimage application; receipts, recovery and rollback; Studio | Fresh-clone/no-rebuild judge path; primary `/feedback` ID; exact submission-commit live run |
 | Design | Terminal-first install -> observe -> improve flow; human-readable proposal/next command; Studio map, evidence, proposal, proof, comparison and receipt surfaces; explicit unchanged/prepared/applied states | Final recorded walkthrough |
-| Potential Impact | A tool that can derive friction from application behavior and let GPT invent a bounded UI improvement without giving the model host authority | Runtime proof of the final proposal; no automatic post-change measurement claim |
+| Potential Impact | A tool that derived CRM backtracking friction, let GPT invent a bounded UI change, exact-hash applied it, passed the CRM tests/build, and browser-rendered the result without giving the model host authority | Exact-final-commit reproduction and executed rollback; no automatic post-change measurement claim |
 | Quality of Idea | Creativity and governance are separated: GPT authors the proposal, deterministic code bounds it, and a human controls exact source application | Concise entrant narration and submission copy |
 
 ## Primary judge path
@@ -41,7 +41,7 @@ npm run demo:neutral
 npm run dev:studio
 ```
 
-The neutral proof demonstrates deterministic plumbing and a preserved model interpretation. It does not substitute for a current live GPT-authored patch, approval or runtime verification.
+The neutral proof demonstrates deterministic plumbing and a preserved model interpretation. The separate July 21 CRM record documents a current live GPT-authored patch, exact-hash approval/application, and browser-visible runtime verification.
 
 ## What judges should verify
 

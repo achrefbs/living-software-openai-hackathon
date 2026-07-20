@@ -47,6 +47,7 @@ npm run living -- apply --root <next-app> --evolution <id>
 - A terminal-first lifecycle: `install`, `improve`, `status`, `approve`, `apply`, and `rollback`.
 - Explicit Codex CLI and Responses API GPT-5.6 transports with strict structured outputs and no automatic fallback.
 - An evidence-bound `EvolutionBrief`, followed by a separate GPT-authored source-patch proposal.
+- An authorized live CRM run through two Codex CLI requests, deterministic proof, exact-hash human approval, source application, CRM tests/build, and browser-visible rendering.
 - Read-only source projection limited to at most three eligible files, 64 KB per file and 96 KB total, selected only from source provenance on affected manifest nodes.
 - One-file patch compilation with one to eight exact, unique, non-overlapping anchor replacements; exact preimage/postimage hashes; static authority and diff guards; an append-only receipt chain; human approval requiring the exact artifact and proof hashes; capture-verify/no-overwrite application; crash recovery; and exact-postimage rollback.
 - Living Studio surfaces for Product Map, Workflows, Opportunities, Evolution Review, Receipts, and optional Current vs Proposed comparison.
@@ -173,7 +174,7 @@ set OPENAI_API_KEY=<runtime-secret>
 npm run demo:gpt56:api
 ```
 
-The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) demonstrates the earlier structured evidence-interpretation boundary. A live source proposal must be reproduced from the submission commit; a preserved interpretation alone is not proof of source application or runtime success.
+The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) demonstrates the earlier structured evidence-interpretation boundary. A [July 21 live run](docs/proof/gpt56-live-crm-source-evolution.md) records the current generic path: GPT authored `Leads` to `Back to leads`, Living exact-hash approved and applied it, and the real CRM rendered the change after passing its tests and production build. This proves governed source application and runtime rendering, not measured workflow improvement. Reproduction from the exact final submission commit and an executed runtime rollback remain submission gates.
 
 ## Judge path
 

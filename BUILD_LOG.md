@@ -594,6 +594,38 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-21 - Complete a live GPT-authored CRM evolution through runtime verification
+
+**Scope**
+
+- The first live `living improve --provider codex` attempt reached GPT-5.6 Terra but failed closed before patch generation, evolution persistence, or source mutation because a prose success metric violated the canonical brief contract.
+- The failure exposed drift between the model-facing brief schema and the downstream contract. The prompt, JSON Schema, Zod schema, reference-integrity checks, public type, and final canonical parse now require exact supplied metric identifiers and exact cited-metric reuse. Regressions reject both prose and uncited success metrics.
+- The authorized rerun used separate saved-auth Codex CLI requests for evidence interpretation (`019f81cc-aa13-7390-a670-268f173b3542`) and bounded patch authorship (`019f81cc-f009-7323-8803-4383a158587f`).
+- GPT selected `src/app/leads/[id]/page.tsx` and proposed one exact edit: `Leads` to `Back to leads`. Living compiled evolution `evolution.source.v2.a0e7c78e809d2d0531a267c2` and passed all 13 deterministic proof checks.
+- Actor `acera` approved the exact artifact and proof hashes and applied the bound postimage through Living. The resulting ledger contains eight hash-linked receipts.
+- The independent CRM passed 111/111 tests and its production build. Browser verification on the real `/leads/lead-04` route visibly rendered `Back to leads`.
+- A post-apply reinstall/remap preserved `.living/data` and restored healthy installation status. The completed evolution remains bound to its original evidence and manifest.
+
+**How GPT-5.6 was used**
+
+- The successful brief request interpreted the synthetic evidence and returned exact cited metric identifiers.
+- The separate patch request inspected only the bounded source candidates and authored the one-file label change. Both Codex transports requested `gpt-5.6-terra`; the CLI does not report an authoritative actual response-model value.
+- GPT received no source-write, approval, terminal, filesystem, browser, network, Git, or rollback authority.
+
+**Evidence**
+
+- Preimage: `sha256:e37b5c1bb7fe8665fd2d4dd313859e5cfa86256d1040afd07ade3117dfb1d5ab`
+- Postimage: `sha256:07e9d6faf5697e7321f95a6f22367b52f364265333a44a4683a32ad2c33f2318`
+- Artifact: `sha256:c1c6408afee5b06ddad6f0ec6571576a902daf8094c7e9b30461f49e96ccb390`
+- Proof: `sha256:29e4ab3134ba2748666d43b218626bd05ee5415569808b62f6855d96bef0f866`
+- Receipt-chain head: `sha256:14b6a4b1f3fe8b7686f807f98008565302a75d95396851dd8a34161b0f409c0f`
+- The complete repository gate passed 263/263 tests: 242 product and 21 integration tests, every workspace typecheck, the compliance baseline, and the Studio production build.
+- Exact rollback was not executed. The current source matches the applied postimage, the retained preimage is ledger-bound, and the exact-postimage rollback precondition was verified; restored runtime is not claimed.
+- This proves governed source application and visible runtime rendering. It does not prove that workflow metrics improved or that automatic post-change measurement exists.
+- The sanitized evidence record is [docs/proof/gpt56-live-crm-source-evolution.md](docs/proof/gpt56-live-crm-source-evolution.md).
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

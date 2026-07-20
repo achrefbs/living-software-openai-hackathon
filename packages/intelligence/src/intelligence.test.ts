@@ -6,6 +6,7 @@ import type { JsonValue, Opportunity, ProductManifest, WorkflowEvent } from "@li
 import { sha256 } from "@living-software/core";
 
 import {
+  EVOLUTION_BRIEF_JSON_SCHEMA,
   IntelligenceResponseError,
   MissingApiKeyError,
   PRODUCT_CONTEXT_LIMITS,
@@ -429,6 +430,21 @@ test("outbound body is privacy-minimal and strips prompt-injection-bearing host 
   assert.match(body, /evidence-001/);
   assert.match(body, /record\.opened/);
   assert.match(body, /synthetic-only/);
+  assert.match(
+    request.input[1]!.content,
+    /For every successCriteria\.metric, copy exactly one name/u,
+  );
+  assert.match(request.input[1]!.content, /\["backtrack-count"\]/u);
+  assert.equal(
+    EVOLUTION_BRIEF_JSON_SCHEMA.properties.evidenceCitations.properties.metrics
+      .items.properties.name.pattern,
+    "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$",
+  );
+  assert.equal(
+    EVOLUTION_BRIEF_JSON_SCHEMA.properties.successCriteria.items.properties
+      .metric.pattern,
+    "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$",
+  );
 });
 
 test("bounds and deterministically orders manifest and normalized event context", () => {
@@ -690,6 +706,8 @@ test("rejects invented references and authority escalation", async (t) => {
   }
   await t.test("invented event alias", () => rejects(brief(base.detectedOpportunity, base.productManifest, { evidenceCitations: { ...brief(base.detectedOpportunity, base.productManifest).evidenceCitations, sampleEvidenceAliases: ["evidence-999"] } })));
   await t.test("invented metric", () => rejects(brief(base.detectedOpportunity, base.productManifest, { evidenceCitations: { ...brief(base.detectedOpportunity, base.productManifest).evidenceCitations, metrics: [{ name: "imaginary", observed: 99 }] } })));
+  await t.test("free-form success metric", () => rejects(brief(base.detectedOpportunity, base.productManifest, { successCriteria: [{ ...brief(base.detectedOpportunity, base.productManifest).successCriteria[0]!, metric: "Average revisit count" }] })));
+  await t.test("uncited success metric", () => rejects(brief(base.detectedOpportunity, base.productManifest, { successCriteria: [{ ...brief(base.detectedOpportunity, base.productManifest).successCriteria[0]!, metric: "imaginary" }] })));
   await t.test("unknown node", () => rejects(brief(base.detectedOpportunity, base.productManifest, { proposedChange: { ...brief(base.detectedOpportunity, base.productManifest).proposedChange, affectedProductNodeIds: ["host-admin-secret"] } })));
   await t.test("approval injection", () => rejects({ ...brief(base.detectedOpportunity, base.productManifest), approved: true }));
   await t.test("activation", () => rejects({ ...brief(base.detectedOpportunity, base.productManifest), governance: { status: "approved", humanApprovalRequired: false, activationAllowed: true } }));

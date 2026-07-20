@@ -291,13 +291,21 @@ function validateReferenceIntegrity(
     );
   }
   const { sampleEvidenceAliases, ...citations } = brief.evidenceCitations;
-  return {
+  const projectedBrief = {
     ...brief,
     evidenceCitations: {
       ...citations,
       sampleEventIds: sampleEvidenceAliases.map((alias) => eventIdByAlias.get(alias)!),
     },
   };
+  const parsed = gpt56EvolutionBriefSchema.safeParse(projectedBrief);
+  if (!parsed.success) {
+    throw new IntelligenceResponseError(
+      "GPT-5.6 brief failed canonical contract validation",
+      "invalid_brief",
+    );
+  }
+  return parsed.data;
 }
 
 function sourceHash(content: string): string {

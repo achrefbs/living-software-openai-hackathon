@@ -1,4 +1,9 @@
-import type { Opportunity, ProductManifest, WorkflowEvent } from "@living-software/contracts";
+import type {
+  Gpt56EvolutionBrief,
+  Opportunity,
+  ProductManifest,
+  WorkflowEvent,
+} from "@living-software/contracts";
 
 export type BoundedProductNode = Readonly<{
   id: string;
@@ -55,46 +60,7 @@ export type BoundedProductContext = Readonly<{
   }>;
 }>;
 
-export type EvolutionBrief = Readonly<{
-  schemaVersion: "living.evolution-brief/v1";
-  briefId: string;
-  appId: string;
-  opportunityId: string;
-  manifestHash: string;
-  title: string;
-  interpretation: string;
-  proposedChange: Readonly<{
-    kind: "workflow-assist" | "information-surface" | "automation-draft";
-    summary: string;
-    userValue: string;
-    affectedProductNodeIds: readonly string[];
-    excludedWork: readonly string[];
-  }>;
-  evidenceCitations: Readonly<{
-    eventSetHash: string;
-    sampleEventIds: readonly string[];
-    metrics: readonly Readonly<{ name: string; observed: number }>[];
-  }>;
-  successCriteria: readonly Readonly<{
-    metric: string;
-    direction: "increase" | "decrease";
-    target: string;
-    measurementWindow: string;
-  }>[];
-  risks: readonly string[];
-  openQuestions: readonly string[];
-  limitations: readonly string[];
-  evidenceScope: Readonly<{
-    origin: "observed" | "synthetic" | "mixed";
-    claimScope: "synthetic-only" | "mixed-evidence-only" | "observed-window-only";
-    productionGeneralizationAllowed: false;
-  }>;
-  governance: Readonly<{
-    status: "draft";
-    humanApprovalRequired: true;
-    activationAllowed: false;
-  }>;
-}>;
+export type EvolutionBrief = Gpt56EvolutionBrief;
 
 export type DraftEvolutionBriefInput = Readonly<{
   opportunity: Opportunity;

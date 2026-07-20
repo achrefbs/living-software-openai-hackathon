@@ -34,9 +34,9 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Strict proof validation, mismatch handling, privacy-minimized proof projection, and non-rendering of raw event IDs and evidence aliases are tested.
 - [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
 - [x] The fixed CRM navigation adapter is removed from the active engine; offline tests accept materially different GPT-authored proposals and source targets.
-- [ ] A live generic GPT-authored proposal is recorded from the exact submission commit.
-- [ ] The final proposal is approved with both exact artifact and proof hashes, applied through Living, and verified in the running CRM.
-- [ ] Exact rollback is executed and the restored CRM plus complete receipt chain are verified.
+- [x] A live generic GPT-authored proposal was exact-hash approved, applied, CRM-tested/built, and browser-verified.
+- [ ] The live generic path is reproduced or preserved from the exact final submission commit.
+- [ ] Exact rollback is executed and the restored CRM plus complete receipt chain are browser-verified.
 - [x] Connected Evolution Review explains the automatic/manual trigger boundary and hides unrelated neutral proof during the active decision flow.
 - [ ] Every final claim tied to the submission commit.
 

@@ -59,16 +59,16 @@ The separate CRM and its simulator remain independent projects. Living derives i
 9. Deterministic target/preimage/anchor/diff/authority validation, proof, human approval requiring exact artifact and proof hashes, capture-verify/no-overwrite application, recovery, receipts, and exact rollback.
 10. Terminal-first `install -> improve -> approve/apply -> rollback`, with Studio as a visual companion.
 11. Neutral fixtures and offline replay for credential-free deterministic verification.
+12. A live CRM generic proposal, exact-hash approval/application, CRM tests/build, and browser-visible runtime result.
 
-The preserved [`docs/proof/gpt56-live-codex-cli.json`](proof/gpt56-live-codex-cli.json) proves an earlier authenticated GPT-5.6 Terra interpretation run. It is historical transport evidence, not proof that the current generic patch path produced, applied, or improved a live CRM change.
+The preserved [`docs/proof/gpt56-live-codex-cli.json`](proof/gpt56-live-codex-cli.json) proves an earlier authenticated GPT-5.6 Terra interpretation run. The [July 21 CRM record](proof/gpt56-live-crm-source-evolution.md) proves the current generic patch path prepared, applied, and visibly rendered one governed change; it does not prove measured improvement.
 
 ## Next evidence milestones
 
-1. Run a live generic GPT-authored proposal from the exact submission commit after explicit authorization to send the bounded CRM source projection to OpenAI.
-2. Review and approve the exact artifact and proof hashes, apply through Living, then separately build/reload and show the visible CRM result.
-3. Demonstrate exact rollback and preserve the complete receipt chain.
-4. Verify the fresh-clone path and required no-rebuild judge distribution.
-5. Add automatic post-change capture and before/after measurement only as future work; do not claim a closed improvement loop today.
+1. Reproduce or preserve the live generic path from the exact final submission commit.
+2. Demonstrate exact rollback and browser-verify the restored CRM while preserving the complete receipt chain.
+3. Verify the fresh-clone path and required no-rebuild judge distribution.
+4. Add automatic post-change capture and before/after measurement only as future work; do not claim a closed improvement loop today.
 
 ## Explicit non-claims
 

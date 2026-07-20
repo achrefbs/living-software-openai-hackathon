@@ -1,6 +1,6 @@
 # OpenAI Build Week compliance record
 
-Checked against the Devpost hackathon information and official rules on **July 20, 2026**. The official [rules](https://openai.devpost.com/rules) remain authoritative.
+Checked against the Devpost hackathon information and official rules on **July 21, 2026**. The official [rules](https://openai.devpost.com/rules) remain authoritative.
 
 ## Event status
 
@@ -26,6 +26,8 @@ Checked against the Devpost hackathon information and official rules on **July 2
 - The public CRM and its simulator remain separate projects. Synthetic simulator output is a post-run oracle, never an input to Living's discovery, detector or patch prompt.
 - The current synthetic CRM evidence contains three cases, 135 captured events and 18 independently detected backtracking revisits. This proves the observation/detection path for that run, not general production behavior or a predetermined fix.
 - The generic patch engine contains no CRM-specific Previous/Next transform. GPT may propose any change inside the one-existing-UI-file policy.
+- A July 21 authorized live run used Codex threads `019f81cc-aa13-7390-a670-268f173b3542` and `019f81cc-f009-7323-8803-4383a158587f`. GPT selected `src/app/leads/[id]/page.tsx` and authored `Leads` to `Back to leads`; Living exact-hash approved and applied artifact `sha256:c1c6408afee5b06ddad6f0ec6571576a902daf8094c7e9b30461f49e96ccb390` with proof `sha256:29e4ab3134ba2748666d43b218626bd05ee5415569808b62f6855d96bef0f866`, 13 passing checks, and eight receipts.
+- The independent CRM passed 111/111 tests and its production build, and browser verification showed the applied label on `/leads/lead-04`. A preservation-aware reinstall remapped observation to the new source revision while retaining the original evolution ledger.
 - Studio can display synchronized synthetic capture, the exact GPT-authored proposal, proof and receipts. Its connected mutation broker is loopback-only in development; comparison is display-only.
 - Source application and runtime verification are distinct. Automatic post-change measurement is not implemented.
 - Claude Fable 5 provided disclosed UI implementation assistance. Codex audited, hardened and tested the accepted work; chronology remains in [BUILD_LOG.md](BUILD_LOG.md).
@@ -36,7 +38,7 @@ Checked against the Devpost hackathon information and official rules on **July 2
 
 Codex has been used for architecture, implementation, tests, security review, documentation and integration. GPT-5.6 runs inside the product: one request interprets the evidence and another authors the exact bounded code proposal reviewed by the operator. Strict schemas, provider provenance and local proof bind those model outputs to the governed lifecycle.
 
-The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) records an earlier structured interpretation run from clean commit `4c1480f220fb88283a63e160d9dc6da8c6fa82d5`. It is historical evidence of the intelligence transport, not proof that the current generic source proposal was applied or improved a runtime.
+The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) records an earlier structured interpretation run from clean commit `4c1480f220fb88283a63e160d9dc6da8c6fa82d5`. The separate [live CRM evolution record](docs/proof/gpt56-live-crm-source-evolution.md) records the July 21 generic prepare, exact-hash apply, and browser-visible runtime result. Neither artifact proves measured workflow improvement.
 
 ## Verification commands
 
@@ -80,8 +82,8 @@ For the API path, set `OPENAI_API_KEY` at runtime and replace `--provider codex`
 
 - Record the real primary `/feedback` Session ID.
 - Verify a fresh-clone path and the required no-rebuild judge distribution.
-- Record a live GPT-authored proposal from the exact submission commit.
-- Record browser-verified runtime evidence for an approved source apply and exact rollback.
+- Reproduce or preserve the live generic path from the exact final submission commit; the July 21 run occurred from the corrected working tree before the final documentation commit.
+- Execute exact rollback and browser-verify the restored CRM; only the rollback precondition and retained preimage are currently verified.
 - Do not claim a closed improvement loop until post-change capture and measurement exist.
 - Record and verify the public video URL.
 - Re-fetch announcements and rules immediately before submission.

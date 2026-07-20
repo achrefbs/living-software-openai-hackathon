@@ -21,3 +21,6 @@ Current artifact:
 - `gpt56-live-codex-cli.json` — authenticated `gpt-5.6-terra` request,
   clean source commit `4c1480f220fb88283a63e160d9dc6da8c6fa82d5`,
   locally validated draft, and conservative CLI provenance.
+- `gpt56-live-crm-source-evolution.md` — sanitized July 21 record of the
+  generic CRM brief and patch runs, exact hashes, approval/application,
+  receipt-chain audit, CRM tests/build, and browser-visible result.

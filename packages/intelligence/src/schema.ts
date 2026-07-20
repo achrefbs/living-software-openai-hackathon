@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+const IDENTIFIER_JSON_PATTERN = "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$";
+const modelIdentifierSchema = z
+  .string()
+  .min(1)
+  .max(160)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u);
+
 export const EVOLUTION_BRIEF_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
@@ -22,9 +29,9 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
   ],
   properties: {
     schemaVersion: { type: "string", const: "living.evolution-brief/v1" },
-    briefId: { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$" },
-    appId: { type: "string" },
-    opportunityId: { type: "string" },
+    briefId: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
+    appId: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
+    opportunityId: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
     manifestHash: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
     title: { type: "string", minLength: 1, maxLength: 160 },
     interpretation: { type: "string", minLength: 1, maxLength: 2000 },
@@ -36,7 +43,7 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
         kind: { type: "string", enum: ["workflow-assist", "information-surface", "automation-draft"] },
         summary: { type: "string", minLength: 1, maxLength: 1000 },
         userValue: { type: "string", minLength: 1, maxLength: 1000 },
-        affectedProductNodeIds: { type: "array", minItems: 1, maxItems: 32, items: { type: "string" } },
+        affectedProductNodeIds: { type: "array", minItems: 1, maxItems: 32, items: { type: "string", pattern: IDENTIFIER_JSON_PATTERN } },
         excludedWork: { type: "array", maxItems: 16, items: { type: "string", minLength: 1, maxLength: 300 } },
       },
     },
@@ -55,7 +62,7 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
             type: "object",
             additionalProperties: false,
             required: ["name", "observed"],
-            properties: { name: { type: "string" }, observed: { type: "number" } },
+            properties: { name: { type: "string", pattern: IDENTIFIER_JSON_PATTERN }, observed: { type: "number" } },
           },
         },
       },
@@ -69,7 +76,7 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
         additionalProperties: false,
         required: ["metric", "direction", "target", "measurementWindow"],
         properties: {
-          metric: { type: "string", minLength: 1, maxLength: 160 },
+          metric: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
           direction: { type: "string", enum: ["increase", "decrease"] },
           target: { type: "string", minLength: 1, maxLength: 300 },
           measurementWindow: { type: "string", minLength: 1, maxLength: 300 },
@@ -104,9 +111,9 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
 
 export const modelEvolutionBriefSchema = z.object({
   schemaVersion: z.literal("living.evolution-brief/v1"),
-  briefId: z.string().min(1).max(160).regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/),
-  appId: z.string().min(1).max(160),
-  opportunityId: z.string().min(1).max(160),
+  briefId: modelIdentifierSchema,
+  appId: modelIdentifierSchema,
+  opportunityId: modelIdentifierSchema,
   manifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   title: z.string().min(1).max(160),
   interpretation: z.string().min(1).max(2000),
@@ -114,16 +121,16 @@ export const modelEvolutionBriefSchema = z.object({
     kind: z.enum(["workflow-assist", "information-surface", "automation-draft"]),
     summary: z.string().min(1).max(1000),
     userValue: z.string().min(1).max(1000),
-    affectedProductNodeIds: z.array(z.string().min(1)).min(1).max(32),
+    affectedProductNodeIds: z.array(modelIdentifierSchema).min(1).max(32),
     excludedWork: z.array(z.string().min(1).max(300)).max(16),
   }).strict(),
   evidenceCitations: z.object({
     eventSetHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
     sampleEvidenceAliases: z.array(z.string().regex(/^evidence-[0-9]{3,}$/)).min(1).max(64),
-    metrics: z.array(z.object({ name: z.string().min(1), observed: z.number().finite() }).strict()).min(1).max(32),
+    metrics: z.array(z.object({ name: modelIdentifierSchema, observed: z.number().finite() }).strict()).min(1).max(32),
   }).strict(),
   successCriteria: z.array(z.object({
-    metric: z.string().min(1).max(160),
+    metric: modelIdentifierSchema,
     direction: z.enum(["increase", "decrease"]),
     target: z.string().min(1).max(300),
     measurementWindow: z.string().min(1).max(300),
@@ -151,6 +158,18 @@ export const modelEvolutionBriefSchema = z.object({
   }
   if (!unique(brief.evidenceCitations.metrics.map((metric) => metric.name))) {
     context.addIssue({ code: "custom", path: ["evidenceCitations", "metrics"], message: "Metric citations must be unique" });
+  }
+  const citedMetricNames = new Set(
+    brief.evidenceCitations.metrics.map((metric) => metric.name),
+  );
+  for (const [index, criterion] of brief.successCriteria.entries()) {
+    if (!citedMetricNames.has(criterion.metric)) {
+      context.addIssue({
+        code: "custom",
+        path: ["successCriteria", index, "metric"],
+        message: "Success criteria must reference a cited metric exactly",
+      });
+    }
   }
 });
 
