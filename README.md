@@ -171,6 +171,7 @@ Studio a human-facing link to the lead under review:
 
 ```powershell
 $env:LIVING_STUDIO_HOST_URL="http://127.0.0.1:3000/leads/lead-01"
+$env:LIVING_STUDIO_PREVIEW_URL="http://127.0.0.1:3002/leads/lead-01"
 npm run dev --workspace @living-software/studio -- --port 3001
 ```
 
@@ -192,6 +193,37 @@ order:
 5. **Roll back exact source** restores only the approved preimage while the
    target still matches the exact installed postimage.
 
+Create the optional isolated preview from the prepared ledger without editing
+the CRM:
+
+```powershell
+npm run preview:crm -- --root ..\crm-workflow-lab --out C:\tmp\living-crm-preview
+Set-Location C:\tmp\living-crm-preview
+npm install
+npm run build
+npm run start -- --hostname 127.0.0.1 --port 3002
+```
+
+The generator requires clean tracked CRM files, copies only Git-tracked files
+to a new nonexistent output path, verifies the connected preimage, writes the
+exact prepared postimage, and generates an identity route that recomputes the
+target SHA-256 on every request. It never edits the connected CRM and never
+deletes or overwrites an existing preview directory.
+
+After **Prepare**, open
+`http://127.0.0.1:3001/apps/<app-id>/compare` to inspect the unchanged host and
+an optional isolated postimage server side by side. The left frame is the real
+host named by `LIVING_STUDIO_HOST_URL`; the right frame is a separate process
+named by `LIVING_STUDIO_PREVIEW_URL`. Studio reads lifecycle identity and
+renders both URLs only when the preview's strict `GET /api/living-preview`
+identity matches the current evolution ID and postimage hash. Missing, stale,
+or modified target postimages fail closed. Studio also re-hashes the connected target and
+hides both frames unless it still matches the prepared preimage. The comparison
+page has no mutation controls. Starting or viewing a preview does not approve
+the artifact, edit the connected host, or prove runtime activation. Only the
+exact **Approve** then **Apply to CRM source** path above can change the
+connected source.
+
 Current local checkpoint (July 20, 2026): the authenticated Codex CLI Prepare
 step completed for the synthetic CRM capture as thread
 `019f7fc2-e97a-74f2-8705-ea02ef4bb517`. Studio produced prepared evolution
@@ -202,6 +234,9 @@ and static proof
 The proof passed, but approval and application remain null and the CRM target
 still matches preimage
 `sha256:e37b5c1bb7fe8665fd2d4dd313859e5cfa86256d1040afd07ade3117dfb1d5ab`.
+An isolated server on port 3002 renders the exact prepared postimage
+`sha256:d9ad4fa089148098d345fc5588b0eb12b91e9c7ca94996e9392f7cb2785624af`
+for comparison only; the connected CRM on port 3000 remains the preimage.
 This gitignored local state is a reproducible demo checkpoint, not a committed
 substitute for the separate sanitized neutral proof artifact.
 

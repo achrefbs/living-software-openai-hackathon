@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
@@ -69,6 +70,7 @@ function emptyStatus(
     targetPath: null,
     preHash: null,
     postHash: null,
+    hostSourceHash: null,
     artifactHash: null,
     proofHash: null,
     patchPreview: null,
@@ -512,7 +514,13 @@ export async function GET(request: Request): Promise<Response> {
       return json(emptyStatus(false, "Run studio:sync with the instrumented CRM first"), 503);
     }
     if (state === null) return json(emptyStatus(true));
-    return json(projectStatus(state, evidenceRelation ?? "stale"));
+    const hostSource = await readTargetPreimage(connection.hostRoot);
+    const hostSourceHash =
+      `sha256:${createHash("sha256").update(hostSource, "utf8").digest("hex")}`;
+    return json({
+      ...projectStatus(state, evidenceRelation ?? "stale"),
+      hostSourceHash,
+    });
   } catch (error) {
     return json(
       emptyStatus(false, error instanceof Error ? error.message : "Evolution status failed"),

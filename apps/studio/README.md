@@ -1,12 +1,17 @@
 # Living Studio
 
-Host-agnostic, read-only interface for Living Software. It exposes five connected surfaces:
+Host-agnostic interface for Living Software. Its five-stage journey is:
 
 - Product Map
 - Workflow Explorer
 - Opportunity Feed
 - Evolution Review
 - Receipts
+
+An additional read-only **Current vs Proposed** comparison is available from
+Evolution Review after a draft exists. It can embed the unchanged host and an
+isolated exact-postimage preview side by side. The comparison has no approval,
+apply, or rollback controls.
 
 Studio has two read-only inputs. At startup it validates
 `.local/studio-snapshot.json` with the public `living.studio-snapshot/v1`
@@ -41,6 +46,17 @@ snapshot, and atomically writes only
 `apps/studio/.local/studio-snapshot.json`. The entire `.local` directory is
 gitignored; no CRM snapshot is committed. Restart Studio after replacing the
 snapshot.
+
+For a captured-host demo, set `LIVING_STUDIO_HOST_URL` to the unchanged host
+and `LIVING_STUDIO_PREVIEW_URL` to a separately running postimage preview, then
+open `/apps/<app-id>/compare`. The preview origin must expose a strict
+`living.preview-identity/v1` response at `GET /api/living-preview`. Studio
+shows the frames only when that evolution ID and runtime-computed postimage hash
+match the governed draft and the connected target still matches its preimage.
+From the repository root, `npm run preview:crm -- --root <crm> --out <new-path>`
+creates this isolated source tree without editing the CRM. The preview is
+display-only; it is not lifecycle approval or evidence that the connected host
+was activated.
 
 The captured view is a static export, not a live host connection. It contains a
 versioned Product Manifest, minimized workflow cases and variants, a Metric
@@ -77,5 +93,7 @@ from a browser request. The separate CLI owns host-root access, evidence-chain
 verification, minimization, and snapshot creation. Studio makes no live model
 call. The committed proof projection omits raw event IDs and alias mappings and
 remains separate from the active dataset unless app, manifest, opportunity, and
-event-set identities all match. Even a related draft cannot approve, activate,
-populate lifecycle state, or unlock controls.
+event-set identities all match. The local Evolution Review broker is the only
+captured-host surface with governed mutation commands. The comparison route is
+GET-only; even an exact related draft or visible preview cannot approve,
+activate, populate lifecycle state, or unlock controls.

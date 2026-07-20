@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { studioAppHref } from "@/lib/studio-routes";
 import type { StudioEvidenceIdentity } from "@/lib/studio-types";
 
 type EvolutionPhase =
@@ -231,6 +233,9 @@ export function LiveEvolutionConsole({
     /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u.test(approver);
   const canActivate = status?.phase === "approved";
   const canRollback = status?.phase === "active";
+  const hasPreparedDraft =
+    status?.evolutionId !== null &&
+    (status?.phase === "draft_ready" || status?.phase === "approved");
   const activeProvider = useMemo(
     () => status?.provider ?? provider,
     [provider, status?.provider],
@@ -338,6 +343,14 @@ export function LiveEvolutionConsole({
       {error && <p className="evolution-error" role="alert">{error}</p>}
 
       <div className="evolution-actions">
+        {hasPreparedDraft && (
+          <Link
+            className="button button-secondary"
+            href={studioAppHref(appId, "compare")}
+          >
+            Compare old vs proposed
+          </Link>
+        )}
         <div className="provider-toggle" aria-label="GPT provider">
           <button
             aria-pressed={provider === "codex"}

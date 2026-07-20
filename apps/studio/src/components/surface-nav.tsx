@@ -49,7 +49,9 @@ export function SurfaceNav({
       <ol className="journey-rail" aria-labelledby="journey-nav-label">
         {stages.map((stage) => {
           const href = studioAppHref(appId, stage.id);
-          const active = pathname.startsWith(href);
+          const active = pathname.startsWith(href) ||
+            (stage.id === "evolutions" &&
+              pathname.startsWith(studioAppHref(appId, "compare")));
           const statusText =
             stage.status === "complete"
               ? "complete"

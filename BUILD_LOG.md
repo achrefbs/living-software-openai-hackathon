@@ -492,6 +492,35 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Compare the unchanged CRM with the exact proposed postimage
+
+**Scope**
+
+- Added a read-only Current vs Proposed Studio route linked from a prepared Evolution Review. It embeds the connected CRM on port 3000 beside an isolated exact-postimage server on port 3002 and displays the bound preimage, postimage, artifact, proof, and lifecycle phase.
+- Added a strict `living.preview-identity/v1` handshake. The isolated process computes the target SHA-256 at request time; Studio fetches it through a loopback-only bounded broker, renders frames only when its evolution ID and postimage hash match the governed draft, and fails closed on missing or stale identity. Phase-aware copy disables the old/new view after apply or rollback.
+- Added a second live guard for the connected host: Evolution status re-hashes the bounded target, and Studio hides both frames unless it still matches the prepared preimage.
+- Added `preview:crm`, a committed reproducible generator that requires a clean tracked host, copies only regular Git-tracked files to a new path, writes the exact ledger postimage, and creates the runtime-hashing identity route. It refuses existing outputs and never deletes or edits the CRM.
+- Explained the six-step authority chain from evidence through GPT-5.6 interpretation, deterministic compilation, static proof, exact human approval, and hash-guarded apply or rollback. The page exposes no lifecycle mutation control.
+- Built the isolated preview from the public CRM clean revision and verified that its target is postimage `sha256:d9ad4fa089148098d345fc5588b0eb12b91e9c7ca94996e9392f7cb2785624af`, while the connected CRM remains preimage `sha256:e37b5c1bb7fe8665fd2d4dd313859e5cfa86256d1040afd07ade3117dfb1d5ab`.
+
+**How Codex accelerated the work**
+
+- Codex implemented and independently reviewed the comparison surface, lifecycle projection, navigation, responsive presentation, regression tests, exact-postimage preview, and documentation.
+
+**How GPT-5.6 was used**
+
+- No new model call was made. The comparison renders the existing CRM-bound GPT-5.6 Terra interpretation and the independently compiled deterministic candidate without granting the model source authority.
+
+**Human decisions**
+
+- Let judges inspect the exact proposed experience before approval, while keeping the real CRM unchanged until the entrant confirms the exact hashes and explicitly applies them.
+
+**Evidence**
+
+- Browser verification showed no lead-review navigation in the connected CRM and working Previous/Next navigation in the isolated preview. The comparison page displayed the expected draft phase and hash bindings. The generator reproduced the preview from CRM revision `843331c51ed391e1110983da6cc513d4927ef330` in a fresh output, whose production build passed and whose target matched postimage `d9ad4fa08914…`. The broker returned matching live preimage/postimage identities, both applications and the comparison returned HTTP 200, Studio passed 39/39 tests plus typecheck and production build, and the final complete repository gate passed 227/227 tests (206 product and 21 integration).
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

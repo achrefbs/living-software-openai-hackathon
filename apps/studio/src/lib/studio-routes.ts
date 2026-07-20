@@ -3,6 +3,7 @@ export type StudioSurface =
   | "workflows"
   | "opportunities"
   | "evolutions"
+  | "compare"
   | "receipts";
 
 /**
