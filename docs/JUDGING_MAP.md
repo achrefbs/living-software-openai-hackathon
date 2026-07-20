@@ -4,9 +4,9 @@ Every claim must point to runnable behavior, a test, a commit, or a preserved ar
 
 | Criterion | Evidence available now | Evidence still required |
 | --- | --- | --- |
-| Technological Implementation | Versioned contracts; bounded Next.js source discovery; dry-run-first create-only installer and hash-guarded uninstall; generated observer and same-origin local collector; workflow and metric analysis; completed independent CRM installation/runtime/privacy/removal proof; neutral replay; validated synthetic-only static snapshot bridge into the five-route Studio; strict GPT-5.6 package with explicit Codex `gpt-5.6-terra` and API `gpt-5.6` transports; preserved live Terra proof; strict `living.gpt56-proof/v2` validation, privacy-safe Studio projection, and fail-closed four-part evidence identity relation; chronological Build Log | Fresh-clone and required no-rebuild judge paths; primary `/feedback` Session ID |
-| Design | Privacy boundary that preserves useful CSS-pixel geometry; explicit previews and hash journal; coherent five-surface Studio with visible synthetic/static provenance, a clearly separated recorded-model panel, locked authority, and preview states | Final recorded walkthrough |
-| Potential Impact | A concrete adapter path for deterministically deriving workflows from an independently built application while separating the tool, host, simulator, and model authority | Concise before/after outcome supported by the final independent proof; no generalization beyond the tested adapter |
+| Technological Implementation | Versioned contracts; bounded Next.js source discovery; dry-run-first create-only installer and hash-guarded uninstall; generated observer and same-origin local collector; workflow and metric analysis; completed independent CRM installation/runtime/privacy/removal proof; validated synthetic-only Studio snapshot; strict GPT-5.6 transports and preserved live proof; one exact-hash CRM source-evolution adapter with static proof, separate approval/application, crash-safe receipts, rollback, and a dual-identity before/after preview; chronological Build Log | Fresh-clone and required no-rebuild judge paths; primary `/feedback` Session ID |
+| Design | Privacy boundary that preserves useful CSS-pixel geometry; coherent five-surface Studio; plain-language trigger and next-action panels; explicit unchanged/live states; side-by-side real CRM and verified preview with the only visible delta called out; technical hashes collapsed but available | Final recorded walkthrough |
+| Potential Impact | A concrete installed-tool proof that detects 18 backtracking revisits across three synthetic CRM workflows and prepares a bounded Previous/Next lead-review improvement without granting a model source authority | Post-change measurement after an entrant-approved application; no generalization beyond the tested adapter |
 | Quality of the Idea | Software surfaces repeated workflow and layout friction while deterministic systems bound installation, evidence, interpretation, and removal; the model remains advisory | Final entrant-written positioning that does not overstate business understanding or the future governed lifecycle |
 
 ## Judge commands
@@ -44,5 +44,5 @@ Verified platform: Windows 11 with Node.js 22 or newer; the current proof runtim
 - Automatic knowledge of business outcomes or causal layout conclusions.
 - Production authenticated or multi-instance evidence collection.
 - Live host/model ingestion by Studio, automatic-host evidence sent to GPT-5.6, or attachment/lifecycle unlock from the neutral proof.
-- A completed declarative broker or proof/approval/activation/rollback lifecycle.
+- Arbitrary model-generated source patches, automatic approval/application, or completed automatic post-change measurement.
 - Any implementation dependency on the separately built CRM or simulator.

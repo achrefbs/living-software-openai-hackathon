@@ -33,6 +33,8 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Studio distinguishes its active fixture/static snapshot from the separately committed GPT-5.6 proof, makes no live model call, and requires exact app, manifest, opportunity, and event-set identity before labeling a run related.
 - [x] Strict proof validation, mismatch handling, safe projection, and non-rendering of raw event IDs and evidence aliases are tested.
 - [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
+- [x] One CRM-bound deterministic change has a verified side-by-side preview, exact-hash proof, separate human approval/application controls, and rollback gating.
+- [x] Connected Evolution Review explains the automatic/manual trigger boundary and hides unrelated neutral proof during the active decision flow.
 - [ ] Every final claim tied to the submission commit.
 
 ## Codex and GPT-5.6 evidence
@@ -56,7 +58,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 ## Demo video
 
 - [ ] Public YouTube video is under three minutes.
-- [ ] Video shows automatic discovery/observation, the explicit static Studio snapshot, the separate recorded-run banner, and the locked lifecycle without implying live ingestion or attached CRM interpretation.
+- [ ] Video shows automatic discovery/observation, explicit analysis/sync, the exact before/after CRM change, and separate Prepare/Approve/Apply boundaries without implying continuous Studio ingestion or autonomous rewriting.
 - [ ] Audio explains what was built and how Codex and GPT-5.6 were used.
 - [ ] No unlicensed media, private data, or unsupported product claims appear.
 - [ ] Link works without login.

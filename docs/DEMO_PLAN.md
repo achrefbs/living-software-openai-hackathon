@@ -27,18 +27,19 @@ The final public YouTube video must be shorter than three minutes, include audio
 
 ### 1:30-2:00 — GPT-5.6 contributes materially
 
-- Open Evolution Review and show the committed run's “GPT-5.6 Terra requested” label, synthetic evidence scope, local validation, cited metrics, limitations, and “Activation blocked” state.
+- Open the connected Evolution Review and show the CRM-bound “GPT-5.6 evidence interpretation,” the independent deterministic candidate, and the explicit “Waiting for approval · Not live” state.
 - Point out that Codex CLI did not report an authoritative actual response model; Studio preserves that as “Not reported” instead of inventing provenance.
-- Use the committed sanitized proof for the credential-free judge path. Optionally run `npm run demo:gpt56:cli` only when saved Codex authentication is available.
-- Explain that the current GPT path consumes verified neutral replay evidence, not automatic host evidence, and that offline mocks do not substitute for the live proof.
+- Use the committed sanitized neutral proof for the credential-free judge path. It appears in the neutral fixture flow, not beside an unrelated connected CRM proposal. Optionally run `npm run demo:gpt56:cli` only when saved Codex authentication is available.
+- Explain that the connected Prepare command sends only the verified, bounded supporting event subset; GPT interprets evidence but does not generate executable code, approve, or apply it.
 
 ### 2:00-2:25 — Living Studio
 
 - Run `npm run studio:sync -- --root <next-app>` after the synthetic capture.
 - Open Product Map, Workflows, Opportunities, Evolutions, and Receipts.
 - Show the **Captured snapshot** and **Synthetic capture** provenance labels plus one preview state.
-- Show the “Separate neutral evidence run” banner in Evolutions and explain that its app, manifest, opportunity, and event-set identities do not match the CRM snapshot.
-- Describe Studio accurately as two validated static read-only inputs, not live ingestion. The recorded draft does not become a CRM interpretation, populate lifecycle state, or unlock any control.
+- Open the Current vs Proposed route. Point to the unchanged real CRM on the left and the isolated preview's new Previous/Next row on the right.
+- Show that the page says what triggered the proposal, identifies the one changed file, and routes to a separate Approve step; approval itself still does not edit the CRM.
+- Describe Studio accurately: observation is automatic while the CRM is exercised, but analysis/sync are explicitly rerun in this MVP. Prepare, Approve, and Apply are separate human actions.
 
 ### 2:25-2:50 — Remove and assign authority
 

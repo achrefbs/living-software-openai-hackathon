@@ -204,17 +204,22 @@ test("comparison explains the authority boundary and reads lifecycle status only
   );
 
   for (const label of [
-    "Evidence",
-    "GPT interpretation",
-    "Deterministic adapter",
-    "Static proof",
-    "Exact human approval",
-    "Apply or roll back",
+    "Install",
+    "Observe",
+    "Analyze",
+    "Detect",
+    "Prepare",
+    "Approve and apply",
   ]) {
     assert.match(page, new RegExp(label, "u"));
   }
-  assert.match(page, /Model suggestion/u);
-  assert.match(page, /Code ownership/u);
+  assert.match(page, /Automatic boundary/u);
+  assert.match(page, /Human boundary/u);
+  assert.match(page, /The real CRM is still unchanged/u);
+  assert.match(page, /#approve-change/u);
+  assert.match(statusComponent, /The proposal adds one navigation row/u);
+  assert.match(statusComponent, /Previous lead · 1 of 36 · Next lead/u);
+  assert.match(statusComponent, /Technical proof and exact hashes/u);
   assert.match(statusComponent, /fetch\("\/api\/evolution"/u);
   assert.match(statusComponent, /fetch\("\/api\/preview-identity"/u);
   assert.doesNotMatch(statusComponent, /method:\s*"POST"|onClick|<button/u);
@@ -228,7 +233,11 @@ test("evolution console links to comparison only before source application", asy
 
   assert.match(source, /status\?\.phase === "draft_ready"/u);
   assert.match(source, /status\?\.phase === "approved"/u);
-  assert.match(source, /hasPreparedDraft && \(\s*<Link/u);
+  assert.match(source, /hasPreparedDraft \? \(\s*<Link/u);
   assert.match(source, /studioAppHref\(appId, "compare"\)/u);
-  assert.match(source, /Compare old vs proposed/u);
+  assert.match(source, /Open before \/ after comparison/u);
+  assert.match(source, /Approve change/u);
+  assert.match(source, /Apply approved change to real CRM/u);
+  assert.match(source, /canRollback = status\?\.phase === "active" && approverValid/u);
+  assert.match(source, /Rollback receipt label/u);
 });

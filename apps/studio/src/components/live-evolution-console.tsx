@@ -37,18 +37,18 @@ type EvolutionStatus = Readonly<{
 }>;
 
 const PHASES: ReadonlyArray<Readonly<{
-  id: EvolutionPhase;
+  id: Exclude<EvolutionPhase, "rolled_back">;
   label: string;
   detail: string;
 }>> = [
   {
     id: "ready",
-    label: "Evidence",
+    label: "Evidence captured",
     detail: "Exact CRM manifest, opportunity, and event set",
   },
   {
     id: "draft_ready",
-    label: "Proposal + proof",
+    label: "Proposal prepared",
     detail: "GPT interpretation and deterministic static patch proof",
   },
   {
@@ -58,17 +58,10 @@ const PHASES: ReadonlyArray<Readonly<{
   },
   {
     id: "active",
-    label: "Source applied",
+    label: "Apply to CRM",
     detail: "Exact host bytes replaced; runtime verification remains separate",
   },
-  {
-    id: "rolled_back",
-    label: "Rolled back",
-    detail: "Exact preimage restored; receipts preserved",
-  },
 ];
-
-const PHASE_INDEX = new Map(PHASES.map((phase, index) => [phase.id, index]));
 
 function shortHash(value: string | null): string {
   return value === null ? "—" : value.replace(/^sha256:/u, "").slice(0, 12);
@@ -217,7 +210,16 @@ export function LiveEvolutionConsole({
     status?.revision,
   ]);
 
-  const currentIndex = status === null ? -1 : (PHASE_INDEX.get(status.phase) ?? -1);
+  const completedStageCount =
+    status?.phase === "ready"
+      ? 1
+      : status?.phase === "draft_ready"
+        ? 2
+        : status?.phase === "approved"
+          ? 3
+          : status?.phase === "active" || status?.phase === "rolled_back"
+            ? 4
+            : 0;
   const hasDetectedEvidence =
     snapshotIdentity.snapshotHash !== null &&
     snapshotIdentity.opportunityId !== null &&
@@ -225,14 +227,15 @@ export function LiveEvolutionConsole({
   const canPrepare = status?.connected === true &&
     status.phase === "ready" &&
     hasDetectedEvidence;
+  const approverValid = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u.test(approver);
   const canApprove = status?.phase === "draft_ready" &&
     confirmed &&
     status.artifactHash !== null &&
     status.patchPreview !== null &&
     status.proofHash !== null &&
-    /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$/u.test(approver);
+    approverValid;
   const canActivate = status?.phase === "approved";
-  const canRollback = status?.phase === "active";
+  const canRollback = status?.phase === "active" && approverValid;
   const hasPreparedDraft =
     status?.evolutionId !== null &&
     (status?.phase === "draft_ready" || status?.phase === "approved");
@@ -240,6 +243,24 @@ export function LiveEvolutionConsole({
     () => status?.provider ?? provider,
     [provider, status?.provider],
   );
+  const decisionTitle =
+    status?.phase === "ready"
+      ? "Start one bounded proposal"
+      : status?.phase === "draft_ready"
+        ? "The proposal is ready. The real CRM is still unchanged."
+        : status?.phase === "approved"
+          ? "Approved. The real CRM is still unchanged."
+          : status?.phase === "active"
+            ? "Applied to the CRM source"
+            : status?.phase === "rolled_back"
+              ? "Rolled back to the original source"
+              : "Reading the connected lifecycle";
+  const approvalHelper =
+    !confirmed
+      ? "Check the review confirmation to unlock approval."
+      : !approverValid
+        ? "Enter an approval receipt label to unlock approval."
+        : "Ready to record your approval. This will not edit the CRM.";
 
   return (
     <section aria-labelledby="live-evolution-title" className="panel live-evolution">
@@ -248,8 +269,9 @@ export function LiveEvolutionConsole({
           <p className="eyebrow">Connected evolution broker</p>
           <h2 id="live-evolution-title">CRM change, end to end</h2>
           <p className="panel-subtitle">
-            Evidence informs GPT-5.6. A deterministic adapter owns the code
-            patch, tests, activation, and exact rollback.
+            Living observed lead-review activity and prepared a bounded
+            proposal. Nothing reaches the CRM until a person approves and
+            separately applies it.
           </p>
         </div>
         <span className={"badge " + (status?.connected ? "badge-positive" : "badge-locked")}>
@@ -257,14 +279,28 @@ export function LiveEvolutionConsole({
         </span>
       </div>
 
+      <div className="evolution-trigger-note">
+        <strong>What triggered this?</strong>
+        <p>
+          The installed observer captured CRM activity automatically. For this
+          MVP, an operator then ran <code>living analyze</code> and
+          <code>studio:sync</code>. Generate, Approve, and Apply remain explicit
+          human actions.
+        </p>
+      </div>
+
       <ol className="evolution-run-steps">
         {PHASES.map((phase, index) => {
           const state =
-            index < currentIndex ? "complete" : index === currentIndex ? "current" : "locked";
+            index < completedStageCount
+              ? "complete"
+              : index === completedStageCount
+                ? "current"
+                : "locked";
           return (
             <li className={"evolution-run-step evolution-run-" + state} key={phase.id}>
               <span className="evolution-run-marker" aria-hidden="true">
-                {index < currentIndex ? "✓" : index + 1}
+                {index < completedStageCount ? "✓" : index + 1}
               </span>
               <div>
                 <strong>{phase.label}</strong>
@@ -278,6 +314,231 @@ export function LiveEvolutionConsole({
           );
         })}
       </ol>
+
+      <section
+        aria-labelledby="evolution-decision-title"
+        className="evolution-decision"
+        id="approve-change"
+      >
+        <div className="evolution-decision-heading">
+          <div>
+            <p className="eyebrow">Your next action</p>
+            <h3 id="evolution-decision-title">{decisionTitle}</h3>
+            <p>
+              Review, approval, and source application are deliberately
+              separate. Living cannot skip a step or approve its own change.
+            </p>
+          </div>
+          <span className={"badge " + (
+            status?.phase === "active"
+              ? "badge-positive"
+              : status?.phase === "draft_ready" || status?.phase === "approved"
+                ? "badge-warning"
+                : "badge-neutral"
+          )}>
+            {status?.phase === "draft_ready"
+              ? "Waiting for approval · Not live"
+              : status?.phase === "approved"
+                ? "Approved · Not live"
+                : status?.phase === "active"
+                  ? "Applied to source"
+                  : status?.phase === "rolled_back"
+                    ? "Original restored"
+                    : "Preparation stage"}
+          </span>
+        </div>
+
+        {status?.phase === "ready" && (
+          <div className="evolution-prepare">
+            <div>
+              <strong>Prepare the proposal</strong>
+              <p>
+                This manually starts GPT-5.6 interpretation and the
+                deterministic patch-and-proof step.
+              </p>
+            </div>
+            <div className="evolution-prepare-controls">
+              <div className="provider-toggle" aria-label="GPT provider">
+                <button
+                  aria-pressed={provider === "codex"}
+                  className={provider === "codex" ? "selected" : ""}
+                  disabled={!canPrepare || busy !== null}
+                  onClick={() => setProvider("codex")}
+                  type="button"
+                >
+                  Codex CLI
+                </button>
+                <button
+                  aria-pressed={provider === "api"}
+                  className={provider === "api" ? "selected" : ""}
+                  disabled={!canPrepare || busy !== null}
+                  onClick={() => setProvider("api")}
+                  type="button"
+                >
+                  API key
+                </button>
+              </div>
+              <button
+                className="button button-primary"
+                disabled={!canPrepare || busy !== null}
+                onClick={() => void run("prepare")}
+                type="button"
+              >
+                {busy === "prepare" ? "Preparing with GPT-5.6…" : "Generate proposal"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(status?.phase === "draft_ready" ||
+          status?.phase === "approved" ||
+          status?.phase === "active") && (
+          <ol className="evolution-decision-steps">
+            <li>
+              <span aria-hidden="true">1</span>
+              <div>
+                <h4>Review the visible change</h4>
+                <p>
+                  Compare the real CRM with the isolated, verified preview.
+                </p>
+                {hasPreparedDraft ? (
+                  <Link
+                    className="button button-secondary"
+                    href={studioAppHref(appId, "compare")}
+                  >
+                    Open before / after comparison
+                  </Link>
+                ) : (
+                  <p className="evolution-step-complete">
+                    The approved artifact is now the current source.
+                  </p>
+                )}
+              </div>
+            </li>
+            <li className={status.phase === "draft_ready" ? "evolution-decision-current" : ""}>
+              <span aria-hidden="true">2</span>
+              <div>
+                <h4>Approve this exact change</h4>
+                {status.phase === "draft_ready" ? (
+                  <>
+                    <label className="approval-check">
+                      <input
+                        checked={confirmed}
+                        disabled={busy !== null}
+                        onChange={(event) => setConfirmed(event.target.checked)}
+                        type="checkbox"
+                      />
+                      I reviewed the before / after change and exact source diff,
+                      and understand it can be rolled back.
+                    </label>
+                    <label className="evolution-approver-label" htmlFor="evolution-approver">
+                      Approval receipt label
+                    </label>
+                    <input
+                      aria-describedby="evolution-approver-help"
+                      className="evolution-approver"
+                      disabled={busy !== null}
+                      id="evolution-approver"
+                      maxLength={160}
+                      onChange={(event) => setApprover(event.target.value)}
+                      placeholder="e.g. achref-demo"
+                      value={approver}
+                    />
+                    <small id="evolution-approver-help">
+                      Used in the local receipt; this is not authenticated identity.
+                    </small>
+                    <button
+                      className="button button-primary"
+                      disabled={!canApprove || busy !== null}
+                      onClick={() => void run("approve")}
+                      type="button"
+                    >
+                      {busy === "approve" ? "Recording approval…" : "Approve change"}
+                    </button>
+                    <p aria-live="polite" className="evolution-action-helper">
+                      {approvalHelper}
+                    </p>
+                  </>
+                ) : (
+                  <p className="evolution-step-complete">
+                    Approved{status.approvalActor ? ` by ${status.approvalActor}` : ""}.
+                    Approval did not edit the CRM.
+                  </p>
+                )}
+              </div>
+            </li>
+            <li className={status.phase === "approved" ? "evolution-decision-current" : ""}>
+              <span aria-hidden="true">3</span>
+              <div>
+                <h4>Apply the approved change to the real CRM</h4>
+                {status.phase === "draft_ready" && (
+                  <p className="evolution-step-locked">
+                    Locked until the exact artifact is approved.
+                  </p>
+                )}
+                {status.phase === "approved" && (
+                  <>
+                    <button
+                      className="button button-primary"
+                      disabled={!canActivate || busy !== null}
+                      onClick={() => void run("activate")}
+                      type="button"
+                    >
+                      {busy === "activate"
+                        ? "Applying to CRM source…"
+                        : "Apply approved change to real CRM"}
+                    </button>
+                    <p className="evolution-action-helper">
+                      Replaces only <code>src/app/leads/[id]/page.tsx</code>,
+                      and only if it still matches the version you reviewed.
+                    </p>
+                  </>
+                )}
+                {status.phase === "active" && (
+                  <p className="evolution-step-complete">
+                    Applied to the source. Runtime verification remains a
+                    separate check.
+                  </p>
+                )}
+              </div>
+            </li>
+          </ol>
+        )}
+
+        {(status?.phase === "active" || status?.phase === "rolled_back") && (
+          <div className="evolution-recovery-actions">
+            {status.phase === "active" && (
+              <div className="evolution-rollback-identity">
+                <label htmlFor="evolution-rollback-approver">
+                  Rollback receipt label
+                </label>
+                <input
+                  className="evolution-approver"
+                  id="evolution-rollback-approver"
+                  maxLength={160}
+                  onChange={(event) => setApprover(event.target.value)}
+                  placeholder="e.g. achref-demo"
+                  value={approver}
+                />
+                <small>Required before rollback; stored in the local receipt.</small>
+              </div>
+            )}
+            <button
+              className="button button-secondary"
+              disabled={!canRollback || busy !== null}
+              onClick={() => void run("rollback")}
+              type="button"
+            >
+              {busy === "rollback" ? "Rolling back…" : "Roll back to original source"}
+            </button>
+            {crmUrl && (
+              <a className="button button-secondary" href={crmUrl} rel="noreferrer" target="_blank">
+                Open real CRM
+              </a>
+            )}
+          </div>
+        )}
+      </section>
 
       {status?.title && (
         <div className="evolution-proposal">
@@ -321,112 +582,30 @@ export function LiveEvolutionConsole({
         </p>
       )}
 
-      <dl className="evolution-integrity">
-        <div><dt>Provider</dt><dd>{activeProvider === "codex" ? "Codex CLI" : "Responses API"}</dd></div>
-        <div><dt>Preimage</dt><dd><code>{shortHash(status?.preHash ?? null)}</code></dd></div>
-        <div><dt>Postimage</dt><dd><code>{shortHash(status?.postHash ?? null)}</code></dd></div>
-        <div><dt>Static proof</dt><dd>{status?.proofPassed ? shortHash(status.proofHash) : "Not run"}</dd></div>
-        <div><dt>Receipts</dt><dd>{status?.receiptCount ?? 0}</dd></div>
-      </dl>
-      {status?.artifactHash && status.proofHash && (
-        <details className="evolution-hashes">
-          <summary>Exact approval bindings</summary>
-          <dl>
+      <details className="evolution-technical">
+        <summary>Technical proof and exact hashes</summary>
+        <p>
+          The proposal can be approved and applied only while these exact
+          source, artifact, and proof identities still match.
+        </p>
+        <dl className="evolution-integrity">
+          <div><dt>Provider</dt><dd>{activeProvider === "codex" ? "Codex CLI" : "Responses API"}</dd></div>
+          <div><dt>Preimage</dt><dd><code>{shortHash(status?.preHash ?? null)}</code></dd></div>
+          <div><dt>Postimage</dt><dd><code>{shortHash(status?.postHash ?? null)}</code></dd></div>
+          <div><dt>Static proof</dt><dd>{status?.proofPassed ? shortHash(status.proofHash) : "Not run"}</dd></div>
+          <div><dt>Receipts</dt><dd>{status?.receiptCount ?? 0}</dd></div>
+        </dl>
+        {status?.artifactHash && status.proofHash && (
+          <dl className="evolution-hash-bindings">
             <div><dt>Artifact</dt><dd><code>{status.artifactHash}</code></dd></div>
             <div><dt>Proof</dt><dd><code>{status.proofHash}</code></dd></div>
             <div><dt>Preimage</dt><dd><code>{status.preHash}</code></dd></div>
             <div><dt>Postimage</dt><dd><code>{status.postHash}</code></dd></div>
           </dl>
-        </details>
-      )}
+        )}
+      </details>
 
       {error && <p className="evolution-error" role="alert">{error}</p>}
-
-      <div className="evolution-actions">
-        {hasPreparedDraft && (
-          <Link
-            className="button button-secondary"
-            href={studioAppHref(appId, "compare")}
-          >
-            Compare old vs proposed
-          </Link>
-        )}
-        <div className="provider-toggle" aria-label="GPT provider">
-          <button
-            aria-pressed={provider === "codex"}
-            className={provider === "codex" ? "selected" : ""}
-            disabled={!canPrepare || busy !== null}
-            onClick={() => setProvider("codex")}
-            type="button"
-          >
-            Codex CLI
-          </button>
-          <button
-            aria-pressed={provider === "api"}
-            className={provider === "api" ? "selected" : ""}
-            disabled={!canPrepare || busy !== null}
-            onClick={() => setProvider("api")}
-            type="button"
-          >
-            API key
-          </button>
-        </div>
-        <button
-          className="button button-primary"
-          disabled={!canPrepare || busy !== null}
-          onClick={() => void run("prepare")}
-          type="button"
-        >
-          {busy === "prepare" ? "Drafting with GPT-5.6…" : "1. Generate proposal"}
-        </button>
-        <label className="approval-check">
-          <input
-            checked={confirmed}
-            disabled={status?.phase !== "draft_ready" || busy !== null}
-            onChange={(event) => setConfirmed(event.target.checked)}
-            type="checkbox"
-          />
-          I reviewed model/candidate alignment, the diff, and byte-hash rollback
-        </label>
-        <input
-          aria-label="Operator label for the human approval receipt"
-          className="evolution-approver"
-          disabled={status?.phase !== "draft_ready" || busy !== null}
-          maxLength={160}
-          onChange={(event) => setApprover(event.target.value)}
-          placeholder="Operator label, e.g. achref-demo"
-          value={approver}
-        />
-        <button
-          className="button button-secondary"
-          disabled={!canApprove || busy !== null}
-          onClick={() => void run("approve")}
-          type="button"
-        >
-          {busy === "approve" ? "Recording approval…" : "2. Approve exact patch"}
-        </button>
-        <button
-          className="button button-primary"
-          disabled={!canActivate || busy !== null}
-          onClick={() => void run("activate")}
-          type="button"
-        >
-          {busy === "activate" ? "Applying…" : "3. Apply to CRM source"}
-        </button>
-        <button
-          className="button button-secondary"
-          disabled={!canRollback || busy !== null}
-          onClick={() => void run("rollback")}
-          type="button"
-        >
-          {busy === "rollback" ? "Rolling back…" : "Roll back"}
-        </button>
-        {crmUrl && (
-          <a className="button button-secondary" href={crmUrl} rel="noreferrer" target="_blank">
-            Open configured host
-          </a>
-        )}
-      </div>
 
       {status?.phase === "active" && (
         <p className="evolution-live-note">

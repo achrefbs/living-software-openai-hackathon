@@ -162,9 +162,10 @@ npm run dev --workspace @living-software/studio -- --port 3001
 The sync command writes a gitignored, minimized
 `apps/studio/.local/studio-snapshot.json` and its exact
 `studio-connection.json` binding. Studio rejects a mismatched pair. Evolution
-Review separately projects the committed `living.gpt56-proof/v2` artifact
-through the public strict contract; an unrelated committed proof remains
-display-only and grants no lifecycle authority.
+Review projects the committed `living.gpt56-proof/v2` artifact through the
+public strict contract in the neutral fixture path. During a connected CRM
+decision flow, Studio hides that unrelated proof so it cannot be mistaken for
+the active proposal; it remains display-only and grants no lifecycle authority.
 
 For the bounded captured-host loop, start the host normally and optionally give
 Studio a human-facing link to the lead under review:
@@ -191,7 +192,14 @@ order:
 4. Reload the host after its normal hot reload or rebuild and verify the new
    Previous/Next controls manually.
 5. **Roll back exact source** restores only the approved preimage while the
-   target still matches the exact installed postimage.
+   target still matches the exact installed postimage. Rollback also requires
+   an operator receipt label, including after a Studio reload.
+
+Evolution Review puts the truthful trigger boundary and the phase-specific
+next action above the interpretation and technical proof. In the current MVP,
+observation runs automatically while the instrumented CRM is exercised, but
+`living analyze` and `studio:sync` are explicit operator commands. Prepare,
+Approve, Apply, and Rollback are separate human-triggered commands.
 
 Create the optional isolated preview from the prepared ledger without editing
 the CRM:

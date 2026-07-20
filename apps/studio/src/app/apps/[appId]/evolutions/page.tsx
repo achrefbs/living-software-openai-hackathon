@@ -69,7 +69,7 @@ export default async function EvolutionsPage({
           title={
             detection === undefined
               ? "No new proposal from this snapshot"
-              : "Turn detected friction into a governed change"
+              : "Review one proposed CRM change"
           }
           description={
             detection === undefined ? (
@@ -81,15 +81,14 @@ export default async function EvolutionsPage({
               </p>
             ) : (
               <p>
-                The exact CRM evidence is ready. GPT-5.6 may interpret it, but
-                only a deterministic adapter can produce the bounded patch and
-                only a person can approve activation.
+                See what triggered the proposal, compare the visible result,
+                then approve and apply it as two separate human decisions.
               </p>
             )
           }
         >
-          <Badge tone="locked">
-            {detection === undefined ? "No new evidence" : "Evidence ready"}
+          <Badge tone={detection === undefined ? "locked" : "info"}>
+            {detection === undefined ? "No new evidence" : "Connected decision flow"}
           </Badge>
         </PageHeader>
 
@@ -101,7 +100,7 @@ export default async function EvolutionsPage({
           />
         )}
 
-        {recordedRunPanel}
+        {dataset.app.connection !== "captured_snapshot" && recordedRunPanel}
 
         {detection === undefined && (
           <section

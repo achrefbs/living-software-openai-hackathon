@@ -521,6 +521,42 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Make the CRM proposal, trigger, and human decision path self-explanatory
+
+**Scope**
+
+- Reordered the connected Evolution Review around one phase-specific “Your next action” panel. Draft-ready now states that the real CRM is unchanged, routes first to the before/after review, explains why approval is locked, and keeps Apply visibly separate.
+- Corrected the lifecycle rail so a prepared proposal marks Evidence and Proposal complete and points to Human approval as the next stage. Rollback remains optional recovery instead of a mandatory fifth stage.
+- Reworked Current vs Proposed around the verified evidence facts: three of three synthetic workflows, 18 backtracking revisits, one changed file, and one visible Previous/Next navigation row. Technical hashes moved into a collapsed disclosure.
+- Kept Compare read-only, retained dual preimage/postimage identity gates, and linked “Continue to approval” directly to the decision panel.
+- Fixed rollback after reload by requiring and accepting an operator receipt label before the command is enabled.
+- Hid the unrelated committed neutral model proof during a connected CRM decision flow; it remains available in the neutral fixture path.
+
+**How Codex accelerated the work**
+
+- Codex audited the rendered interface at the entrant's active viewport, traced the confusion to information hierarchy and responsive stacking, implemented the UI and rollback fix, added regressions, reconciled submission documentation, rebuilt Studio, and rechecked the live browser flow.
+- Parallel Codex reviews independently identified the buried controls, misleading lifecycle semantics, unreadable source-hash wall, unrelated proof competition, and rollback-label defect.
+
+**How GPT-5.6 was used**
+
+- No new model call was made. The clarified screen renders the existing CRM-bound GPT-5.6 Terra interpretation and explicitly distinguishes it from the deterministic source candidate.
+
+**Human decisions**
+
+- Lead with the real product delta and current source state instead of governance terminology.
+- Preserve separate Review, Approve, and Apply actions; do not place mutation controls on the comparison screen.
+- Describe capture as automatic while labeling `living analyze` and `studio:sync` as explicit MVP commands.
+
+**Evidence**
+
+- Studio passed 39/39 tests, TypeScript typecheck, and the production Next.js build.
+- The complete repository gate passed 227/227 tests (206 product and 21 integration) plus every workspace typecheck and the compliance baseline. Submission validation still reports 28 open checklist items and the required `/feedback` Codex Session ID as pending.
+- In-app browser verification at the entrant's active 878px viewport showed the real and proposed CRM side by side. The left frame has no lead navigation; the right frame visibly renders `Previous lead · 1 of 36 · Next lead`.
+- “Continue to approval” lands on the decision panel with confirmation, receipt-label field, disabled-until-valid Approve action, and Apply locked until approval. Browser warnings/errors: none.
+- Lifecycle remains `draft_ready`; approval actor is null, connected host source matches the exact preimage, and no CRM source was edited during this slice.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

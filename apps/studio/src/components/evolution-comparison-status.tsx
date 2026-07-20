@@ -123,44 +123,55 @@ export function EvolutionComparisonStatus({
     status.hostSourceHash === status.preHash;
   const verified = status !== null && previewIdentityMatches(status, identity);
   const showComparison = presentation?.canCompare === true && verified;
+  const sourceStateTitle =
+    status?.phase === "draft_ready"
+      ? "The real CRM is still unchanged"
+      : status?.phase === "approved"
+        ? "Approved, but still not applied"
+        : status?.phase === "active"
+          ? "The approved change is now in the CRM source"
+          : status?.phase === "rolled_back"
+            ? "The original CRM source was restored"
+            : "Checking the current CRM state";
+  const sourceStateDetail =
+    status?.phase === "draft_ready"
+      ? "The right side is an isolated preview. No approval exists and no CRM source has been edited."
+      : status?.phase === "approved"
+        ? "A person approved the exact artifact, but the separate Apply action has not run."
+        : "Studio keeps proposal, approval, and source application as separate lifecycle states.";
 
   return (
     <>
       <section aria-live="polite" className="panel comparison-status">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Hash-bound lifecycle status</p>
-            <h2>{status?.title ?? "Prepared change identity"}</h2>
+            <p className="eyebrow">Current lifecycle state</p>
+            <h2>{sourceStateTitle}</h2>
             <p className="panel-subtitle">
-              Studio renders the proposal only after the isolated process
-              declares the same evolution and postimage hashes.
+              {sourceStateDetail}
             </p>
           </div>
           <Badge tone={verified ? "positive" : status === null ? "neutral" : "warning"}>
             {status === null
-              ? "Checking identities"
+              ? "Checking state"
               : verified
-                ? "Both source hashes verified"
+                ? "Preview verified"
                 : phaseLabels[status.phase]}
           </Badge>
         </div>
 
         {statusError && <p className="evolution-error" role="alert">{statusError}</p>}
 
-        <dl className="comparison-hashes">
-          <div><dt>Current preimage</dt><dd><code>{shortHash(status?.preHash ?? null)}</code></dd></div>
-          <div><dt>Connected source now</dt><dd><code>{shortHash(status?.hostSourceHash ?? null)}</code></dd></div>
-          <div><dt>Proposed postimage</dt><dd><code>{shortHash(status?.postHash ?? null)}</code></dd></div>
-          <div><dt>Artifact</dt><dd><code>{shortHash(status?.artifactHash ?? null)}</code></dd></div>
-          <div><dt>Static proof</dt><dd><code>{status?.proofPassed ? shortHash(status.proofHash) : "Not passed"}</code></dd></div>
-        </dl>
-
         <div className={"comparison-gate " + (showComparison ? "comparison-gate-verified" : "comparison-gate-locked")}>
           <strong>
-            {presentation?.lifecycleLabel ?? "Loading lifecycle"}
+            {showComparison && status?.phase === "draft_ready"
+              ? "Safe to compare · waiting for your approval"
+              : presentation?.lifecycleLabel ?? "Loading lifecycle"}
           </strong>
           <p>
-            {presentation?.notice ?? "Reading the governed lifecycle state."}
+            {showComparison && status?.phase === "draft_ready"
+              ? "The current CRM matches the reviewed preimage, and the proposed preview matches the proved postimage."
+              : presentation?.notice ?? "Reading the governed lifecycle state."}
           </p>
           {presentation?.canCompare === true && !verified && (
             <p role="alert">
@@ -173,50 +184,80 @@ export function EvolutionComparisonStatus({
             </p>
           )}
         </div>
+
+        <details className="comparison-technical-proof">
+          <summary>Technical proof and exact hashes</summary>
+          <p>
+            These bindings prove that the left frame is the source version
+            reviewed and the right frame is the exact prepared postimage.
+          </p>
+          <dl className="comparison-hashes">
+            <div><dt>Current preimage</dt><dd><code>{shortHash(status?.preHash ?? null)}</code></dd></div>
+            <div><dt>Connected source now</dt><dd><code>{shortHash(status?.hostSourceHash ?? null)}</code></dd></div>
+            <div><dt>Proposed postimage</dt><dd><code>{shortHash(status?.postHash ?? null)}</code></dd></div>
+            <div><dt>Artifact</dt><dd><code>{shortHash(status?.artifactHash ?? null)}</code></dd></div>
+            <div><dt>Static proof</dt><dd><code>{status?.proofPassed ? shortHash(status.proofHash) : "Not passed"}</code></dd></div>
+          </dl>
+        </details>
       </section>
 
       {showComparison && presentation !== null && (
-        <section aria-label="CRM version comparison" className="comparison-grid">
-          <article className="comparison-frame comparison-current">
-            <header>
-              <div>
-                <p className="eyebrow">Connected host</p>
-                <h2>{presentation.currentTitle}</h2>
-                <p>{presentation.currentDetail}</p>
+        <>
+          <section className="comparison-change-focus">
+            <div>
+              <p className="eyebrow">Where to look</p>
+              <strong>The proposal adds one navigation row above the lead details.</strong>
+            </div>
+            <span>Previous lead · 1 of 36 · Next lead</span>
+          </section>
+          <section aria-label="CRM version comparison" className="comparison-grid">
+            <article className="comparison-frame comparison-current">
+              <header>
+                <div>
+                  <p className="eyebrow">Before · Real CRM</p>
+                  <h2>No lead-to-lead navigation</h2>
+                  <p>Opening another lead requires returning to the Leads list.</p>
+                </div>
+                <Badge tone="neutral">Unchanged</Badge>
+              </header>
+              <div className="comparison-frame-marker comparison-old-marker">
+                Current lead page: no navigation row
               </div>
-              <Badge tone="neutral">Before</Badge>
-            </header>
-            <iframe
-              loading="eager"
-              sandbox="allow-same-origin allow-scripts"
-              src={hostUrl}
-              title="Current CRM"
-            />
-            <a href={hostUrl} rel="noopener noreferrer" target="_blank">
-              Open current CRM in a new tab
-            </a>
-          </article>
+              <iframe
+                loading="eager"
+                sandbox="allow-same-origin allow-scripts"
+                src={hostUrl}
+                title="Current CRM"
+              />
+              <a href={hostUrl} rel="noopener noreferrer" target="_blank">
+                Open current CRM in a new tab
+              </a>
+            </article>
 
-          <article className="comparison-frame comparison-proposed">
-            <header>
-              <div>
-                <p className="eyebrow">Verified isolated postimage</p>
-                <h2>{presentation.proposedTitle}</h2>
-                <p>{presentation.proposedDetail}</p>
+            <article className="comparison-frame comparison-proposed">
+              <header>
+                <div>
+                  <p className="eyebrow">After · Isolated preview</p>
+                  <h2>Previous and Next controls added</h2>
+                  <p>The new row keeps reviewers inside the lead-detail flow.</p>
+                </div>
+                <Badge tone="info">Preview only</Badge>
+              </header>
+              <div className="comparison-frame-marker comparison-new-marker">
+                New in this proposal: lead navigation
               </div>
-              <Badge tone="info">Preview only</Badge>
-            </header>
-            <iframe
-              loading="eager"
-              sandbox="allow-same-origin allow-scripts"
-              src={previewUrl}
-              title="Verified isolated proposed CRM preview"
-            />
-            <a href={previewUrl} rel="noopener noreferrer" target="_blank">
-              Open verified preview in a new tab
-            </a>
-          </article>
-        </section>
+              <iframe
+                loading="eager"
+                sandbox="allow-same-origin allow-scripts"
+                src={previewUrl}
+                title="Verified isolated proposed CRM preview"
+              />
+              <a href={previewUrl} rel="noopener noreferrer" target="_blank">
+                Open verified preview in a new tab
+              </a>
+            </article>
+          </section>
+        </>
       )}
     </>
   );
