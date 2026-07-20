@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "living.next-host-fixture/v1",
+  "application": {
+    "id": "sample.operations-console",
+    "displayName": "Sample Operations Console"
+  },
+  "framework": {
+    "name": "nextjs",
+    "version": "16.2.10",
+    "adapterVersion": "0.1.0"
+  },
+  "release": {
+    "revision": "neutral-fixture-v1",
+    "version": "0.1.0"
+  },
+  "generatedAt": "2026-07-19T12:00:00.000Z",
+  "identifierMode": "anonymous",
+  "retentionDays": 14,
+  "nodes": [
+    {
+      "id": "route.work-detail",
+      "kind": "route",
+      "displayName": "Work detail route",
+      "sourcePath": "src/app/work/[id]/page.tsx",
+      "line": 1
+    },
+    {
+      "id": "surface.work",
+      "kind": "surface",
+      "displayName": "Work detail",
+      "sourcePath": "src/app/work/[id]/page.tsx",
+      "line": 12
+    },
+    {
+      "id": "surface.draft",
+      "kind": "surface",
+      "displayName": "Draft editor",
+      "sourcePath": "src/app/work/[id]/draft/page.tsx",
+      "line": 8
+    },
+    {
+      "id": "surface.reference",
+      "kind": "surface",
+      "displayName": "Reference panel",
+      "sourcePath": "src/app/work/[id]/reference/page.tsx",
+      "line": 8
+    },
+    {
+      "id": "surface.history",
+      "kind": "surface",
+      "displayName": "History panel",
+      "sourcePath": "src/app/work/[id]/history/page.tsx",
+      "line": 8
+    },
+    {
+      "id": "extension.draft-panel",
+      "kind": "extension-point",
+      "displayName": "Draft side panel extension",
+      "sourcePath": "src/lib/living-host.ts",
+      "line": 14
+    }
+  ],
+  "edges": [
+    {
+      "from": "route.work-detail",
+      "to": "surface.work",
+      "relation": "renders",
+      "sourcePath": "src/app/work/[id]/page.tsx",
+      "line": 12
+    },
+    {
+      "from": "surface.work",
+      "to": "surface.draft",
+      "relation": "navigates-to",
+      "sourcePath": "src/app/work/[id]/page.tsx",
+      "line": 28
+    },
+    {
+      "from": "surface.work",
+      "to": "surface.reference",
+      "relation": "navigates-to",
+      "sourcePath": "src/app/work/[id]/page.tsx",
+      "line": 29
+    },
+    {
+      "from": "surface.work",
+      "to": "surface.history",
+      "relation": "navigates-to",
+      "sourcePath": "src/app/work/[id]/page.tsx",
+      "line": 30
+    },
+    {
+      "from": "surface.draft",
+      "to": "extension.draft-panel",
+      "relation": "exposes",
+      "sourcePath": "src/lib/living-host.ts",
+      "line": 14
+    }
+  ],
+  "events": [
+    { "name": "work.opened", "kind": "navigation" },
+    { "name": "draft.started", "kind": "action" },
+    { "name": "reference.viewed", "kind": "navigation" },
+    { "name": "history.viewed", "kind": "navigation" },
+    { "name": "draft.resumed", "kind": "action" },
+    { "name": "history.reviewed", "kind": "action" },
+    { "name": "draft.saved", "kind": "action" },
+    { "name": "work.completed", "kind": "outcome" }
+  ],
+  "extensionPoints": [
+    {
+      "id": "extension.draft-panel",
+      "surfaceNodeId": "surface.draft",
+      "presentation": "panel"
+    }
+  ],
+  "operations": [
+    {
+      "id": "context.read",
+      "version": "1.0.0",
+      "effect": "read",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "sessionId": { "type": "string" } },
+        "required": ["sessionId"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": { "summary": { "type": "string" } },
+        "required": ["summary"],
+        "additionalProperties": false
+      },
+      "idempotency": "supported",
+      "requiresUserConfirmation": false
+    },
+    {
+      "id": "draft.save",
+      "version": "1.0.0",
+      "effect": "write",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "content": { "type": "string" } },
+        "required": ["content"],
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": { "saved": { "type": "boolean" } },
+        "required": ["saved"],
+        "additionalProperties": false
+      },
+      "idempotency": "required",
+      "requiresUserConfirmation": true
+    }
+  ]
+}

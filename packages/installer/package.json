@@ -1,0 +1,30 @@
+{
+  "name": "@living-software/installer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Create-only, hash-guarded installation and uninstall transactions for Living Software hosts.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test --test-isolation=none src/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@living-software/contracts": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

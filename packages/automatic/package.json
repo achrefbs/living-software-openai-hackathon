@@ -1,0 +1,30 @@
+{
+  "name": "@living-software/automatic",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic discovery-to-observation install bundles for Living Software.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test --test-isolation=none src/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@living-software/contracts": "0.1.0",
+    "@living-software/observer": "0.1.0"
+  },
+  "devDependencies": {
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

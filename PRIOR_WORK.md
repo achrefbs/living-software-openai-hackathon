@@ -1,10 +1,10 @@
 # Prior work and hackathon boundary
 
-This document exists to make the OpenAI Build Week eligibility boundary inspectable.
+This document makes the OpenAI Build Week eligibility boundary inspectable.
 
 ## Official timing boundary
 
-The submission period began on **July 13, 2026 at 9:00 AM Pacific Time**. The official rules state that pre-existing projects are evaluated only on work added during the submission period and require clear documentation separating prior work from new work.
+The submission period began on **July 13, 2026 at 9:00 AM Pacific Time**. The official rules require pre-existing work to be clearly separated from work added during the submission period.
 
 ## Disclosed pre-hackathon prototype
 
@@ -20,29 +20,31 @@ Before Build Week, Achref Boularess maintained a separate private research repos
 
 That prototype explored a TypeScript and SQLite project graph, bounded code-writing cells, treaties and boundary checks, a cockpit, and deterministic browser/proof gates. Those capabilities are **prior work**, not Build Week deliverables.
 
-## What entered this repository
+## Boundary maintained in this repository
 
-As of the initial compliance commit:
-
-- No source code was copied from the private prototype.
-- No commits or files from its history were rewritten as new hackathon work.
+- No source code was copied from the private prototype; no commits or files from its history were rewritten as new work.
 - The inherited material is limited to the high-level thesis and lessons learned.
-- The OpenAI Build Week implementation starts from an empty source directory in this separate repository.
+- The separate CRM and its simulator are also outside this repository and are not dependencies.
+- External review documents are preserved as review evidence, not presented as implementation authored here.
 
-If prior code is intentionally reused later, this file must be updated before that code is merged. The update must identify the exact source commit and files, preserve applicable ownership/licensing information, and state precisely what new work was added during the eligible period.
+If prior code is intentionally reused later, this file must be updated before merge with the exact source commit, copied files, ownership and licensing, and the new eligible-period work.
 
-## New Build Week work
+## New Build Week implementation
 
-The challenge implementation is the new Founder Inbox vertical slice described in the README: typed user-event evidence, repeated-intent detection, a machine-valid capability contract, governed generation, deterministic proof, explicit installation, and rollback.
+The following code was created in this challenge repository during the eligible period:
 
-Evidence for new work will include:
+- strict, versioned public data contracts;
+- a bounded, non-executing source scanner for TypeScript Next.js App Router 15.3+ repositories using `src/app`;
+- dry-run-first root CLI commands for static mapping, create-only installation, doctor validation, evidence analysis, and hash-guarded uninstall;
+- generated, self-contained browser observation and a same-origin, single-process local collector that do not edit the host `package.json`;
+- privacy-safe route, action, performance, friction, viewport, and CSS-pixel geometry capture with a hash-linked NDJSON evidence log;
+- deterministic workflow projection, technical metric analysis, and threshold-based opportunity detection;
+- a privacy-safe host SDK, neutral synthetic fixtures, and an offline replay;
+- a read-only, fixture-backed Living Studio with five product surfaces;
+- a GPT-5.6 Responses API intelligence package with strict structured output and offline mock tests.
 
-- dated commits in this repository;
-- chronological entries in [BUILD_LOG.md](BUILD_LOG.md);
-- Codex `/feedback` session IDs;
-- test and proof output tied to commit SHAs;
-- the final demo and submission materials.
+The current automatic adapter is not a claim of arbitrary Node or universal codebase support. A separate CRM proof completed supported installation, runtime capture, privacy checks, and byte-preserving removal without making the CRM a repository dependency. Broker execution, lifecycle proof, approval, activation, measurement, and rollback are future work unless and until implemented and evidenced in this repository.
 
 ## Evaluation claim
 
-The submission will ask judges to evaluate only the implementation and evidence created in this repository during the eligible window. The earlier prototype is context, not a claimed hackathon accomplishment.
+Judges should evaluate only the implementation and evidence created in this repository during the eligible window. Evidence is maintained through dated commits, [BUILD_LOG.md](BUILD_LOG.md), tests, the neutral replay, the final demo, and the required Codex `/feedback` Session ID once recorded.

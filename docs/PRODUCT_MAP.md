@@ -1,51 +1,73 @@
 # Living Software product map
 
-The working product map lives in the local SuperDraw canvas:
+The broad discovery map remains in the local SuperDraw canvas:
 
 - **Canvas:** `living-software-product-map`
 - **File:** `C:\Users\acera\Desktop\SuperDraw\canvases\living-software-product-map.superdraw.json`
-- **Created:** July 19, 2026 through the locally configured SuperDraw MCP server
-- **Current size:** 89 elements in one organized, connected graph
-- **Status:** Working discovery artifact; not every idea on the canvas is an accepted decision
+- **Created:** July 19, 2026 through the configured SuperDraw MCP server
+- **Snapshot:** 89 elements in one connected graph
 
-Open SuperDraw and choose **Menu → Open**, then select the canvas above. The canvas is the broad thinking surface; [DECISIONS.md](../DECISIONS.md) remains the authority for accepted entrant decisions.
+The canvas is historical working discovery, not a statement that every feature exists. Its earlier Founder Inbox examples have been superseded by the accepted separation in [DECISIONS.md](../DECISIONS.md): Living Software is the reusable tool, Living Studio is its interface, and the reference CRM plus simulator are separate repositories.
 
-## Product position
-
-Living Software occupies the governed middle between static software that learns too slowly and autonomous software that cannot be trusted.
-
-Its core promise is:
-
-> Turn repeated, consented user intent into one bounded, provable, human-approved, measurable, and reversible capability.
-
-Founder Inbox is a thin demonstration host, not the product. The product is the governed evolution loop and its reusable host, policy, proof, approval, registry, and rollback primitives.
-
-## Canvas branches
-
-1. **Who and why** — beachhead users, job to be done, current alternatives, and the governed-middle position.
-2. **Governed evolution loop** — observe, detect and interpret, contract, generate, simulate, verify, approve and install, then learn and metabolize.
-3. **Trust primitives** — one capability broker for simulation and runtime, negative capabilities, proof-carrying artifacts, sealed approval, fossil record, and evolution budgets.
-4. **Founder Inbox demo** — repeated qualification workaround, bounded `qualify-lead` proposal, meaningful policy failure, repaired proof, visible installation, Evolution Receipt, and rollback.
-5. **Build-now order** — prove the lifecycle first, make trust executable, then add evidence and model intelligence, and finally polish the review and judge experience.
-6. **Risks and experiments** — evolution-versus-configuration perception, whether proof materially improves trust, integration burden, comprehension, and pipeline reliability.
-7. **Metrics, exclusions, and later platform** — time-to-approved-capability, safety and anti-bloat guardrails, explicit Build Week exclusions, and the longer-term SDK and policy ecosystem.
-
-## Recommended first implementation sequence
-
-1. Define the capability contract and deterministic lifecycle state machine.
-2. Install, disable, and roll back one hand-authored test extension.
-3. Add the shared capability broker, effect capture, and mandatory proof gates.
-4. Demonstrate an unsafe candidate being blocked and a new repaired candidate passing without weakening policy.
-5. Build the thin Founder Inbox host and make installation visibly add the `Qualify Lead` capability.
-6. Add typed evidence replay, repeated-intent detection, and GPT-5.6 structured interpretation with cached judge replay.
-7. Build the Decision Room, behavioral diff, Evolution Receipt, deterministic demo reset, and fresh-clone judge path.
-
-## Working product test
-
-The earliest high-risk test is the visible sequence:
+## Current product map
 
 ```text
-before -> install -> capability appears -> use it -> rollback -> capability disappears
+TypeScript Next.js App Router 15.3+ source using src/app
+  -> bounded static discovery
+  -> Product Manifest + observation runtime map + metric catalog
+
+explicit --apply
+  -> create-only browser observer + same-origin local collector
+  -> hash-guarded install journal
+
+public UI activity
+  -> privacy-safe route/action/performance/friction/geometry events
+  -> hash-linked local NDJSON evidence
+  -> deterministic workflows + technical metrics
+  -> optional threshold-based opportunity
+
+verified neutral evidence + opportunity
+  -> bounded GPT-5.6 structured draft
+  -> human review required; activation forbidden
+
+neutral fixture OR validated synthetic capture
+  -> privacy-minimized static snapshot
+  -> read-only Living Studio
+     -> Product Map
+     -> Workflows
+     -> Opportunities
+     -> Evolutions
+     -> Receipts
 ```
 
-Show this cold to five people before investing in broad UI polish. The signal is whether at least four describe the product as safely gaining and losing a capability rather than toggling a canned feature.
+Automatic synthetic analysis can now reach Studio through an explicit, validated static snapshot sync. Studio does not ingest the host live. The GPT runner remains separate and consumes verified neutral replay evidence.
+
+## Working now
+
+1. Strict public contracts and local validation.
+2. Bounded automatic mapping for the supported Next.js adapter.
+3. Dry-run-first, create-only installation, doctor validation, and exact-hash uninstall.
+4. Self-contained browser observation and same-origin single-process local collection without a host `package.json` edit.
+5. Privacy-safe workflow, performance, friction, viewport, and precise CSS-pixel geometry evidence.
+6. Deterministic workflow projection, technical metric analysis, and optional threshold-based opportunity detection.
+7. Neutral fixture CLI, synthetic replay, and privacy-safe host SDK.
+8. Five-route Studio with a neutral fixture fallback, validated synthetic-only static snapshot ingestion, and preview states.
+9. GPT-5.6 Responses API integration with exact neutral evidence verification, privacy minimization, strict structured output, an opt-in live runner, and offline tests.
+
+## Next evidence milestones
+
+1. Keep the completed independent CRM installation, runtime, privacy, and removal proof reproducible from the submission commit.
+2. Run GPT-5.6 live and preserve a schema-valid, citation-valid draft as evidence.
+3. Verify the fresh-clone path and implement the required judge path that does not require rebuilding from scratch.
+4. Connect automatic host analysis to the GPT-5.6 intelligence boundary only after the current static Studio boundary remains testable.
+5. Only then design the declarative broker and governed lifecycle: prove, approve, activate, measure, disable, and roll back.
+
+## Explicit non-claims
+
+- The current adapter does not support arbitrary Node applications or arbitrary codebases.
+- Automatic observation does not know business goals, outcomes, or causality.
+- The local collector is not a production authenticated or multi-instance telemetry service.
+- Studio does not connect to a live host or GPT-5.6; it receives only an explicit, validated, privacy-minimized static export of synthetic captured evidence.
+- Offline model tests are not evidence of a real GPT-5.6 call.
+- Broker execution and end-to-end capability activation/rollback are not implemented.
+- The separate CRM and simulator are not required for the neutral judge path.

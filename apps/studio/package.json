@@ -1,0 +1,27 @@
+{
+  "name": "@living-software/studio",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Host-agnostic product intelligence and governed evolution studio.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test --test-isolation=none tests/*.test.mjs tests/*.test.ts",
+    "check": "npm run test && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@living-software/contracts": "0.1.0",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.11",
+    "@types/react-dom": "19.2.3",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

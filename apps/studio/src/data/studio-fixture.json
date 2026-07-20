@@ -1,0 +1,368 @@
+{
+  "schemaVersion": 1,
+  "fixtureNotice": "Synthetic offline fixture for interface development. It is not live host telemetry and no model has processed it.",
+  "app": {
+    "id": "sample-operations",
+    "name": "Sample Operations",
+    "description": "A neutral sample application used to exercise Studio surfaces.",
+    "environment": "fixture",
+    "version": "fixture-7e13b2",
+    "fixtureLabel": "Synthetic fixture",
+    "connection": "offline_fixture",
+    "lastObservedAt": "2026-07-19T15:12:04.000Z"
+  },
+  "productMap": {
+    "nodes": [
+      {
+        "id": "surface.workspace",
+        "kind": "surface",
+        "label": "Workspace overview",
+        "description": "Summary of active work and recent outcomes.",
+        "provenance": "scanned",
+        "confidence": 0.99,
+        "source": "app/workspace/page.tsx:1"
+      },
+      {
+        "id": "surface.requests",
+        "kind": "surface",
+        "label": "Request queue",
+        "description": "Searchable queue of open work requests.",
+        "provenance": "scanned",
+        "confidence": 0.99,
+        "source": "app/requests/page.tsx:1"
+      },
+      {
+        "id": "surface.request-detail",
+        "kind": "surface",
+        "label": "Request detail",
+        "description": "Context, history, ownership, and resolution controls.",
+        "provenance": "scanned",
+        "confidence": 0.97,
+        "source": "app/requests/[requestId]/page.tsx:1"
+      },
+      {
+        "id": "surface.reports",
+        "kind": "surface",
+        "label": "Outcome reports",
+        "description": "Aggregate throughput and completion reporting.",
+        "provenance": "scanned",
+        "confidence": 0.96,
+        "source": "app/reports/page.tsx:1"
+      },
+      {
+        "id": "action.request-created",
+        "kind": "action",
+        "label": "Create request",
+        "description": "Creates a new work request.",
+        "provenance": "declared",
+        "confidence": 1,
+        "source": "manifest.actions[0]"
+      },
+      {
+        "id": "action.context-reviewed",
+        "kind": "action",
+        "label": "Review context",
+        "description": "Opens supporting context for the active request.",
+        "provenance": "declared",
+        "confidence": 1,
+        "source": "manifest.actions[1]"
+      },
+      {
+        "id": "action.request-assigned",
+        "kind": "action",
+        "label": "Assign request",
+        "description": "Changes the responsible workspace member.",
+        "provenance": "inferred",
+        "confidence": 0.76,
+        "source": "app/requests/actions.ts:42"
+      },
+      {
+        "id": "action.request-resolved",
+        "kind": "action",
+        "label": "Resolve request",
+        "description": "Marks a request complete with an outcome.",
+        "provenance": "declared",
+        "confidence": 1,
+        "source": "manifest.outcomes[0]"
+      },
+      {
+        "id": "api.requests",
+        "kind": "api",
+        "label": "Requests API",
+        "description": "Lists and creates work requests.",
+        "provenance": "scanned",
+        "confidence": 0.98,
+        "source": "app/api/requests/route.ts:1"
+      },
+      {
+        "id": "api.request-detail",
+        "kind": "api",
+        "label": "Request detail API",
+        "description": "Reads and updates one request.",
+        "provenance": "scanned",
+        "confidence": 0.98,
+        "source": "app/api/requests/[requestId]/route.ts:1"
+      },
+      {
+        "id": "entity.request",
+        "kind": "entity",
+        "label": "Request",
+        "description": "The case identity that connects workflow events.",
+        "provenance": "declared",
+        "confidence": 1,
+        "source": "manifest.entities.request"
+      },
+      {
+        "id": "entity.membership",
+        "kind": "entity",
+        "label": "Membership",
+        "description": "Workspace membership and assignment identity.",
+        "provenance": "inferred",
+        "confidence": 0.72,
+        "source": "src/domain/membership.ts:8"
+      }
+    ],
+    "edges": [
+      { "from": "surface.workspace", "to": "surface.requests", "relation": "navigates to" },
+      { "from": "surface.requests", "to": "surface.request-detail", "relation": "opens" },
+      { "from": "surface.requests", "to": "action.request-created", "relation": "triggers" },
+      { "from": "surface.request-detail", "to": "action.context-reviewed", "relation": "triggers" },
+      { "from": "surface.request-detail", "to": "action.request-assigned", "relation": "triggers" },
+      { "from": "surface.request-detail", "to": "action.request-resolved", "relation": "triggers" },
+      { "from": "action.request-created", "to": "api.requests", "relation": "calls" },
+      { "from": "action.request-assigned", "to": "api.request-detail", "relation": "calls" },
+      { "from": "action.request-resolved", "to": "api.request-detail", "relation": "calls" },
+      { "from": "api.requests", "to": "entity.request", "relation": "writes" },
+      { "from": "api.request-detail", "to": "entity.request", "relation": "reads and writes" },
+      { "from": "action.request-assigned", "to": "entity.membership", "relation": "references" },
+      { "from": "surface.reports", "to": "entity.request", "relation": "summarizes" }
+    ]
+  },
+  "workflows": {
+    "observedCases": 38,
+    "medianDurationSeconds": 164,
+    "medianSteps": 8,
+    "outcomeRate": 0.76,
+    "variants": [
+      {
+        "id": "variant.direct",
+        "name": "Direct resolution",
+        "description": "Context is reviewed once before a request is resolved.",
+        "cases": 18,
+        "share": 0.47,
+        "medianDurationSeconds": 96,
+        "medianSteps": 6,
+        "outcomeRate": 0.89,
+        "tone": "healthy",
+        "steps": ["Queue opened", "Request opened", "Context reviewed", "Resolution drafted", "Request resolved", "Outcome recorded"]
+      },
+      {
+        "id": "variant.context-reentry",
+        "name": "Context re-entry",
+        "description": "People repeatedly leave a draft to reopen supporting context.",
+        "cases": 14,
+        "share": 0.37,
+        "medianDurationSeconds": 241,
+        "medianSteps": 10,
+        "outcomeRate": 0.71,
+        "tone": "friction",
+        "steps": ["Queue opened", "Request opened", "Resolution started", "Context reopened", "Resolution resumed", "History reopened", "Resolution resumed", "Context reopened", "Request resolved", "Outcome recorded"]
+      },
+      {
+        "id": "variant.reassignment",
+        "name": "Reassignment loop",
+        "description": "Ownership changes more than once before completion.",
+        "cases": 6,
+        "share": 0.16,
+        "medianDurationSeconds": 392,
+        "medianSteps": 12,
+        "outcomeRate": 0.5,
+        "tone": "watch",
+        "steps": ["Queue opened", "Request opened", "Assigned", "Context reviewed", "Reassigned", "History reviewed", "Reassigned", "Resolution started", "Context reopened", "Resolution resumed", "Request resolved", "Outcome recorded"]
+      }
+    ],
+    "evidenceCases": [
+      {
+        "id": "case-syn-104",
+        "variantId": "variant.context-reentry",
+        "actorId": "actor-syn-07",
+        "sessionId": "session-syn-a9",
+        "durationSeconds": 226,
+        "outcome": "resolved",
+        "actions": ["request.opened", "resolution.started", "context.reopened", "resolution.resumed", "history.reopened", "resolution.resumed", "context.reopened", "request.resolved"]
+      },
+      {
+        "id": "case-syn-117",
+        "variantId": "variant.context-reentry",
+        "actorId": "actor-syn-12",
+        "sessionId": "session-syn-c4",
+        "durationSeconds": 257,
+        "outcome": "resolved",
+        "actions": ["request.opened", "resolution.started", "history.reopened", "resolution.resumed", "context.reopened", "resolution.resumed", "context.reopened", "request.resolved"]
+      },
+      {
+        "id": "case-syn-131",
+        "variantId": "variant.reassignment",
+        "actorId": "actor-syn-03",
+        "sessionId": "session-syn-f2",
+        "durationSeconds": 411,
+        "outcome": "abandoned",
+        "actions": ["request.opened", "request.assigned", "context.reviewed", "request.reassigned", "history.reviewed", "request.reassigned", "resolution.started", "context.reopened"]
+      }
+    ]
+  },
+  "opportunities": [
+    {
+      "id": "opportunity.context-snapshot",
+      "title": "Reduce repeated context re-entry",
+      "summary": "Fourteen synthetic cases revisit context while drafting a resolution. The detector found repeated backtracking; it does not infer the user's intent.",
+      "status": "detected",
+      "detector": "context-reentry",
+      "detectorVersion": "fixture-v1",
+      "confidence": 0.84,
+      "impact": "medium",
+      "affectedCases": 14,
+      "evidenceRefs": ["case-syn-104", "case-syn-117"],
+      "signals": [
+        { "label": "Repeated revisits", "value": "2.4 per affected case" },
+        { "label": "Added median time", "value": "+145 seconds" },
+        { "label": "Outcome difference", "value": "-18 percentage points" }
+      ],
+      "nextStep": "Request a bounded GPT-5.6 interpretation of the detector evidence."
+    },
+    {
+      "id": "opportunity.assignment-churn",
+      "title": "Watch reassignment churn",
+      "summary": "Six synthetic cases include multiple ownership changes. The sample is below the configured action threshold.",
+      "status": "watching",
+      "detector": "reassignment-loop",
+      "detectorVersion": "fixture-v1",
+      "confidence": 0.61,
+      "impact": "low",
+      "affectedCases": 6,
+      "evidenceRefs": ["case-syn-131"],
+      "signals": [
+        { "label": "Repeated assignments", "value": "2.7 per affected case" },
+        { "label": "Current threshold", "value": "8 cases" },
+        { "label": "Outcome difference", "value": "-39 percentage points" }
+      ],
+      "nextStep": "Collect more evidence before interpretation."
+    }
+  ],
+  "evolution": {
+    "id": "evolution.context-snapshot",
+    "opportunityId": "opportunity.context-snapshot",
+    "title": "Context snapshot",
+    "state": "evidence_ready",
+    "lifecycle": [
+      {
+        "id": "evidence",
+        "label": "Evidence",
+        "status": "complete",
+        "detail": "Deterministic detector output is available."
+      },
+      {
+        "id": "interpretation",
+        "label": "Interpretation",
+        "status": "current",
+        "detail": "GPT-5.6 has not been run for this fixture."
+      },
+      {
+        "id": "contract",
+        "label": "Contract",
+        "status": "locked",
+        "detail": "Requires human-confirmed interpretation."
+      },
+      {
+        "id": "artifact",
+        "label": "Artifact",
+        "status": "locked",
+        "detail": "No artifact has been generated."
+      },
+      {
+        "id": "proof",
+        "label": "Proof",
+        "status": "locked",
+        "detail": "No proof gates have run."
+      },
+      {
+        "id": "activation",
+        "label": "Activation",
+        "status": "locked",
+        "detail": "Human approval and passing proof are required."
+      }
+    ],
+    "hypothesis": {
+      "status": "not_run",
+      "promptInput": "Two workflow variants, three aggregate signals, and two pseudonymous evidence references.",
+      "note": "No raw request text or user-entered content is included."
+    },
+    "contract": {
+      "status": "not_created",
+      "requestedInputs": ["request identifier", "declared context summary", "current resolution draft"],
+      "requestedEffects": ["write resolution draft"],
+      "prohibitions": ["send external messages", "change ownership", "resolve a request", "read undeclared content"]
+    },
+    "gates": [
+      {
+        "id": "schema",
+        "label": "Contract schema",
+        "status": "pending",
+        "description": "No contract exists yet."
+      },
+      {
+        "id": "permissions",
+        "label": "Declared permissions",
+        "status": "pending",
+        "description": "No artifact exists yet."
+      },
+      {
+        "id": "replay",
+        "label": "Workflow replay",
+        "status": "pending",
+        "description": "No candidate behavior is available."
+      },
+      {
+        "id": "rollback",
+        "label": "Rollback proof",
+        "status": "pending",
+        "description": "Activation has not been attempted."
+      }
+    ]
+  },
+  "receipts": [
+    {
+      "id": "receipt.fixture-manifest",
+      "type": "manifest.received",
+      "title": "Synthetic manifest loaded",
+      "timestamp": "2026-07-19T15:08:11.000Z",
+      "source": "synthetic_fixture",
+      "objectRef": "manifest:sample-operations:fixture-7e13b2",
+      "previousReceipt": null,
+      "integrity": "unverified_fixture",
+      "detail": "Twelve sample product nodes and thirteen edges were loaded for interface development."
+    },
+    {
+      "id": "receipt.fixture-events",
+      "type": "events.replayed",
+      "title": "Synthetic event cohort replayed",
+      "timestamp": "2026-07-19T15:10:32.000Z",
+      "source": "synthetic_fixture",
+      "objectRef": "cohort:sample-operations:38-cases",
+      "previousReceipt": "receipt.fixture-manifest",
+      "integrity": "unverified_fixture",
+      "detail": "Thirty-eight generated cases produced three sample workflow variants."
+    },
+    {
+      "id": "receipt.fixture-opportunity",
+      "type": "opportunity.detected",
+      "title": "Context re-entry opportunity detected",
+      "timestamp": "2026-07-19T15:12:04.000Z",
+      "source": "synthetic_fixture",
+      "objectRef": "opportunity:context-snapshot",
+      "previousReceipt": "receipt.fixture-events",
+      "integrity": "unverified_fixture",
+      "detail": "The sample detector crossed its fixture threshold. No AI interpretation was performed."
+    }
+  ]
+}

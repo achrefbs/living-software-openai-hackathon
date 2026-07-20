@@ -4,13 +4,37 @@
   "private": true,
   "description": "A governed software-evolution experiment for OpenAI Build Week 2026.",
   "license": "MIT",
+  "packageManager": "npm@11.11.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "engines": {
     "node": ">=22",
     "npm": ">=10"
   },
   "scripts": {
+    "build": "npm run build:packages && npm run build --workspace @living-software/studio",
+    "build:automatic": "npm run build --workspace @living-software/contracts && npm run build --workspace @living-software/core && npm run build --workspace @living-software/discovery && npm run build --workspace @living-software/observer && npm run build --workspace @living-software/automatic",
+    "build:cli": "npm run build:automatic && npm run build --workspace @living-software/collector && npm run build --workspace @living-software/installer && npm run build --workspace @living-software/host-sdk && npm run build --workspace @living-software/cli",
+    "build:packages": "npm run build:cli && npm run build --workspace @living-software/intelligence",
     "check": "node scripts/check-compliance.mjs",
-    "test": "npm run check",
+    "dev:studio": "npm run dev --workspace @living-software/studio",
+    "studio:check": "npm run check --workspace @living-software/studio",
+    "studio:sync": "npm run build:cli && node scripts/sync-studio-snapshot.mjs",
+    "demo:gpt56": "npm run build:packages && node scripts/run-gpt56-demo.mjs",
+    "demo:neutral": "npm run build:cli && node scripts/run-neutral-demo.mjs",
+    "living": "node packages/cli/dist/main.js",
+    "test": "npm run check && npm run typecheck && npm run test:product && npm run test:integration",
+    "test:automatic": "npm run build:automatic && npm run test --workspace @living-software/automatic",
+    "test:integration": "npm run build:packages && node --test --test-isolation=none scripts/*.test.mjs",
+    "test:product": "npm run build:packages && npm run test --workspaces --if-present",
+    "typecheck": "npm run build:packages && npm run typecheck --workspaces --if-present",
     "submit:check": "node scripts/check-compliance.mjs --submission"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
   }
 }

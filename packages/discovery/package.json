@@ -1,0 +1,30 @@
+{
+  "name": "@living-software/discovery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bounded, non-executing Next.js App Router discovery for Living Software.",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test --test-isolation=none src/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "smoke": "tsx src/smoke.ts"
+  },
+  "dependencies": {
+    "@living-software/contracts": "0.1.0",
+    "typescript": "5.9.3"
+  },
+  "devDependencies": {
+    "tsx": "4.20.6"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "living.synthetic-scenarios/v1",
+  "appId": "sample.operations-console",
+  "generatedAt": "2026-07-19T13:00:00.000Z",
+  "provenance": {
+    "source": "simulator",
+    "synthetic": true
+  },
+  "cases": [
+    {
+      "id": "case-friction-1",
+      "variant": "backtracking",
+      "steps": [
+        ["work.opened", "surface.work"],
+        ["draft.started", "surface.draft"],
+        ["reference.viewed", "surface.reference"],
+        ["history.viewed", "surface.history"],
+        ["draft.resumed", "surface.draft"],
+        ["history.reviewed", "surface.history"],
+        ["draft.saved", "surface.draft"],
+        ["work.completed", "surface.work"]
+      ]
+    },
+    {
+      "id": "case-friction-2",
+      "variant": "backtracking",
+      "steps": [
+        ["work.opened", "surface.work"],
+        ["draft.started", "surface.draft"],
+        ["reference.viewed", "surface.reference"],
+        ["history.viewed", "surface.history"],
+        ["draft.resumed", "surface.draft"],
+        ["history.reviewed", "surface.history"],
+        ["draft.saved", "surface.draft"],
+        ["work.completed", "surface.work"]
+      ]
+    },
+    {
+      "id": "case-friction-3",
+      "variant": "backtracking",
+      "steps": [
+        ["work.opened", "surface.work"],
+        ["draft.started", "surface.draft"],
+        ["reference.viewed", "surface.reference"],
+        ["history.viewed", "surface.history"],
+        ["draft.resumed", "surface.draft"],
+        ["history.reviewed", "surface.history"],
+        ["draft.saved", "surface.draft"],
+        ["work.completed", "surface.work"]
+      ]
+    },
+    {
+      "id": "case-control-1",
+      "variant": "direct",
+      "steps": [
+        ["work.opened", "surface.work"],
+        ["reference.viewed", "surface.reference"],
+        ["draft.saved", "surface.draft"],
+        ["work.completed", "surface.work"]
+      ]
+    }
+  ]
+}

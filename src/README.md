@@ -1,5 +1,5 @@
-# Source
+# Source layout
 
-Application source will be added here when the build starts. The first implementation slice must follow the architecture and evidence rules in the repository root.
+Active implementation lives in the npm workspaces under `packages/` and `apps/`; neutral integration data and replay code live under `samples/` and `scripts/`.
 
-No source from the pre-hackathon private prototype is present in this directory.
+This directory remains intentionally empty. No source from the pre-hackathon private prototype is present here.

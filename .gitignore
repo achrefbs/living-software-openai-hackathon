@@ -13,6 +13,7 @@ test-results/
 *.db-shm
 *.db-wal
 .living-software/
+apps/studio/.local/
 
 # Environment files and secrets
 .env
