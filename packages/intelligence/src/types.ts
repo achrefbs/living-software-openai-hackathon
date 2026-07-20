@@ -127,6 +127,7 @@ export type TransportResponse = Readonly<{
 }>;
 
 export type IntelligenceTransportKind = "responses-api" | "codex-cli";
+export type Gpt56TransportModel = "gpt-5.6" | "gpt-5.6-terra";
 
 export type IntelligenceTokenUsage = Readonly<{
   inputTokens: number;
@@ -143,7 +144,8 @@ export interface IntelligenceTransport {
 export type IntelligenceProvenance = Readonly<{
   provider: "openai";
   transport: IntelligenceTransportKind;
-  requestedModel: "gpt-5.6";
+  boundaryRequestedModel: "gpt-5.6";
+  transportRequestedModel: Gpt56TransportModel;
   actualResponseModel: string | null;
   responseId: string | null;
   codexThreadId: string | null;

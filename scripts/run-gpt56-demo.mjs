@@ -132,12 +132,19 @@ export function buildGpt56ProofRecord(
   { now = () => new Date() } = {},
 ) {
   const expectedTransport = provider === "codex" ? "codex-cli" : "responses-api";
-  if (result?.provenance?.transport !== expectedTransport) {
+  if (
+    result?.provenance?.provider !== "openai" ||
+    result.provenance.transport !== expectedTransport
+  ) {
     throw new Error("GPT-5.6 result provenance does not match the selected provider");
+  }
+  if (result.provenance.boundaryRequestedModel !== "gpt-5.6") {
+    throw new Error("GPT-5.6 result provenance changed the boundary model");
   }
   if (
     provider === "codex" &&
     (
+      result.provenance.transportRequestedModel !== "gpt-5.6-terra" ||
       result.provenance.responseId !== null ||
       typeof result.provenance.codexThreadId !== "string" ||
       result.provenance.actualResponseModel !== null ||
@@ -150,6 +157,7 @@ export function buildGpt56ProofRecord(
   if (
     provider === "api" &&
     (
+      result.provenance.transportRequestedModel !== "gpt-5.6" ||
       typeof result.provenance.responseId !== "string" ||
       result.provenance.codexThreadId !== null ||
       typeof result.provenance.actualResponseModel !== "string" ||
@@ -163,12 +171,13 @@ export function buildGpt56ProofRecord(
   const { manifest, opportunity, evidenceEvents } = prepared.input;
   const request = prepared.request;
   return {
-    schemaVersion: "living.gpt56-proof/v1",
+    schemaVersion: "living.gpt56-proof/v2",
     recordedAt: now().toISOString(),
     selectedProvider: provider,
     source: prepared.source,
     request: {
-      requestedModel: request.model,
+      boundaryRequestedModel: request.model,
+      transportRequestedModel: result.provenance.transportRequestedModel,
       reasoningEffort: request.reasoning.effort,
       responseStoreRequested: provider === "api" ? request.store : null,
       schemaName: request.text.format.name,

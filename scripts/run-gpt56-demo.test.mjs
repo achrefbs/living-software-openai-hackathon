@@ -93,7 +93,8 @@ test("passes the detector's exact evidence bundle to the intelligence boundary",
         provenance: {
           provider: "openai",
           transport: "responses-api",
-          requestedModel: "gpt-5.6",
+          boundaryRequestedModel: "gpt-5.6",
+          transportRequestedModel: "gpt-5.6",
           actualResponseModel: "gpt-5.6-test",
           responseId: "offline-test",
           codexThreadId: null,
@@ -150,7 +151,8 @@ test("proof recorder binds one clean source/request snapshot and writes create-o
       provenance: {
         provider: "openai",
         transport: "codex-cli",
-        requestedModel: "gpt-5.6",
+        boundaryRequestedModel: "gpt-5.6",
+        transportRequestedModel: "gpt-5.6-terra",
         actualResponseModel: null,
         responseId: null,
         codexThreadId: "thread-proof",
@@ -168,13 +170,64 @@ test("proof recorder binds one clean source/request snapshot and writes create-o
     const record = buildGpt56ProofRecord("codex", result, prepared, {
       now: () => new Date("2026-07-20T12:00:00.000Z"),
     });
+    assert.equal(record.schemaVersion, "living.gpt56-proof/v2");
     assert.equal(record.source.commit, prepared.source.commit);
     assert.equal(record.source.dirty, false);
+    assert.equal(record.request.boundaryRequestedModel, "gpt-5.6");
+    assert.equal(record.request.transportRequestedModel, "gpt-5.6-terra");
     assert.match(record.request.boundaryRequestSha256, /^sha256:[a-f0-9]{64}$/);
     assert.equal(record.evidence.eventSetHash, prepared.input.opportunity.evidence.eventSetHash);
     assert.throws(
       () => buildGpt56ProofRecord("api", result, prepared),
       /does not match the selected provider/,
+    );
+    assert.throws(
+      () => buildGpt56ProofRecord(
+        "codex",
+        {
+          ...result,
+          provenance: {
+            ...result.provenance,
+            transportRequestedModel: "gpt-5.6",
+          },
+        },
+        prepared,
+      ),
+      /contradictory provider provenance/,
+    );
+    assert.throws(
+      () => buildGpt56ProofRecord(
+        "codex",
+        {
+          ...result,
+          provenance: {
+            ...result.provenance,
+            provider: "another-provider",
+          },
+        },
+        prepared,
+      ),
+      /does not match the selected provider/,
+    );
+    assert.throws(
+      () => buildGpt56ProofRecord(
+        "api",
+        {
+          ...result,
+          provenance: {
+            ...result.provenance,
+            transport: "responses-api",
+            transportRequestedModel: "gpt-5.6-terra",
+            actualResponseModel: "gpt-5.6-test",
+            responseId: "resp-proof",
+            codexThreadId: null,
+            responseStoreRequested: false,
+            localSessionPersisted: null,
+          },
+        },
+        prepared,
+      ),
+      /contradictory provider provenance/,
     );
 
     await postflightGpt56Proof(prepared, dependencies);

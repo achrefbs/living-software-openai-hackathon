@@ -1,16 +1,17 @@
 # GPT-5.6 proof artifacts
 
-This directory holds sanitized, create-only evidence from explicit live GPT-5.6
-runs. A proof records the clean source commit, request and schema hashes,
+This directory holds sanitized, create-only `living.gpt56-proof/v2` evidence
+from explicit live GPT-5.6 runs. A proof records the clean source commit,
+request and schema hashes,
 synthetic evidence hashes and counts, validated draft, provider-specific
 provenance, and token usage when the provider reports it.
 
 Proof files never contain credentials, authorization headers, raw host data,
 session or actor identifiers, source paths, hidden reasoning, or the full
 request prompt. Codex CLI thread ids are labeled separately from Responses API
-response ids. A Codex CLI proof also records that the model was requested and
-pinned by the local invocation; the CLI does not authoritatively report an
-actual response model or an API storage value.
+response ids. A Codex CLI proof records both the logical `gpt-5.6`
+boundary and the exact `gpt-5.6-terra` transport request; the CLI does not
+authoritatively report an actual response model or an API storage value.
 
 The recorder refuses a dirty worktree and refuses to overwrite an existing
 artifact.

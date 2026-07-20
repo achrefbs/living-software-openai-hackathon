@@ -12,12 +12,14 @@ import { projectWorkflowCases, sha256 } from "@living-software/core";
 import { boundProductContext, buildEvidenceAliasEntries } from "./context.js";
 import { buildResponsesRequest } from "./prompt.js";
 import { modelEvolutionBriefSchema, type ModelEvolutionBrief } from "./schema.js";
+import { CODEX_CLI_GPT56_MODEL } from "./codex-transport.js";
 import { createFetchTransport } from "./transport.js";
 import type {
   BoundedProductContext,
   DraftEvolutionBriefInput,
   DraftEvolutionBriefResult,
   EvolutionBrief,
+  Gpt56TransportModel,
   IntelligenceTokenUsage,
   IntelligenceTransport,
 } from "./types.js";
@@ -50,6 +52,7 @@ type ResponseEnvelope = Readonly<{
   responseId: string | null;
   codexThreadId: string | null;
   actualModel: string | null;
+  transportRequestedModel: Gpt56TransportModel;
   tokenUsage: IntelligenceTokenUsage | null;
 }>;
 
@@ -104,6 +107,7 @@ function extractResponseEnvelope(
     if (
       response.type !== "codex-cli-result" ||
       response.status !== "completed" ||
+      response.requestedModel !== CODEX_CLI_GPT56_MODEL ||
       typeof response.threadId !== "string" ||
       response.threadId.length < 1 ||
       response.threadId.length > 256 ||
@@ -117,6 +121,7 @@ function extractResponseEnvelope(
       responseId: null,
       codexThreadId: response.threadId,
       actualModel: null,
+      transportRequestedModel: CODEX_CLI_GPT56_MODEL,
       tokenUsage: extractCliUsage(response.usage)!,
     };
   }
@@ -157,6 +162,7 @@ function extractResponseEnvelope(
           responseId,
           codexThreadId: null,
           actualModel,
+          transportRequestedModel: "gpt-5.6",
           tokenUsage: extractApiUsage(response.usage),
         };
       }
@@ -346,7 +352,8 @@ export function createIntelligenceClient(
         provenance: {
           provider: "openai",
           transport: transportKind,
-          requestedModel: "gpt-5.6",
+          boundaryRequestedModel: "gpt-5.6",
+          transportRequestedModel: envelope.transportRequestedModel,
           actualResponseModel: envelope.actualModel,
           responseId: envelope.responseId,
           codexThreadId: envelope.codexThreadId,

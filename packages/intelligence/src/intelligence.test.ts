@@ -10,6 +10,7 @@ import {
   PRODUCT_CONTEXT_LIMITS,
   boundProductContext,
   buildResponsesRequest,
+  createCodexCliTransport,
   createFetchTransport,
   createIntelligenceClient,
   type EvolutionBrief,
@@ -229,7 +230,8 @@ test("returns validated draft with non-model-authored provenance", async () => {
   assert.deepEqual(result.provenance, {
     provider: "openai",
     transport: "responses-api",
-    requestedModel: "gpt-5.6",
+    boundaryRequestedModel: "gpt-5.6",
+    transportRequestedModel: "gpt-5.6",
     actualResponseModel: "gpt-5.6-2026-07-01",
     responseId: "resp_test",
     codexThreadId: null,
@@ -240,6 +242,50 @@ test("returns validated draft with non-model-authored provenance", async () => {
   });
   assert.deepEqual(result.draft.evidenceCitations.sampleEventIds, ["event-001"]);
   assert.equal(requests[0]!.max_output_tokens, 2_400);
+});
+
+test("records the exact Codex Terra transport model", async () => {
+  const { productManifest, events, detectedOpportunity } = fixture();
+  const text = JSON.stringify(brief(detectedOpportunity, productManifest));
+  const client = createIntelligenceClient(createCodexCliTransport({
+    async run(invocation) {
+      assert.equal(invocation.model, "gpt-5.6-terra");
+      return {
+        exitCode: 0,
+        stdout: [
+          JSON.stringify({
+            type: "thread.started",
+            thread_id: "thread-terra-test",
+          }),
+          JSON.stringify({ type: "turn.started" }),
+          JSON.stringify({
+            type: "item.completed",
+            item: { type: "agent_message", text },
+          }),
+          JSON.stringify({
+            type: "turn.completed",
+            usage: {
+              input_tokens: 100,
+              cached_input_tokens: 20,
+              output_tokens: 10,
+              reasoning_output_tokens: 4,
+            },
+          }),
+        ].join("\n"),
+        stderr: "",
+        finalMessage: text,
+      };
+    },
+  }));
+  const result = await client.draftEvolutionBrief({
+    opportunity: detectedOpportunity,
+    manifest: productManifest,
+    evidenceEvents: events,
+  });
+  assert.equal(result.provenance.boundaryRequestedModel, "gpt-5.6");
+  assert.equal(result.provenance.transportRequestedModel, "gpt-5.6-terra");
+  assert.equal(result.provenance.actualResponseModel, null);
+  assert.equal(result.provenance.codexThreadId, "thread-terra-test");
 });
 
 test("rejects tampered manifests, evidence, missing samples, and origin mismatch before transport", async (t) => {
@@ -339,6 +385,37 @@ test("handles HTTP errors, refusals, incomplete output, and malformed responses"
   await t.test("wrong actual model", async () => {
     const client = createIntelligenceClient(mockTransport(responseFor(brief(base.detectedOpportunity, base.productManifest), { model: "gpt-5.5" })));
     await assert.rejects(client.draftEvolutionBrief(input), (error: unknown) => error instanceof IntelligenceResponseError && error.code === "unexpected_model");
+  });
+  await t.test("wrong Codex transport model", async () => {
+    for (const requestedModel of [undefined, "gpt-5.6"]) {
+      const client = createIntelligenceClient({
+        kind: "codex-cli",
+        async send() {
+          return {
+            status: 200,
+            body: {
+              type: "codex-cli-result",
+              status: "completed",
+              requestedModel,
+              threadId: "thread-wrong-model",
+              text: JSON.stringify(brief(base.detectedOpportunity, base.productManifest)),
+              usage: {
+                inputTokens: 1,
+                cachedInputTokens: 0,
+                outputTokens: 1,
+                reasoningOutputTokens: 0,
+              },
+            },
+          };
+        },
+      });
+      await assert.rejects(
+        client.draftEvolutionBrief(input),
+        (error: unknown) =>
+          error instanceof IntelligenceResponseError &&
+          error.code === "malformed_response",
+      );
+    }
   });
 });
 

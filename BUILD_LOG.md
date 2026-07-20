@@ -353,6 +353,38 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Correct the authenticated Codex model to GPT-5.6 Terra
+
+**Scope**
+
+- Ran the first proof attempt from clean commit `b303fa28d223fee06106f48b9a69bc2539909f96`. The authenticated Codex service rejected bare `gpt-5.6` for a ChatGPT-account login, so the command exited without creating a proof artifact and did not fall back to the API.
+- Confirmed that the account's current Codex catalog exposes GPT-5.6 variants and that a minimal isolated `gpt-5.6-terra` invocation completed successfully.
+- Kept the shared boundary request at `gpt-5.6` for the later Responses API path, mapped only the Codex transport to `gpt-5.6-terra`, and added separate boundary-model and transport-model provenance.
+- Bumped the not-yet-materialized proof format to `living.gpt56-proof/v2` and added fail-closed provider/model agreement tests.
+
+**How Codex accelerated the work**
+
+- Exposed the authoritative account/model rejection, confirmed the supported Terra route, and enabled a targeted transport correction without weakening the API toggle or local evidence validation.
+
+**How GPT-5.6 was used**
+
+- GPT-5.6 Terra completed only a minimal compatibility response in this correction step. No product-runtime interpretation or proof artifact is claimed yet.
+
+**Human decisions**
+
+- Use the exact authenticated GPT-5.6 Terra model through Codex now and retain bare `gpt-5.6` for the explicit API-key path later.
+- Preserve the rejected attempt in the audit trail and claim the CLI model only as requested/pinned, because Codex JSONL does not authoritatively report an actual response-model field.
+
+**Evidence**
+
+- Bare `gpt-5.6` returned a provider-level unsupported-model error through authenticated Codex.
+- `gpt-5.6-terra` completed through the same authenticated CLI.
+- The failed proof attempt created no `docs/proof/gpt56-live-codex-cli.json` file.
+- Repository-wide `npm run test` passed, including 37/37 intelligence tests and 18/18 integration tests.
+- `npm run build` passed the complete package and Next.js production build.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

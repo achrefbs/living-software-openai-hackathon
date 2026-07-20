@@ -53,6 +53,7 @@ export const CODEX_CLI_DISABLED_FEATURES = [
   "tool_suggest",
   "workspace_dependencies",
 ] as const;
+export const CODEX_CLI_GPT56_MODEL = "gpt-5.6-terra" as const;
 const CODEX_CLI_DEVELOPER_INSTRUCTIONS = [
   GOVERNANCE_INSTRUCTION,
   "This is a non-interactive structured-output invocation.",
@@ -78,7 +79,7 @@ export type CodexCliInvocation = Readonly<{
   prompt: string;
   developerInstructions: string;
   schema: Readonly<Record<string, unknown>>;
-  model: "gpt-5.6";
+  model: typeof CODEX_CLI_GPT56_MODEL;
   reasoningEffort: "medium";
   signal?: AbortSignal;
 }>;
@@ -608,7 +609,7 @@ export function createCodexCliTransport(
         prompt: buildPrompt(request),
         developerInstructions: CODEX_CLI_DEVELOPER_INSTRUCTIONS,
         schema: request.text.format.schema,
-        model: request.model,
+        model: CODEX_CLI_GPT56_MODEL,
         reasoningEffort: request.reasoning.effort,
         ...(sendOptions?.signal === undefined ? {} : { signal: sendOptions.signal }),
       });
@@ -625,6 +626,7 @@ export function createCodexCliTransport(
           type: "codex-cli-result",
           threadId: inspected.threadId,
           status: "completed",
+          requestedModel: CODEX_CLI_GPT56_MODEL,
           text: result.finalMessage,
           usage: inspected.usage,
         },

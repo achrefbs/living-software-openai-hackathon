@@ -7,6 +7,7 @@ import test from "node:test";
 
 import {
   CODEX_CLI_DISABLED_FEATURES,
+  CODEX_CLI_GPT56_MODEL,
   createCodexCliTransport,
 } from "./codex-transport.js";
 import { GOVERNANCE_INSTRUCTION } from "./prompt.js";
@@ -132,7 +133,7 @@ test("adapts an isolated Codex CLI structured result to the intelligence boundar
 
   const response = await transport.send(request);
   assert.equal(transport.kind, "codex-cli");
-  assert.equal(invocation.model, "gpt-5.6");
+  assert.equal(invocation.model, CODEX_CLI_GPT56_MODEL);
   assert.equal(invocation.reasoningEffort, "medium");
   assert.equal(invocation.prompt, "Interpret bounded evidence.");
   assert.doesNotMatch(invocation.prompt, /Never approve or activate/);
@@ -144,6 +145,7 @@ test("adapts an isolated Codex CLI structured result to the intelligence boundar
       type: "codex-cli-result",
       threadId: "thread-test-1",
       status: "completed",
+      requestedModel: "gpt-5.6-terra",
       text: "{\"ok\":true}",
       usage: {
         inputTokens: 100,
@@ -269,7 +271,10 @@ test("production runner isolates argv, stdin, environment, files, and aborts", a
     assert.equal(existsSync(execution.cwd), false);
     assert.equal(dirname(execution.args[execution.args.indexOf("--output-schema") + 1]), execution.cwd);
     assert.equal(dirname(execution.args[execution.args.indexOf("--output-last-message") + 1]), execution.cwd);
-    assert.equal(execution.args[execution.args.indexOf("--model") + 1], "gpt-5.6");
+    assert.equal(
+      execution.args[execution.args.indexOf("--model") + 1],
+      CODEX_CLI_GPT56_MODEL,
+    );
     assert.ok(execution.args.includes('model_reasoning_effort="medium"'));
     assert.ok(execution.args.includes('web_search="disabled"'));
     assert.ok(execution.args.includes("project_doc_max_bytes=0"));
