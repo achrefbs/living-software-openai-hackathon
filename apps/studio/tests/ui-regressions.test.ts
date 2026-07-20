@@ -4,7 +4,13 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { MapExplorer } from "../src/components/map-explorer";
+import { RecordedGpt56Brief } from "../src/components/recorded-gpt56-brief";
 import { buildWorkflowJourney } from "../src/components/workflow-explorer";
+import {
+  getCommittedGpt56Run,
+  relateGpt56RunToDataset,
+} from "../src/lib/gpt56-proof";
+import { fixtureStudioDataset } from "../src/lib/studio-snapshot";
 import type { ProductNode } from "../src/lib/studio-types";
 
 const nodes: ProductNode[] = [
@@ -57,4 +63,63 @@ test("product map reports manifest and explorable node counts separately", () =>
   assert.match(html, /3 manifest nodes total/);
   assert.match(html, /1 non-product test node excluded from the lanes/);
   assert.doesNotMatch(html, /Showing all 3 mapped capabilities/);
+});
+
+test("recorded GPT-5.6 proof stays visibly separate from unrelated Studio data", async () => {
+  const dataset = fixtureStudioDataset();
+  const run = await getCommittedGpt56Run();
+  const relation = relateGpt56RunToDataset(run, dataset);
+  const html = renderToStaticMarkup(
+    createElement(RecordedGpt56Brief, {
+      currentAppId: dataset.app.id,
+      currentAppName: dataset.app.name,
+      relation,
+      run,
+    }),
+  );
+
+  assert.equal(relation.kind, "separate");
+  assert.deepEqual(relation.mismatches, [
+    "appId",
+    "manifestHash",
+    "opportunityId",
+    "eventSetHash",
+  ]);
+  assert.match(html, /GPT-5.6 Terra requested/);
+  assert.match(html, /Separate neutral evidence run/);
+  assert.match(html, /sample.operations-console/);
+  assert.match(html, /sample-operations/);
+  assert.match(html, /Activation blocked/);
+  assert.match(html, /Not reported by Codex CLI/);
+  assert.doesNotMatch(html, /event.case-friction/);
+});
+
+test("an exact proof relation remains a blocked draft with no lifecycle authority", async () => {
+  const fixture = fixtureStudioDataset();
+  const run = await getCommittedGpt56Run();
+  const dataset = {
+    ...fixture,
+    app: { ...fixture.app, id: run.evidence.appId },
+    evidenceIdentity: {
+      appId: run.evidence.appId,
+      manifestHash: run.evidence.manifestHash,
+      opportunityId: run.evidence.opportunityId,
+      eventSetHash: run.evidence.eventSetHash,
+    },
+  };
+  const relation = relateGpt56RunToDataset(run, dataset);
+  const html = renderToStaticMarkup(
+    createElement(RecordedGpt56Brief, {
+      currentAppId: dataset.app.id,
+      currentAppName: dataset.app.name,
+      relation,
+      run,
+    }),
+  );
+
+  assert.deepEqual(relation, { kind: "exact", mismatches: [] });
+  assert.match(html, /Evidence identity matches the active snapshot/);
+  assert.match(html, /Activation blocked/);
+  assert.match(html, /grants no lifecycle authority/);
+  assert.doesNotMatch(html, /activation allowed/i);
 });

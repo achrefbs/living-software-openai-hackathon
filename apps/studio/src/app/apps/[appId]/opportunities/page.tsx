@@ -12,6 +12,11 @@ import {
   TechnicalDetails,
 } from "@/components/ui";
 import { journeyStages } from "@/lib/journey";
+import {
+  getCommittedGpt56Run,
+  recordedRunLinkageNote,
+  relateGpt56RunToDataset,
+} from "@/lib/gpt56-proof";
 import { getPreviewMode, getStudioDataset } from "@/lib/studio-data";
 import { studioAppHref } from "@/lib/studio-routes";
 
@@ -41,6 +46,8 @@ export default async function OpportunitiesPage({
     );
   }
 
+  const recordedRun = await getCommittedGpt56Run();
+  const recordedRunRelation = relateGpt56RunToDataset(recordedRun, dataset);
   const stage = journeyStages(dataset)[2];
   const totalCases = dataset.workflows.observedCases;
   const revisitSignal = primary?.signals.find((signal) =>
@@ -136,7 +143,10 @@ export default async function OpportunitiesPage({
                   value: reference,
                   code: true,
                 })),
-                { term: "Model interpretation", value: "Not run" },
+                {
+                  term: "Model interpretation",
+                  value: "Not run for this snapshot",
+                },
                 { term: "Raw user content", value: "Excluded by design" },
               ]}
             />
@@ -201,15 +211,15 @@ export default async function OpportunitiesPage({
             {dataset.evolution === null
               ? ", so Studio shows the review stage locked rather than inventing a proposal."
               : ", so the review below stops at the evidence stage."}
+            {" "}{recordedRunLinkageNote(recordedRunRelation)} Inspect the
+            recorded run in Evolution Review.
           </p>
           <div className="detection-actions">
             <Link
               className="button button-primary"
               href={studioAppHref(appId, "evolutions")}
             >
-              {dataset.evolution === null
-                ? "See what review would require"
-                : "Open the review"}
+              Open review and recorded run
               <Icon name="arrow" />
             </Link>
           </div>

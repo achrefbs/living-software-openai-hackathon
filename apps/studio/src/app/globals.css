@@ -53,7 +53,7 @@ html {
     Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
   font-size: 16px;
-  min-width: 320px;
+  min-width: 0;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -2402,6 +2402,322 @@ h3 {
   text-align: right;
 }
 
+.model-proof-panel {
+  background:
+    linear-gradient(135deg, rgba(23, 116, 90, 0.055), transparent 42%),
+    var(--surface);
+  border-color: #cbded5;
+}
+
+.model-proof-heading {
+  align-items: center;
+}
+
+.model-proof-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: flex-end;
+}
+
+.model-proof-boundary {
+  align-items: flex-start;
+  border: 1px solid;
+  border-radius: 12px;
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+}
+
+.model-proof-boundary-separate {
+  background: var(--amber-soft);
+  border-color: #ead39f;
+}
+
+.model-proof-boundary-exact {
+  background: var(--accent-soft);
+  border-color: #c4dfd3;
+}
+
+.model-proof-boundary-icon {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  color: var(--amber-text);
+  display: flex;
+  flex: 0 0 auto;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.model-proof-boundary-exact .model-proof-boundary-icon {
+  color: var(--accent-deep);
+}
+
+.model-proof-boundary-icon svg {
+  height: 16px;
+  width: 16px;
+}
+
+.model-proof-boundary strong {
+  color: var(--ink);
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.model-proof-boundary p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.model-proof-interpretation {
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.65;
+  margin: 0 0 18px;
+  max-width: 86ch;
+}
+
+.model-proof-facts {
+  margin-bottom: 18px;
+}
+
+.model-proof-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  margin-top: 14px;
+}
+
+.model-proof-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-width: 0;
+  padding: 17px;
+}
+
+.model-proof-card h3 {
+  font-size: 15px;
+  margin: 0 0 8px;
+}
+
+.model-proof-card > p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 14px;
+}
+
+.model-proof-value {
+  align-items: flex-start;
+  background: var(--accent-soft);
+  border-radius: 9px;
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+}
+
+.model-proof-value > svg {
+  color: var(--accent-deep);
+  flex: 0 0 auto;
+  height: 15px;
+  margin-top: 2px;
+  width: 15px;
+}
+
+.model-proof-value strong {
+  color: var(--accent-deep);
+  display: block;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.model-proof-value p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.model-proof-node-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.model-proof-list {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.model-proof-list li {
+  align-items: flex-start;
+  color: var(--muted);
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.model-proof-list li > svg {
+  color: var(--accent);
+  flex: 0 0 auto;
+  height: 14px;
+  margin-top: 2px;
+  width: 14px;
+}
+
+.model-proof-list strong {
+  color: var(--ink);
+  display: block;
+  font-size: 12px;
+}
+
+.model-proof-prohibitions li > svg {
+  color: var(--red-text);
+}
+
+.model-proof-metrics {
+  display: grid;
+  gap: 0;
+  margin: 0 0 12px;
+}
+
+.model-proof-metrics > div {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 9px 0;
+}
+
+.model-proof-metrics > div:first-child {
+  border-top: 0;
+}
+
+.model-proof-metrics dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.model-proof-metrics dd {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.model-proof-caveats {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-top: 14px;
+  overflow: hidden;
+}
+
+.model-proof-caveats summary {
+  align-items: center;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 700;
+  justify-content: space-between;
+  list-style: none;
+  padding: 13px 15px;
+}
+
+.model-proof-caveats summary::-webkit-details-marker {
+  display: none;
+}
+
+.model-proof-caveats summary svg {
+  height: 14px;
+  transition: transform 150ms ease;
+  width: 14px;
+}
+
+.model-proof-caveats[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.model-proof-caveat-grid {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 15px;
+}
+
+.model-proof-caveat-grid h3 {
+  font-size: 12px;
+  margin: 0 0 7px;
+}
+
+.model-proof-caveat-grid ul {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.model-proof-caveat-grid li + li {
+  margin-top: 5px;
+}
+
+.model-proof-authority {
+  align-items: center;
+  background: #f3f6f3;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  margin-top: 14px;
+  padding: 13px 15px;
+}
+
+.model-proof-authority-icon {
+  align-items: center;
+  background: #e2e8e3;
+  border-radius: 8px;
+  color: var(--muted);
+  display: flex;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.model-proof-authority-icon svg {
+  height: 15px;
+  width: 15px;
+}
+
+.model-proof-authority strong {
+  color: var(--ink);
+  display: block;
+  font-size: 13px;
+}
+
+.model-proof-authority p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 2px 0 0;
+}
+
 .integrity-callout {
   align-items: center;
   display: flex;
@@ -2814,6 +3130,27 @@ h3 {
   .integrity-callout {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .model-proof-heading {
+    align-items: flex-start;
+  }
+
+  .model-proof-badges {
+    justify-content: flex-start;
+  }
+
+  .model-proof-caveat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .model-proof-authority {
+    align-items: flex-start;
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .model-proof-authority .badge {
+    grid-column: 1 / -1;
   }
 
   .provenance-popover {

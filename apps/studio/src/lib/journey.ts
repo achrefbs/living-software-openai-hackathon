@@ -73,7 +73,7 @@ export function journeyStages(dataset: StudioDataset): JourneyStage[] {
       summary: hasEvolution
         ? "Evidence ready"
         : detected > 0
-          ? "No model has run"
+          ? "No model run for this snapshot"
           : "No proposal exists",
       lockReason: hasEvolution
         ? undefined

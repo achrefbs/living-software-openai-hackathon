@@ -30,7 +30,8 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Normal observation excludes text, input values, keystrokes, query strings and hashes, DOM or HTML, cookies, headers, request bodies, screenshots, and persistent user/cross-tab identifiers.
 - [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
 - [x] Neutral sample data is explicitly synthetic.
-- [x] Studio documentation distinguishes its neutral fixture fallback, explicit synthetic-only static snapshot, and lack of live host/model ingestion.
+- [x] Studio distinguishes its active fixture/static snapshot from the separately committed GPT-5.6 proof, makes no live model call, and requires exact app, manifest, opportunity, and event-set identity before labeling a run related.
+- [x] Strict proof validation, mismatch handling, safe projection, and non-rendering of raw event IDs and evidence aliases are tested.
 - [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
 - [ ] Every final claim tied to the submission commit.
 
@@ -55,7 +56,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 ## Demo video
 
 - [ ] Public YouTube video is under three minutes.
-- [ ] Video shows automatic discovery/observation, the explicit static Studio snapshot, and the separate GPT-5.6 contribution without implying live ingestion or a connected governed lifecycle.
+- [ ] Video shows automatic discovery/observation, the explicit static Studio snapshot, the separate recorded-run banner, and the locked lifecycle without implying live ingestion or attached CRM interpretation.
 - [ ] Audio explains what was built and how Codex and GPT-5.6 were used.
 - [ ] No unlicensed media, private data, or unsupported product claims appear.
 - [ ] Link works without login.

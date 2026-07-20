@@ -4,6 +4,7 @@ export * from "./config.js";
 export * from "./discovery.js";
 export * from "./evolution-receipt.js";
 export * from "./evidence.js";
+export * from "./gpt56-proof.js";
 export * from "./install.js";
 export * from "./metrics.js";
 export * from "./observation.js";

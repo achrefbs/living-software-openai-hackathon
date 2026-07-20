@@ -8,11 +8,12 @@ Host-agnostic, read-only interface for Living Software. It exposes five connecte
 - Evolution Review
 - Receipts
 
-Studio has one fixed local data boundary. At startup it validates
+Studio has two read-only inputs. At startup it validates
 `.local/studio-snapshot.json` with the public `living.studio-snapshot/v1`
-contract. If that file is absent, Studio uses the clearly labeled neutral
-fixture in `src/data/studio-fixture.json`. An invalid local file fails closed;
-it is never silently presented as fixture or live data.
+contract; if that file is absent, it uses the clearly labeled neutral fixture
+in `src/data/studio-fixture.json`. Evolution Review also strictly parses and
+projects the committed sanitized `living.gpt56-proof/v2` artifact. An invalid
+input fails closed.
 
 ## Run the neutral fixture
 
@@ -73,6 +74,8 @@ previews remain available for both fixture and captured datasets.
 
 Studio never imports or executes host code and does not accept a filesystem path
 from a browser request. The separate CLI owns host-root access, evidence-chain
-verification, minimization, and snapshot creation. Studio only validates and
-renders the fixed local export. GPT-5.6 and the governed evolution lifecycle
-remain separate, visibly unavailable systems.
+verification, minimization, and snapshot creation. Studio makes no live model
+call. The committed proof projection omits raw event IDs and alias mappings and
+remains separate from the active dataset unless app, manifest, opportunity, and
+event-set identities all match. Even a related draft cannot approve, activate,
+populate lifecycle state, or unlock controls.

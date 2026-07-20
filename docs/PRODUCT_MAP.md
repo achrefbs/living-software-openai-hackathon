@@ -38,9 +38,14 @@ neutral fixture OR validated synthetic capture
      -> Opportunities
      -> Evolutions
      -> Receipts
+
+committed validated GPT-5.6 proof
+  -> safe read-only projection
+  -> separate recorded run in Evolutions
+  -> exact four-part identity match required; no activation authority
 ```
 
-Automatic synthetic analysis can now reach Studio through an explicit, validated static snapshot sync. Studio does not ingest the host live. The GPT runner remains separate and consumes verified neutral replay evidence.
+Automatic synthetic analysis can now reach Studio through an explicit, validated static snapshot sync. Studio does not ingest the host live. The GPT runner remains separate and consumes verified neutral replay evidence. Studio now displays the committed proof as an independent recorded run, with a fail-closed app/manifest/opportunity/event-set relation check that prevents it from being presented as CRM evidence.
 
 ## Working now
 
@@ -51,7 +56,7 @@ Automatic synthetic analysis can now reach Studio through an explicit, validated
 5. Privacy-safe workflow, performance, friction, viewport, and precise CSS-pixel geometry evidence.
 6. Deterministic workflow projection, technical metric analysis, and optional threshold-based opportunity detection.
 7. Neutral fixture CLI, synthetic replay, and privacy-safe host SDK.
-8. Five-route Studio with a neutral fixture fallback, validated synthetic-only static snapshot ingestion, and preview states.
+8. Five-route Studio with a neutral fixture fallback, validated synthetic-only static snapshot ingestion, preview states, and a strictly validated separate recorded-run panel for the committed GPT-5.6 proof.
 9. GPT-5.6 integration with explicit authenticated Codex CLI and Responses API transports, exact neutral evidence verification, privacy minimization, strict structured output, a create-only proof recorder, and offline tests.
 
 ## Next evidence milestones
@@ -67,7 +72,7 @@ Automatic synthetic analysis can now reach Studio through an explicit, validated
 - The current adapter does not support arbitrary Node applications or arbitrary codebases.
 - Automatic observation does not know business goals, outcomes, or causality.
 - The local collector is not a production authenticated or multi-instance telemetry service.
-- Studio does not connect to a live host or GPT-5.6; it receives only an explicit, validated, privacy-minimized static export of synthetic captured evidence.
+- Studio makes no live host or model connection. It can display a strictly validated committed neutral model-run projection, but automatic-host evidence is not sent to GPT-5.6 and mismatched proof is never attached to the active snapshot. A related proof would still remain a draft with no lifecycle authority.
 - Offline model tests are not evidence of a real GPT-5.6 call; the separate live proof artifact supplies that evidence.
 - Broker execution and end-to-end capability activation/rollback are not implemented.
 - The separate CRM and simulator are not required for the neutral judge path.

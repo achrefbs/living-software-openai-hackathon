@@ -10,11 +10,11 @@ Hackathon judges seeing Living Studio for the first time (20-second comprehensio
 
 ## Product Purpose
 
-Living Studio renders a validated static export of what Living Software captured from a host application: a product capability map, privacy-safe observed workflows, a deterministic friction detection, and the (currently locked) governed evolution and audit stages. Success: a first-time viewer follows the story "install → map → observe → detect → review → audit" without help, and never mistakes synthetic evidence for production data or locked stages for finished features.
+Living Studio renders a validated static export of what Living Software captured from a host application: a product capability map, privacy-safe observed workflows, a deterministic friction detection, and the (currently locked) governed evolution and audit stages. Evolution Review may also show a separately recorded model proposal while keeping the active snapshot's interpretation and governed lifecycle locked. Success: a first-time viewer follows the story "install → map → observe → detect → review → audit" without help, and never mistakes synthetic evidence for production data or locked stages for finished features.
 
 ## Brand Personality
 
-Honest, calm, evidentiary. A product control room, not a marketing dashboard: the interface's authority comes from showing provenance and admitting boundaries ("no model has run", "no receipts exist") in plain language. Trust identity: deep green + cyan on dark sidebar chrome, quiet warm-neutral canvas.
+Honest, calm, evidentiary. A product control room, not a marketing dashboard: the interface's authority comes from showing provenance and admitting boundaries ("no model has run for this snapshot", "no receipts exist") in plain language. Trust identity: deep green + cyan on dark sidebar chrome, quiet warm-neutral canvas.
 
 ## Anti-references
 

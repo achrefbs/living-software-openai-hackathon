@@ -27,8 +27,9 @@ The final public YouTube video must be shorter than three minutes, include audio
 
 ### 1:30-2:00 — GPT-5.6 contributes materially
 
-- Run `npm run demo:gpt56:cli` or replay the sanitized evidence preserved from that exact live GPT-5.6 Codex CLI path.
-- Show the strict structured `EvolutionBrief`, bounded citations, limitations, and `activationAllowed: false`.
+- Open Evolution Review and show the committed run's “GPT-5.6 Terra requested” label, synthetic evidence scope, local validation, cited metrics, limitations, and “Activation blocked” state.
+- Point out that Codex CLI did not report an authoritative actual response model; Studio preserves that as “Not reported” instead of inventing provenance.
+- Use the committed sanitized proof for the credential-free judge path. Optionally run `npm run demo:gpt56:cli` only when saved Codex authentication is available.
 - Explain that the current GPT path consumes verified neutral replay evidence, not automatic host evidence, and that offline mocks do not substitute for the live proof.
 
 ### 2:00-2:25 — Living Studio
@@ -36,7 +37,8 @@ The final public YouTube video must be shorter than three minutes, include audio
 - Run `npm run studio:sync -- --root <next-app>` after the synthetic capture.
 - Open Product Map, Workflows, Opportunities, Evolutions, and Receipts.
 - Show the **Captured snapshot** and **Synthetic capture** provenance labels plus one preview state.
-- Describe Studio accurately as a validated static synthetic export, not live host ingestion. GPT-5.6 and the governed lifecycle remain separate.
+- Show the “Separate neutral evidence run” banner in Evolutions and explain that its app, manifest, opportunity, and event-set identities do not match the CRM snapshot.
+- Describe Studio accurately as two validated static read-only inputs, not live ingestion. The recorded draft does not become a CRM interpretation, populate lifecycle state, or unlock any control.
 
 ### 2:25-2:50 — Remove and assign authority
 

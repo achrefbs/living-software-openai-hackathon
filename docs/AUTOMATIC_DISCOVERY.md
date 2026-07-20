@@ -27,7 +27,7 @@ neutral fixture OR verified synthetic automatic-host analysis
   -> read-only Living Studio
 ```
 
-The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing. Simulator output is compared only after a run to measure Living's coverage and accuracy. An explicit `studio:sync` command can export verified synthetic analysis into Studio through a one-way static file boundary. Studio does not ingest the host live. The current GPT-5.6 runner remains separate and consumes neutral replay evidence, not automatic host evidence.
+The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing. Simulator output is compared only after a run to measure Living's coverage and accuracy. An explicit `studio:sync` command can export verified synthetic analysis into Studio through a one-way static file boundary. Studio does not ingest the host live. The current GPT-5.6 runner remains separate and consumes neutral replay evidence, not automatic host evidence. Evolution Review can display the committed neutral proof independently, but its identity mismatch prevents it from becoming a CRM interpretation or lifecycle state.
 
 ## CLI surface
 
@@ -150,7 +150,7 @@ The first run produced a 170-node manifest. Visual Studio review exposed 26 orph
 - The final corrected release contains 48 records and 224 Living events across five cases. Its chain head is `sha256:58ededd51d06ea7e3ee66af41dcaa9273059ac4722fa611c93d6d120c0a147b2`; deterministic analysis produced five variants and 70 metric values.
 - `detector.backtracking@1.1.0` emitted `opportunity.backtracking.fcf5d947adf8`: three affected cases, 17 revisits, affected ratio 0.6, confidence 0.74, and 17 sample event references.
 - Two consecutive `snapshot --root` exports were byte-identical. The `living.studio-snapshot/v1` result contained five cases, 144 mapped nodes, and 224 events without absolute paths, raw event/session/case/user identifiers, or simulator output. The sync script accepted its explicit synthetic provenance and wrote it only to the gitignored Studio `.local` directory.
-- Product Map, Workflows, Opportunities, Evolutions, and Receipts were browser-verified against the corrected snapshot. Studio labels it as a validated synthetic static export, not live telemetry; GPT-5.6 was not called, and captured-snapshot Evolutions and Receipts remain explicitly unconnected.
+- Product Map, Workflows, Opportunities, Evolutions, and Receipts were browser-verified against the corrected snapshot. Studio labels it as a validated synthetic static export, not live telemetry; GPT-5.6 was not called for that snapshot. The separately recorded neutral proof can be inspected in Evolution Review, while captured-snapshot interpretation and receipts remain explicitly unconnected.
 - Simulator traces remained a post-run oracle only. They were never input to discovery, workflow projection, metrics, the detector, or Studio.
 
 ## Growth path

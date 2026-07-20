@@ -132,10 +132,18 @@ export type Receipt = {
   detail: string;
 };
 
+export type StudioEvidenceIdentity = {
+  appId: string;
+  manifestHash: string | null;
+  opportunityId: string | null;
+  eventSetHash: string | null;
+};
+
 export type StudioDataset = {
   schemaVersion: number;
   notice: string;
   app: StudioApp;
+  evidenceIdentity: StudioEvidenceIdentity;
   productMap: {
     nodes: ProductNode[];
     edges: ProductEdge[];

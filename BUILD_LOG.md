@@ -419,6 +419,39 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Display the preserved GPT-5.6 proof in Studio without crossing evidence boundaries
+
+**Scope**
+
+- Added a strict public `living.gpt56-proof/v2` contract with closed nested records, provider/model agreement, cross-record identity, citation, scope, governance, count, and alias validation.
+- Added a privacy-minimized Studio projector for the committed proof. It deliberately omits raw sample event IDs and evidence-alias mappings and preserves the CLI's unreported actual-model field as `null`.
+- Added a fail-closed relation across app ID, manifest hash, opportunity ID, and event-set hash. The current neutral proof differs from both the CRM capture and neutral Studio fixture, so it is shown as a separate recorded run and never populates lifecycle state.
+- Added the Evolution Review evidence panel, visible requested-model and actual-model boundaries, citations, success criteria, risks, limitations, human-review state, blocked activation, and technical provenance. Added a discoverable link from Opportunity Feed.
+- Corrected the exact-320px horizontal overflow and kept sidebar copy snapshot-specific.
+
+**How Codex accelerated the work**
+
+- Designed and implemented the proof contract, Studio projection, evidence-relation boundary, UI, regression coverage, documentation reconciliation, responsive checks, and browser walkthrough.
+- Ran adversarial review that caught the need to include the event-set hash in the relation and to distinguish a requested transport model from an unreported actual response model.
+
+**How GPT-5.6 was used**
+
+- No new product-runtime model call was made in this slice. Studio displays the previously preserved GPT-5.6 Terra result from `docs/proof/gpt56-live-codex-cli.json` after revalidating it through the public contract.
+
+**Human decisions**
+
+- Show the real neutral model contribution inside Studio so judges can inspect it without credentials, while refusing to present it as CRM evidence.
+- Treat relation as a display label only. Even an exact relation cannot approve, create receipts, populate `dataset.evolution`, or unlock lifecycle controls.
+
+**Evidence**
+
+- Repository-wide `npm run test` passed: compliance check, all workspace typechecks, 24 Studio tests at that checkpoint, 21 contracts tests, the remaining package suites, and 18 integration tests. Final exact-relation authority and relation-aware page-copy regressions bring Studio to 27/27 passing tests.
+- Repository-wide `npm run build` passed, including the complete package graph and the Next.js production build for all Studio routes.
+- Browser verification passed on the CRM Evolution Review and Opportunity Feed at the default desktop viewport and at 320px: no horizontal overflow, no console warnings/errors, working disclosures, working Opportunity-to-Review link, separate-run banner present, and provenance fields visible.
+- `git diff --check` passed.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

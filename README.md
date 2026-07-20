@@ -17,7 +17,7 @@ The standalone reference CRM and its synthetic-user simulator live in separate r
 - A self-contained Next.js browser observer and same-origin local collector. The observer captures routes, actions, performance, friction signals, and precise CSS-pixel geometry; the collector writes a hash-linked single-process evidence log under `.living/data/releases/<manifest-hash>/events.ndjson` so releases cannot be mixed.
 - Deterministic workflow projection, technical metric analysis, and an optional threshold-based opportunity detector.
 - A neutral, descriptor-driven fixture CLI and offline replay retained as a stable test path.
-- A read-only Living Studio with Product Map, Workflows, Opportunities, Evolutions, and Receipts routes plus empty, disconnected, and invalid-data previews. It can render either the labeled neutral fixture or a validated, gitignored static snapshot exported from an explicitly synthetic automatic-host analysis. This is a one-way file bridge, not live host ingestion; captured-snapshot Evolutions and Receipts remain visibly unconnected.
+- A read-only Living Studio with Product Map, Workflows, Opportunities, Evolutions, and Receipts routes plus empty, disconnected, and invalid-data previews. It can render either the labeled neutral fixture or a validated, gitignored static snapshot exported from an explicitly synthetic automatic-host analysis. Evolution Review also validates and displays the committed neutral GPT-5.6 proof as an independent recorded run. Exact app, manifest, opportunity, and event-set identity is required to label a run related; relation alone never populates lifecycle state, creates receipts, or unlocks controls.
 - A GPT-5.6 intelligence package with explicit Codex CLI and Responses API transports. Both verify evidence hashes, minimize model context, require a strict structured `EvolutionBrief`, revalidate references, require human review, and forbid activation. The live demo defaults to the authenticated Codex CLI for Build Week and can be switched to the API later without changing the application validation boundary.
 
 Declarative broker execution, proof, approval, activation, measurement, and rollback are intended later lifecycle work, not current functionality.
@@ -99,7 +99,7 @@ The fresh smoke completed 2/2 simulator sessions with 46 simulator events and 42
 
 The current release NDJSON contains 48 lines and has SHA-256 `82B38B1032A430849FEFBD29343A53BFF36FEF9E3BAD0488C3914B94B392CF8A`. The prior 58-line release-evidence artifact was preserved byte-for-byte; its SHA-256 remains `471FF2BE4F9629F2F2247A02048974C4592FCD74724BB8C7CA22F180871D1B26`. `living doctor` remained `CONTRACTS_VALID` and `INSTALL_HEALTHY`.
 
-The resulting `living.studio-snapshot/v1` export is synthetic-only and contains five cases, 144 mapped nodes, and 224 events. All five Studio routes were browser-verified against that gitignored snapshot. Studio still makes no live host connection or GPT-5.6 call, and its captured-snapshot Evolutions and Receipts surfaces remain unconnected.
+The resulting `living.studio-snapshot/v1` export is synthetic-only and contains five cases, 144 mapped nodes, and 224 events. All five Studio routes were browser-verified against that gitignored snapshot. Studio makes no live host connection or GPT-5.6 call. Evolution Review can display the separately committed neutral model-run proof, but its app, manifest, opportunity, and event-set identities do not match the CRM snapshot, so it does not become a CRM interpretation, receipt, or lifecycle state.
 
 ## Testing
 
@@ -158,8 +158,12 @@ npm run dev:studio
 The sync command writes only the gitignored
 `apps/studio/.local/studio-snapshot.json`. Studio validates that minimized
 static export before rendering it. It does not connect to the host live or call
-GPT-5.6, and the captured view explicitly leaves Evolution and Receipts
-unconnected.
+GPT-5.6. Evolution Review separately projects the committed
+`living.gpt56-proof/v2` artifact through the public strict contract and shows
+its provenance, citations, limits, and blocked activation state. App, manifest,
+opportunity, and event-set identities must all match before Studio labels the
+run related. Even a related draft cannot populate the captured lifecycle,
+create a receipt, approve a capability, or unlock a control.
 
 ## Current architecture
 
@@ -170,13 +174,16 @@ public UI activity        -> privacy-safe, hash-linked local evidence
 local evidence            -> deterministic workflows + technical metrics + opportunity
 synthetic local analysis  -> validated static snapshot -> read-only Living Studio
 verified neutral evidence -> GPT-5.6 draft -> human review only
+committed validated proof -> separate Studio model-run panel -> no authority
 ```
 
 The automatic evidence path can now export a privacy-minimized, synthetic-only
 snapshot for read-only Studio rendering. The bridge is a validated, gitignored
-local file rather than a live connection. It is not connected to GPT-5.6 or a
-governed lifecycle; the current GPT-5.6 runner consumes verified neutral replay
-evidence.
+local file rather than a live connection. The current GPT-5.6 runner still
+consumes separate verified neutral replay evidence. Studio can display its
+committed validated proof beside the active snapshot, but a fail-closed
+app/manifest/opportunity/event-set identity check keeps unrelated evidence
+separate. Rendering or relation grants no governed-lifecycle authority.
 
 The trust boundary is deliberate: the installer can create only its declared integration files, deterministic code owns evidence integrity, and the model can propose a draft but cannot grant permissions, change the host, approve, or activate anything.
 

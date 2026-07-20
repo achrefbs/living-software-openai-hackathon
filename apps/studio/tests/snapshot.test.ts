@@ -164,6 +164,12 @@ test("maps a minimized captured snapshot without inventing lifecycle state", () 
 
   assert.equal(dataset.app.connection, "captured_snapshot");
   assert.equal(dataset.app.source.label, "Synthetic capture");
+  assert.deepEqual(dataset.evidenceIdentity, {
+    appId: "captured-app",
+    manifestHash: HASH,
+    opportunityId: "opportunity.backtracking",
+    eventSetHash: HASH,
+  });
   assert.equal(dataset.productMap.totalNodes, 3);
   assert.equal(dataset.productMap.nodes.length, 2);
   assert.equal(dataset.productMap.omittedNodes, 1);
@@ -193,6 +199,12 @@ test("keeps the neutral fixture available as the fallback dataset", () => {
 
   assert.equal(dataset.app.connection, "offline_fixture");
   assert.equal(dataset.app.source.dataOrigin, "fixture");
+  assert.deepEqual(dataset.evidenceIdentity, {
+    appId: "sample-operations",
+    manifestHash: null,
+    opportunityId: null,
+    eventSetHash: null,
+  });
   assert.ok(dataset.evolution);
   assert.ok(dataset.receipts);
   assert.equal(dataset.productMap.totalNodes, dataset.productMap.nodes.length);

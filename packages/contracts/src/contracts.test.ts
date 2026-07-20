@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -6,9 +7,11 @@ import {
   capabilityContractSchema,
   collectorEndpointSchema,
   evolutionReceiptSchema,
+  gpt56ProofSchema,
   livingConfigSchema,
   metricReportSchema,
   opportunitySchema,
+  parseGpt56Proof,
   productManifestSchema,
   studioCommandEnvelopeSchema,
   studioSnapshotSchema,
@@ -16,6 +19,18 @@ import {
   validateWorkflowEventAgainstConfig,
   workflowEventSchema,
 } from "./index.js";
+
+const committedGpt56Proof = JSON.parse(
+  await readFile(
+    new URL("../../../docs/proof/gpt56-live-codex-cli.json", import.meta.url),
+    "utf8",
+  ),
+) as unknown;
+const parsedGpt56Proof = parseGpt56Proof(committedGpt56Proof);
+
+function cloneGpt56Proof() {
+  return structuredClone(parsedGpt56Proof);
+}
 
 const HASH_A = `sha256:${"a".repeat(64)}`;
 const HASH_B = `sha256:${"b".repeat(64)}`;
@@ -363,6 +378,159 @@ test("all public envelopes reject unknown fields", () => {
   for (const [schema, value] of cases) {
     assert.throws(() => schema.parse({ ...value, unexpected: true }));
   }
+});
+
+test("the committed GPT-5.6 v2 proof parses through the public contract", () => {
+  assert.equal(parsedGpt56Proof.schemaVersion, "living.gpt56-proof/v2");
+  assert.equal(parsedGpt56Proof.selectedProvider, "codex");
+  assert.equal(
+    parsedGpt56Proof.result.provenance.transportRequestedModel,
+    "gpt-5.6-terra",
+  );
+});
+
+test("GPT-5.6 proof envelopes and nested records reject unknown fields", () => {
+  assert.throws(() =>
+    gpt56ProofSchema.parse({
+      ...(committedGpt56Proof as Record<string, unknown>),
+      unexpected: true,
+    }),
+  );
+
+  const nested = cloneGpt56Proof() as typeof parsedGpt56Proof & {
+    result: typeof parsedGpt56Proof.result & { unexpected?: boolean };
+  };
+  nested.result.unexpected = true;
+  assert.throws(() => gpt56ProofSchema.parse(nested));
+});
+
+test("GPT-5.6 proof provenance enforces both provider branches", () => {
+  const apiProof = cloneGpt56Proof();
+  Object.assign(apiProof, { selectedProvider: "api" });
+  Object.assign(apiProof.request, {
+    transportRequestedModel: "gpt-5.6",
+    responseStoreRequested: false,
+  });
+  Object.assign(apiProof.result.provenance, {
+    transport: "responses-api",
+    transportRequestedModel: "gpt-5.6",
+    actualResponseModel: "gpt-5.6-2026-07-01",
+    responseId: "resp-proof-1",
+    codexThreadId: null,
+    responseStoreRequested: false,
+    localSessionPersisted: null,
+  });
+  assert.doesNotThrow(() => gpt56ProofSchema.parse(apiProof));
+
+  const providerMismatch = cloneGpt56Proof();
+  Object.assign(providerMismatch, { selectedProvider: "api" });
+  assert.throws(() => gpt56ProofSchema.parse(providerMismatch));
+
+  const transportMismatch = cloneGpt56Proof();
+  Object.assign(transportMismatch.request, {
+    transportRequestedModel: "gpt-5.6",
+  });
+  assert.throws(() => gpt56ProofSchema.parse(transportMismatch));
+
+  const fabricatedActualModel = cloneGpt56Proof();
+  Object.assign(fabricatedActualModel.result.provenance, {
+    actualResponseModel: "gpt-5.6-terra",
+  });
+  assert.throws(() => gpt56ProofSchema.parse(fabricatedActualModel));
+
+  const persistedCodexSession = cloneGpt56Proof();
+  Object.assign(persistedCodexSession.result.provenance, {
+    localSessionPersisted: null,
+  });
+  assert.throws(() => gpt56ProofSchema.parse(persistedCodexSession));
+});
+
+test("GPT-5.6 proof identity remains linked across evidence and draft", () => {
+  const mutations: Array<(proof: ReturnType<typeof cloneGpt56Proof>) => void> = [
+    (proof) => {
+      Object.assign(proof.result.draft, { appId: "other-app" });
+    },
+    (proof) => {
+      Object.assign(proof.result.draft, {
+        opportunityId: "opportunity.other",
+      });
+    },
+    (proof) => {
+      Object.assign(proof.result.draft, { manifestHash: HASH_B });
+    },
+    (proof) => {
+      Object.assign(proof.result.draft.evidenceCitations, {
+        eventSetHash: HASH_C,
+      });
+    },
+    (proof) => {
+      Object.assign(proof.result.draft.evidenceScope, {
+        origin: "observed",
+        claimScope: "observed-window-only",
+      });
+    },
+  ];
+
+  for (const mutate of mutations) {
+    const candidate = cloneGpt56Proof();
+    mutate(candidate);
+    assert.throws(() => gpt56ProofSchema.parse(candidate));
+  }
+});
+
+test("GPT-5.6 proof citations resolve through unique evidence aliases", () => {
+  const missingAlias = cloneGpt56Proof();
+  missingAlias.result.draft.evidenceCitations.sampleEventIds[0] =
+    "event.not-in-provenance";
+  assert.throws(() => gpt56ProofSchema.parse(missingAlias));
+
+  const duplicateAlias = cloneGpt56Proof();
+  duplicateAlias.result.provenance.evidenceAliases[1] = {
+    ...duplicateAlias.result.provenance.evidenceAliases[1]!,
+    alias: duplicateAlias.result.provenance.evidenceAliases[0]!.alias,
+  };
+  assert.throws(() => gpt56ProofSchema.parse(duplicateAlias));
+
+  const duplicateEvent = cloneGpt56Proof();
+  duplicateEvent.result.provenance.evidenceAliases[1] = {
+    ...duplicateEvent.result.provenance.evidenceAliases[1]!,
+    eventId: duplicateEvent.result.provenance.evidenceAliases[0]!.eventId,
+  };
+  assert.throws(() => gpt56ProofSchema.parse(duplicateEvent));
+
+  const impossibleCount = cloneGpt56Proof();
+  Object.assign(impossibleCount.evidence, { eventCount: 1 });
+  assert.throws(() => gpt56ProofSchema.parse(impossibleCount));
+});
+
+test("GPT-5.6 proof scope, validation, and governance fail closed", () => {
+  const wrongScope = cloneGpt56Proof();
+  Object.assign(wrongScope.result.draft.evidenceScope, {
+    claimScope: "observed-window-only",
+  });
+  assert.throws(() => gpt56ProofSchema.parse(wrongScope));
+
+  const productionClaim = cloneGpt56Proof();
+  Object.assign(productionClaim.result.draft.evidenceScope, {
+    productionGeneralizationAllowed: true,
+  });
+  assert.throws(() => gpt56ProofSchema.parse(productionClaim));
+
+  const activatable = cloneGpt56Proof();
+  Object.assign(activatable.result.draft.governance, {
+    activationAllowed: true,
+  });
+  assert.throws(() => gpt56ProofSchema.parse(activatable));
+
+  const noApproval = cloneGpt56Proof();
+  Object.assign(noApproval.result.draft.governance, {
+    humanApprovalRequired: false,
+  });
+  assert.throws(() => gpt56ProofSchema.parse(noApproval));
+
+  const unvalidated = cloneGpt56Proof();
+  Object.assign(unvalidated.localValidation, { references: "failed" });
+  assert.throws(() => gpt56ProofSchema.parse(unvalidated));
 });
 
 test("LivingConfig enforces pseudonymization and closed metadata", () => {

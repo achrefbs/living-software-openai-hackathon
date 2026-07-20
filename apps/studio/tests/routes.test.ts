@@ -81,3 +81,17 @@ test("recognizes the current focus so the shell never renders a self-link", () =
     false,
   );
 });
+
+test("model-proof pages use relation-aware surrounding copy", async () => {
+  const sourceRoot = fileURLToPath(new URL("../src/", import.meta.url));
+  const pageRoot = path.join(sourceRoot, "app", "apps", "[appId]");
+
+  for (const surface of ["opportunities", "evolutions"]) {
+    const source = await readFile(path.join(pageRoot, surface, "page.tsx"), "utf8");
+    assert.match(
+      source,
+      /recordedRunLinkageNote\(recordedRunRelation\)/u,
+      surface + " must not hardcode a separate or exact relation",
+    );
+  }
+});

@@ -4,8 +4,8 @@ Every claim must point to runnable behavior, a test, a commit, or a preserved ar
 
 | Criterion | Evidence available now | Evidence still required |
 | --- | --- | --- |
-| Technological Implementation | Versioned contracts; bounded Next.js source discovery; dry-run-first create-only installer and hash-guarded uninstall; generated observer and same-origin local collector; workflow and metric analysis; completed independent CRM installation/runtime/privacy/removal proof; neutral replay; validated synthetic-only static snapshot bridge into the five-route Studio; strict GPT-5.6 package with explicit Codex `gpt-5.6-terra` and API `gpt-5.6` transports; preserved live Terra proof; chronological Build Log | Fresh-clone and required no-rebuild judge paths; primary `/feedback` Session ID |
-| Design | Privacy boundary that preserves useful CSS-pixel geometry; explicit previews and hash journal; coherent five-surface Studio with visible synthetic/static provenance and preview states | Final recorded walkthrough |
+| Technological Implementation | Versioned contracts; bounded Next.js source discovery; dry-run-first create-only installer and hash-guarded uninstall; generated observer and same-origin local collector; workflow and metric analysis; completed independent CRM installation/runtime/privacy/removal proof; neutral replay; validated synthetic-only static snapshot bridge into the five-route Studio; strict GPT-5.6 package with explicit Codex `gpt-5.6-terra` and API `gpt-5.6` transports; preserved live Terra proof; strict `living.gpt56-proof/v2` validation, privacy-safe Studio projection, and fail-closed four-part evidence identity relation; chronological Build Log | Fresh-clone and required no-rebuild judge paths; primary `/feedback` Session ID |
+| Design | Privacy boundary that preserves useful CSS-pixel geometry; explicit previews and hash journal; coherent five-surface Studio with visible synthetic/static provenance, a clearly separated recorded-model panel, locked authority, and preview states | Final recorded walkthrough |
 | Potential Impact | A concrete adapter path for deterministically deriving workflows from an independently built application while separating the tool, host, simulator, and model authority | Concise before/after outcome supported by the final independent proof; no generalization beyond the tested adapter |
 | Quality of the Idea | Software surfaces repeated workflow and layout friction while deterministic systems bound installation, evidence, interpretation, and removal; the model remains advisory | Final entrant-written positioning that does not overstate business understanding or the future governed lifecycle |
 
@@ -21,7 +21,7 @@ npm run demo:neutral
 npm run dev:studio
 ```
 
-The neutral fixture path is deterministic and read-only. For a separate supported TypeScript Next.js App Router 15.3+ repository using `src/app`, the automatic CLI surface is:
+The neutral fixture path is deterministic and read-only. In Studio, open Evolution Review to inspect the committed sanitized GPT-5.6 run without credentials; the separate-run banner explains why it does not become CRM evidence or lifecycle state. For a separate supported TypeScript Next.js App Router 15.3+ repository using `src/app`, the automatic CLI surface is:
 
 ```bash
 npm run living -- map --root <next-app>
@@ -43,6 +43,6 @@ Verified platform: Windows 11 with Node.js 22 or newer; the current proof runtim
 - Universal source-code scanning, automatic installation into arbitrary Node software, or support beyond the current adapter.
 - Automatic knowledge of business outcomes or causal layout conclusions.
 - Production authenticated or multi-instance evidence collection.
-- Live-host ingestion by Studio or automatic-evidence ingestion by GPT-5.6.
+- Live host/model ingestion by Studio, automatic-host evidence sent to GPT-5.6, or attachment/lifecycle unlock from the neutral proof.
 - A completed declarative broker or proof/approval/activation/rollback lifecycle.
 - Any implementation dependency on the separately built CRM or simulator.

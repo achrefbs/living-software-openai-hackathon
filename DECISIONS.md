@@ -127,3 +127,12 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Decision:** Use saved Codex CLI authentication for the current Build Week GPT-5.6 proof, while retaining an explicit Responses API transport for later API-key deployment. Never fall back silently between them.
 - **Why:** The entrant is already authenticated in Codex, while an API key is not currently provisioned. Keeping one validation boundary lets the transport change without weakening evidence, schema, citation, or governance checks.
 - **Consequence:** The demo defaults to `--provider codex`; the library default remains the API transport. CLI runs explicitly request `gpt-5.6-terra` (GPT-5.6 Terra) with medium reasoning, run in an isolated ephemeral directory, disable tools and project instructions, cap output, inspect JSONL fail-closed, and label the exact transport model plus thread/model/storage provenance conservatively. API use must be explicitly selected, requests `gpt-5.6`, and reads `OPENAI_API_KEY` only at send time.
+
+## D-015 - Render model proof without laundering evidence identity
+
+- **Date:** 2026-07-20
+- **Status:** Accepted
+- **Owner:** Achref Boularess with Codex architecture and adversarial review
+- **Decision:** Studio may display the committed sanitized `living.gpt56-proof/v2` artifact only after strict validation and a privacy-minimized projection. A run is labeled related only when app ID, manifest hash, opportunity ID, and event-set hash all match. Missing or mismatched identity is separate. Rendering or relation never populates `dataset.evolution`, creates receipts, or unlocks lifecycle controls.
+- **Why:** Judges should see material GPT-5.6 output without mistaking neutral replay proof for CRM or fixture evidence.
+- **Consequence:** Raw event IDs and evidence-alias mappings stay outside the Studio projection; requested-model and actual-model provenance remain distinct; the draft's human-review requirement and `activationAllowed: false` remain authoritative.

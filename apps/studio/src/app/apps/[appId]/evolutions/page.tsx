@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { RecordedGpt56Brief } from "@/components/recorded-gpt56-brief";
 import {
   Badge,
   EvidenceRef,
@@ -10,6 +11,11 @@ import {
 } from "@/components/ui";
 import { journeyStages } from "@/lib/journey";
 import { evolutionPreviewStages } from "@/lib/lifecycle-preview";
+import {
+  getCommittedGpt56Run,
+  recordedRunLinkageNote,
+  relateGpt56RunToDataset,
+} from "@/lib/gpt56-proof";
 import { getPreviewMode, getStudioDataset } from "@/lib/studio-data";
 import { studioAppHref } from "@/lib/studio-routes";
 
@@ -35,6 +41,17 @@ export default async function EvolutionsPage({
       />
     );
   }
+
+  const recordedRun = await getCommittedGpt56Run();
+  const recordedRunRelation = relateGpt56RunToDataset(recordedRun, dataset);
+  const recordedRunPanel = (
+    <RecordedGpt56Brief
+      currentAppId={dataset.app.id}
+      currentAppName={dataset.app.name}
+      relation={recordedRunRelation}
+      run={recordedRun}
+    />
+  );
 
   const evolution = dataset.evolution;
   if (evolution === null) {
@@ -75,6 +92,8 @@ export default async function EvolutionsPage({
             {detection === undefined ? "No proposal" : "Not connected"}
           </Badge>
         </PageHeader>
+
+        {recordedRunPanel}
 
         <section
           aria-labelledby="locked-lifecycle-title"
@@ -146,9 +165,10 @@ export default async function EvolutionsPage({
                 (<EvidenceRef>{detection.detector}</EvidenceRef>).
               </>
             )}{" "}
-            It contains no GPT-5.6 interpretation, capability contract, proof
-            result, approval, generated artifact, or activation state — which
-            is why nothing on this page pretends otherwise.
+            The active lifecycle snapshot contains no attached GPT-5.6
+            interpretation, capability contract, proof result, approval,
+            generated artifact, or activation state.{" "}
+            {recordedRunLinkageNote(recordedRunRelation)}
           </p>
         </Panel>
       </>
@@ -171,6 +191,8 @@ export default async function EvolutionsPage({
       >
         <Badge tone="info">Evidence ready</Badge>
       </PageHeader>
+
+      {recordedRunPanel}
 
       <Panel className="lifecycle-panel">
         <ol className="lifecycle">
@@ -223,14 +245,14 @@ export default async function EvolutionsPage({
           <Panel
             eyebrow="Stage 2 · model proposal"
             title="Interpretation"
-            action={<Badge tone="neutral">Not run</Badge>}
+            action={<Badge tone="neutral">Not run for this fixture</Badge>}
           >
             <div className="not-run-panel">
               <span className="not-run-icon">
                 <Icon name="spark" />
               </span>
               <div>
-                <h3>No GPT-5.6 interpretation exists.</h3>
+                <h3>No GPT-5.6 interpretation exists for this fixture.</h3>
                 <p>
                   The future request is bounded to{" "}
                   {evolution.hypothesis.promptInput.toLowerCase()} Raw
@@ -242,8 +264,10 @@ export default async function EvolutionsPage({
               Run interpretation
             </button>
             <p className="control-note">
-              Disabled in the fixture-only shell. A recorded or live model
-              receipt must be connected before this action is enabled.
+              Disabled in the fixture-only shell. The separate recorded run
+              above does not unlock this fixture. Even an exact evidence match
+              would only label the draft related; this read-only slice has no
+              lifecycle action that can enable the control.
             </p>
           </Panel>
 

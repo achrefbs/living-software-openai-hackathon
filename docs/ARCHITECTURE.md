@@ -26,9 +26,14 @@ verified neutral evidence bundle + Opportunity
 labeled neutral fixture OR validated synthetic capture
   -> privacy-minimized static snapshot
   -> read-only Living Studio
+
+committed living.gpt56-proof/v2
+  -> strict contract validation + safe display projection
+  -> independent recorded-run panel in Evolution Review
+  -> exact app + manifest + opportunity + event-set relation check
 ```
 
-The automatic path can export verified synthetic analysis to Studio through an explicit static sync. Studio validates that minimized snapshot before rendering it and otherwise falls back to the labeled neutral fixture. It does not ingest the host live or call the model runner. The current GPT-5.6 runner separately consumes neutral replay evidence.
+The automatic path can export verified synthetic analysis to Studio through an explicit static sync. Studio validates that minimized snapshot before rendering it and otherwise falls back to the labeled neutral fixture. It does not ingest the host live or call the model runner. The current GPT-5.6 runner separately consumes neutral replay evidence. Studio can validate and render the committed live proof as recorded evidence, but only an exact app, manifest, opportunity, and event-set identity match labels it related to the active dataset. Relation alone never creates lifecycle state or authority.
 
 ## Implemented boundaries
 
@@ -44,7 +49,7 @@ The automatic path can export verified synthetic analysis to Studio through an e
 | Host SDK | Event validation, sensitive-key rejection, bounded queues and batches, host-supplied transport, retry restoration, and close/flush behavior | Automatic instrumentation or a production collector service |
 | Intelligence | Explicit Codex CLI (`gpt-5.6-terra`) and Responses API (`gpt-5.6`) transports, exact neutral evidence/hash checks, privacy-minimized context, opaque evidence aliases, strict structured output, provider-specific isolation/bounds, truthful model provenance, local reference validation, and a preserved live Terra proof | Automatic-host evidence ingestion, semantic truth guarantees, approval, code generation, host tools, or activation |
 | Neutral replay | A synthetic descriptor and event stream that exercise the fixture CLI, projection, detector, and evidence hashing offline | Production telemetry or a claim that synthetic behavior represents real users |
-| Living Studio | Five read-only routes; empty, disconnected, and invalid-data previews; neutral fixture fallback; and validated ingestion of an explicitly synced synthetic-only static snapshot | Live ingestion, model calls, command handling, proof, activation, disable, or rollback |
+| Living Studio | Five read-only routes; empty, disconnected, and invalid-data previews; neutral fixture fallback; validated ingestion of an explicitly synced synthetic-only static snapshot; and a strictly validated, privacy-minimized projection of the committed GPT-5.6 proof with fail-closed evidence-identity relation | Live ingestion, model calls, automatic proof-to-snapshot attachment, command handling, lifecycle proof, activation, disable, or rollback |
 
 ## Authority model
 
@@ -86,6 +91,7 @@ The independent CRM proof completed supported installation, runtime capture, pri
 2. Remove host display text, paths, symbols, metadata, release data, and user/session/subject identifiers; replace raw event IDs with opaque aliases.
 3. Send the bounded neutral evidence to GPT-5.6 through one explicitly selected transport. The Codex CLI path requests `gpt-5.6-terra` and uses an isolated read-only temporary workspace, ephemeral files, an explicit disable list for installed host-capable feature surfaces, strict schema/stream/file bounds, and fail-closed JSONL acceptance. The API path requests `gpt-5.6` with `store: false`, no requested tools, strict Structured Outputs, and bounded output tokens.
 4. Revalidate the returned schema, citations, metrics, product nodes, evidence scope, and provider-specific provenance before returning a local draft. API response IDs and actual models remain distinct from CLI thread IDs and requested-model evidence.
+5. For the offline judge path, parse the committed proof through the same strict public contract, project only display-safe fields, and compare its app, manifest, opportunity, and event-set identities with the active Studio dataset. Matching labels the run related; it remains a draft and grants no lifecycle authority. The current neutral proof remains independent from the CRM snapshot.
 
 ## Planned lifecycle, not current functionality
 

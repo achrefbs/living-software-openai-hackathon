@@ -158,6 +158,12 @@ export function fixtureStudioDataset(): StudioDataset {
         dataOrigin: "fixture",
       },
     },
+    evidenceIdentity: {
+      appId: fixture.app.id,
+      manifestHash: null,
+      opportunityId: null,
+      eventSetHash: null,
+    },
     productMap: {
       nodes,
       edges,
@@ -334,6 +340,12 @@ export function studioDatasetFromSnapshot(snapshot: StudioSnapshot): StudioDatas
           `manifest ${shortHash(snapshot.application.manifestHash)}. It does not read the host live.`,
         dataOrigin: snapshot.application.dataOrigin,
       },
+    },
+    evidenceIdentity: {
+      appId: snapshot.application.appId,
+      manifestHash: snapshot.application.manifestHash,
+      opportunityId: snapshot.opportunity?.opportunityId ?? null,
+      eventSetHash: snapshot.opportunity?.evidence.eventSetHash ?? null,
     },
     productMap: {
       nodes: visibleNodes,
