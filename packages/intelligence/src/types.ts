@@ -126,16 +126,30 @@ export type TransportResponse = Readonly<{
   body: unknown;
 }>;
 
+export type IntelligenceTransportKind = "responses-api" | "codex-cli";
+
+export type IntelligenceTokenUsage = Readonly<{
+  inputTokens: number;
+  cachedInputTokens: number;
+  outputTokens: number;
+  reasoningOutputTokens: number;
+}>;
+
 export interface IntelligenceTransport {
+  readonly kind?: IntelligenceTransportKind;
   send(request: ResponsesRequest, options?: Readonly<{ signal?: AbortSignal }>): Promise<TransportResponse>;
 }
 
 export type IntelligenceProvenance = Readonly<{
   provider: "openai";
+  transport: IntelligenceTransportKind;
   requestedModel: "gpt-5.6";
   actualResponseModel: string | null;
-  responseId: string;
-  stored: false;
+  responseId: string | null;
+  codexThreadId: string | null;
+  responseStoreRequested: false | null;
+  localSessionPersisted: false | null;
+  tokenUsage: IntelligenceTokenUsage | null;
   evidenceAliases: readonly Readonly<{ alias: string; eventId: string }>[];
 }>;
 

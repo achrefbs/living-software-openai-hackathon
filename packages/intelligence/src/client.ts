@@ -18,6 +18,7 @@ import type {
   DraftEvolutionBriefInput,
   DraftEvolutionBriefResult,
   EvolutionBrief,
+  IntelligenceTokenUsage,
   IntelligenceTransport,
 } from "./types.js";
 
@@ -46,17 +47,84 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 
 type ResponseEnvelope = Readonly<{
   text: string;
-  responseId: string;
+  responseId: string | null;
+  codexThreadId: string | null;
   actualModel: string | null;
+  tokenUsage: IntelligenceTokenUsage | null;
 }>;
 
-function extractResponseEnvelope(body: unknown): ResponseEnvelope {
+function nonNegativeInteger(value: unknown): number | undefined {
+  return Number.isSafeInteger(value) && Number(value) >= 0
+    ? Number(value)
+    : undefined;
+}
+
+function extractCliUsage(value: unknown): IntelligenceTokenUsage | undefined {
+  const usage = asRecord(value);
+  if (usage === undefined) return undefined;
+  const inputTokens = nonNegativeInteger(usage.inputTokens);
+  const cachedInputTokens = nonNegativeInteger(usage.cachedInputTokens);
+  const outputTokens = nonNegativeInteger(usage.outputTokens);
+  const reasoningOutputTokens = nonNegativeInteger(usage.reasoningOutputTokens);
+  return (
+    inputTokens === undefined ||
+    cachedInputTokens === undefined ||
+    outputTokens === undefined ||
+    reasoningOutputTokens === undefined
+  )
+    ? undefined
+    : { inputTokens, cachedInputTokens, outputTokens, reasoningOutputTokens };
+}
+
+function extractApiUsage(value: unknown): IntelligenceTokenUsage | null {
+  const usage = asRecord(value);
+  if (usage === undefined) return null;
+  const inputDetails = asRecord(usage.input_tokens_details);
+  const outputDetails = asRecord(usage.output_tokens_details);
+  const inputTokens = nonNegativeInteger(usage.input_tokens);
+  const outputTokens = nonNegativeInteger(usage.output_tokens);
+  if (inputTokens === undefined || outputTokens === undefined) return null;
+  return {
+    inputTokens,
+    cachedInputTokens: nonNegativeInteger(inputDetails?.cached_tokens) ?? 0,
+    outputTokens,
+    reasoningOutputTokens: nonNegativeInteger(outputDetails?.reasoning_tokens) ?? 0,
+  };
+}
+
+function extractResponseEnvelope(
+  body: unknown,
+  transportKind: IntelligenceTransport["kind"],
+): ResponseEnvelope {
   const response = asRecord(body);
   if (response === undefined) {
     throw new IntelligenceResponseError("OpenAI returned a malformed response", "malformed_response");
   }
+  if (transportKind === "codex-cli") {
+    if (
+      response.type !== "codex-cli-result" ||
+      response.status !== "completed" ||
+      typeof response.threadId !== "string" ||
+      response.threadId.length < 1 ||
+      response.threadId.length > 256 ||
+      typeof response.text !== "string" ||
+      extractCliUsage(response.usage) === undefined
+    ) {
+      throw new IntelligenceResponseError("Codex CLI returned a malformed result", "malformed_response");
+    }
+    return {
+      text: response.text,
+      responseId: null,
+      codexThreadId: response.threadId,
+      actualModel: null,
+      tokenUsage: extractCliUsage(response.usage)!,
+    };
+  }
   if (response.status === "incomplete") {
     throw new IntelligenceResponseError("GPT-5.6 response was incomplete", "incomplete");
+  }
+  if (response.status !== "completed") {
+    throw new IntelligenceResponseError("OpenAI response was not completed", "malformed_response");
   }
   const responseId = response.id;
   if (typeof responseId !== "string" || responseId.length === 0 || responseId.length > 256) {
@@ -78,7 +146,19 @@ function extractResponseEnvelope(body: unknown): ResponseEnvelope {
         throw new IntelligenceResponseError("GPT-5.6 refused to draft an evolution brief", "refusal");
       }
       if (content?.type === "output_text" && typeof content.text === "string") {
-        return { text: content.text, responseId, actualModel };
+        if (actualModel === null) {
+          throw new IntelligenceResponseError(
+            "OpenAI response did not report its actual model",
+            "malformed_response",
+          );
+        }
+        return {
+          text: content.text,
+          responseId,
+          codexThreadId: null,
+          actualModel,
+          tokenUsage: extractApiUsage(response.usage),
+        };
       }
     }
   }
@@ -228,6 +308,7 @@ export function createIntelligenceClient(
       const sampleIdSet = new Set(opportunity.evidence.sampleEventIds);
       const sampleAliasEntries = buildEvidenceAliasEntries(events).filter((entry) => sampleIdSet.has(entry.eventId));
       const request = buildResponsesRequest(opportunity, context, maxOutputTokens);
+      const transportKind = transport.kind ?? "responses-api";
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       let response;
@@ -245,7 +326,7 @@ export function createIntelligenceClient(
         throw new IntelligenceResponseError(`OpenAI Responses API returned HTTP ${response.status}`, "http_error");
       }
 
-      const envelope = extractResponseEnvelope(response.body);
+      const envelope = extractResponseEnvelope(response.body, transportKind);
       if (envelope.actualModel !== null && !/^gpt-5\.6(?:$|[-_])/.test(envelope.actualModel)) {
         throw new IntelligenceResponseError("OpenAI response reported a model outside the GPT-5.6 family", "unexpected_model");
       }
@@ -264,10 +345,14 @@ export function createIntelligenceClient(
         draft,
         provenance: {
           provider: "openai",
+          transport: transportKind,
           requestedModel: "gpt-5.6",
           actualResponseModel: envelope.actualModel,
           responseId: envelope.responseId,
-          stored: false,
+          codexThreadId: envelope.codexThreadId,
+          responseStoreRequested: transportKind === "responses-api" ? false : null,
+          localSessionPersisted: transportKind === "codex-cli" ? false : null,
+          tokenUsage: envelope.tokenUsage,
           evidenceAliases: sampleAliasEntries,
         },
       };

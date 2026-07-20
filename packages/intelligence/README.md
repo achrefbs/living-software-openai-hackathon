@@ -7,9 +7,14 @@ It does **not** approve or activate changes, mutate a host application, or expos
 ## Runtime
 
 ```ts
-import { createIntelligenceClient } from "@living-software/intelligence";
+import {
+  createCodexCliTransport,
+  createIntelligenceClient,
+} from "@living-software/intelligence";
 
-const intelligence = createIntelligenceClient();
+const intelligence = createIntelligenceClient(createCodexCliTransport(), {
+  timeoutMs: 120_000,
+});
 const result = await intelligence.draftEvolutionBrief({
   opportunity,
   manifest,
@@ -17,8 +22,8 @@ const result = await intelligence.draftEvolutionBrief({
 });
 ```
 
-Set `OPENAI_API_KEY` only in the runtime environment. The default transport reads it when a request is sent and never logs it. Tests use an injected offline transport and make no network calls.
+The library default remains the Responses API transport. The Build Week demo explicitly selects `createCodexCliTransport()` so it can reuse saved Codex authentication; `--provider api` selects the API path later. There is no automatic fallback. Set `OPENAI_API_KEY` only in the runtime environment for the API transport. Tests use injected offline transports and make no network calls.
 
 Before any network call, the client recomputes the canonical manifest and event-set hashes, validates sample IDs, projected-case/session counts and app/manifest links, and verifies observed/synthetic origin. Outbound context contains only bounded identifiers, enums, counts, and normalized events. Raw event IDs are replaced with deterministic opaque aliases; source paths, symbols, release revisions, event metadata, session/actor/subject IDs, and host display text are excluded. Validated aliases are mapped back to event IDs only in the local result and its provenance.
 
-The request is fixed to `gpt-5.6`, reasoning effort `medium`, `store: false`, no tools, bounded output tokens, and `text.format.type: "json_schema"` with strict mode enabled. Calls have a configurable abort timeout. Results include non-model-authored provider/model/response provenance; synthetic drafts carry a deterministic `synthetic-only` evidence scope and can never claim production generalization.
+Both paths pin `gpt-5.6`, medium reasoning, a strict JSON schema, and a configurable abort timeout. The API request uses `store: false`, no requested tools, and bounded output tokens. The CLI path runs from a private read-only temporary workspace, ignores user/project instructions, explicitly disables every installed host-capable feature surface, clears the model-shell environment, uses ephemeral session files, bounds streams before reading a regular output file, and rejects any surfaced item beyond reasoning and the final message. Results keep API response IDs and CLI thread IDs separate and never claim an actual model or API storage value that the CLI did not report. Synthetic drafts carry a deterministic `synthetic-only` evidence scope and can never claim production generalization.

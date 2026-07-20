@@ -19,7 +19,7 @@ This record was checked against the live Devpost Hackathons plugin and official 
 - Current Build Week code includes versioned contracts; a bounded TypeScript Next.js App Router 15.3+ scanner; dry-run-first, create-only installation and hash-guarded uninstall; automatic browser observation; a same-origin local collector; deterministic workflow and metric analysis; a neutral synthetic replay; a read-only Studio with neutral fallback and validated synthetic-only static snapshot ingestion; and a GPT-5.6 structured-draft package.
 - The supported automatic adapter currently requires a TypeScript Next.js App Router repository using `src/app`. Arbitrary Node applications and other frameworks are not current claims.
 - Normal capture is limited to mapped routes and actions, performance and friction signals, and bounded CSS-pixel geometry. It excludes text, input values, keystrokes, query strings and hashes, DOM or HTML, cookies, headers, screenshots, request bodies, and persistent user or cross-tab identifiers.
-- The GPT-5.6 package and opt-in `npm run demo:gpt56` path are wired to an exact neutral evidence bundle and have offline coverage, but no successful live model call or saved runtime evidence is claimed yet.
+- The GPT-5.6 package has explicit authenticated Codex CLI and Responses API transports over one deterministic validation boundary. The opt-in `npm run demo:gpt56` path currently selects Codex CLI and has offline coverage plus a create-only sanitized proof recorder, but no successful live model call or saved runtime evidence is claimed yet.
 - The standalone CRM and its simulator are separate projects and are not dependencies of the challenge repository. The independent proof completed supported installation, runtime capture, privacy checks, and byte-preserving removal.
 - Living Studio is read-only. It can render an explicitly synced, privacy-minimized static export of synthetic captured evidence, but it does not ingest the host live or connect that evidence to the model runner or governed lifecycle.
 - The Studio visual redesign used disclosed third-party technical assistance from Claude Fable 5. Codex performed the subsequent correctness audit, implemented the accepted hardening fixes, and verified the repository-wide result; see [BUILD_LOG.md](BUILD_LOG.md).
@@ -51,13 +51,13 @@ npm run dev:studio
 
 For a separate supported Next.js repository, `npm run living -- map --root <next-app>` is read-only discovery. `init --root` and `uninstall --root` are dry-run by default and require an explicit `--apply`; see [Automatic discovery and observation](docs/AUTOMATIC_DISCOVERY.md).
 
-With an entrant-supplied runtime key, `npm run demo:gpt56` is the explicit live, billable proof path. Preserve its validated result and non-model response provenance before making a live-model claim.
+`npm run proof:gpt56:cli` is the current explicit live proof path using saved Codex authentication. `npm run demo:gpt56:api` is the later API-key toggle. Neither silently falls back to the other. Preserve a sanitized, validated proof before making a live-model claim.
 
 Before submission, also run `npm run submit:check` and verify every claim against the exact submission commit.
 
 ## Open compliance gates
 
-- Perform and preserve evidence from a real GPT-5.6 Responses API run.
+- Perform and preserve sanitized evidence from a real GPT-5.6 run through an allowed provider.
 - Record the real primary `/feedback` Session ID.
 - Verify a fresh-clone judge path and finalize supported-platform wording.
 - Implement and document the required judge path that does not require rebuilding from scratch; no separate prebuilt distribution is currently claimed.

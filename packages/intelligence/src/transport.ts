@@ -26,6 +26,7 @@ export function createFetchTransport(
   const getApiKey = options.getApiKey ?? (() => process.env.OPENAI_API_KEY);
 
   return {
+    kind: "responses-api",
     async send(request: ResponsesRequest, sendOptions): Promise<TransportResponse> {
       const apiKey = getApiKey();
       if (apiKey === undefined || apiKey.trim() === "") {

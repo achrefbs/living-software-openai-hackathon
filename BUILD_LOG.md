@@ -321,6 +321,38 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Add an authenticated Codex CLI path without weakening the API boundary
+
+**Scope**
+
+- Added an explicit `codex` / `api` provider toggle for the GPT-5.6 demo. The executable demo defaults to saved Codex CLI authentication for Build Week; the intelligence library retains its Responses API default, and neither path silently falls back.
+- Isolated Codex CLI execution in a private read-only temporary workspace, pinned `gpt-5.6` with medium reasoning, ignored user/project instructions, disabled every installed host-capable feature surface, stripped credential-bearing environment variables, used ephemeral files and strict output schema, bounded streams before file reads, and rejected any surfaced item beyond reasoning and the final message.
+- Kept the fixed governance instruction at developer priority rather than downgrading it into stdin, and kept API response IDs/actual models/storage requests separate from CLI thread IDs/requested model/local persistence.
+- Removed unsupported `uniqueItems` keywords from the remote Structured Outputs schema while preserving local Zod uniqueness enforcement.
+- Added a clean-commit, create-only sanitized proof recorder with request/schema hashes, evidence hashes/counts, local validation state, provider provenance, and token usage.
+
+**How Codex accelerated the work**
+
+- Checked the installed Codex CLI flags against the current OpenAI Codex manual, implemented the transport and provider switch, added adversarial role/tool/provenance tests, and reconciled README, architecture, security, and submission evidence.
+
+**How GPT-5.6 was used**
+
+- No product-runtime GPT-5.6 claim is made in this implementation entry. The live proof is intentionally a separate, explicit command run only after this code is committed and the worktree is clean.
+
+**Human decisions**
+
+- Use the already authenticated Codex CLI now and preserve the API-key path for later deployment.
+- Require an explicit provider choice with no fallback and keep provider-specific provenance conservative.
+
+**Evidence**
+
+- Intelligence typecheck passed.
+- Intelligence tests passed 35/35.
+- Integration tests passed 18/18.
+- The real GPT-5.6 proof artifact remains pending until the clean-commit run.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

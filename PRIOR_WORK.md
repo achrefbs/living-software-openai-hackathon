@@ -41,7 +41,7 @@ The following code was created in this challenge repository during the eligible 
 - deterministic workflow projection, technical metric analysis, and threshold-based opportunity detection;
 - a privacy-safe host SDK, neutral synthetic fixtures, and an offline replay;
 - a read-only, fixture-backed Living Studio with five product surfaces;
-- a GPT-5.6 Responses API intelligence package with strict structured output and offline mock tests.
+- a GPT-5.6 intelligence package with explicit Codex CLI and Responses API transports, strict structured output, truthful provider-specific provenance, a sanitized proof recorder, and offline mock tests.
 
 The current automatic adapter is not a claim of arbitrary Node or universal codebase support. A separate CRM proof completed supported installation, runtime capture, privacy checks, and byte-preserving removal without making the CRM a repository dependency. Broker execution, lifecycle proof, approval, activation, measurement, and rollback are future work unless and until implemented and evidenced in this repository.
 

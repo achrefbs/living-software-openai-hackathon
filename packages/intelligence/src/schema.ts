@@ -36,7 +36,7 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
         kind: { type: "string", enum: ["workflow-assist", "information-surface", "automation-draft"] },
         summary: { type: "string", minLength: 1, maxLength: 1000 },
         userValue: { type: "string", minLength: 1, maxLength: 1000 },
-        affectedProductNodeIds: { type: "array", minItems: 1, maxItems: 32, uniqueItems: true, items: { type: "string" } },
+        affectedProductNodeIds: { type: "array", minItems: 1, maxItems: 32, items: { type: "string" } },
         excludedWork: { type: "array", maxItems: 16, items: { type: "string", minLength: 1, maxLength: 300 } },
       },
     },
@@ -46,7 +46,7 @@ export const EVOLUTION_BRIEF_JSON_SCHEMA = {
       required: ["eventSetHash", "sampleEvidenceAliases", "metrics"],
       properties: {
         eventSetHash: { type: "string", pattern: "^sha256:[a-f0-9]{64}$" },
-        sampleEvidenceAliases: { type: "array", minItems: 1, maxItems: 64, uniqueItems: true, items: { type: "string", pattern: "^evidence-[0-9]{3,}$" } },
+        sampleEvidenceAliases: { type: "array", minItems: 1, maxItems: 64, items: { type: "string", pattern: "^evidence-[0-9]{3,}$" } },
         metrics: {
           type: "array",
           minItems: 1,

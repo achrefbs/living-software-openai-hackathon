@@ -34,7 +34,7 @@ npm run living -- uninstall --root <next-app>
 npm run living -- uninstall --root <next-app> --apply
 ```
 
-`npm run demo:gpt56` is an additional opt-in live API path requiring an entrant-supplied runtime key. It currently consumes verified neutral replay evidence and is not part of the offline command sequence above.
+`npm run demo:gpt56` is an additional opt-in live path that currently uses saved Codex CLI authentication. `npm run demo:gpt56:api` switches explicitly to an entrant-supplied runtime API key; there is no automatic fallback. Both consume verified neutral replay evidence and remain outside the offline command sequence above.
 
 Verified platform: Windows 11 with Node.js 22 or newer; the current proof runtime is Node.js 24.14.1. Other operating systems have not yet been verified. The required judge path that does not require rebuilding from scratch remains an open submission gate.
 
@@ -45,5 +45,5 @@ Verified platform: Windows 11 with Node.js 22 or newer; the current proof runtim
 - Production authenticated or multi-instance evidence collection.
 - Live-host ingestion by Studio or automatic-evidence ingestion by GPT-5.6.
 - A completed declarative broker or proof/approval/activation/rollback lifecycle.
-- A live GPT-5.6 result until the API proof run is captured.
+- A live GPT-5.6 result until a sanitized provider-specific proof run is captured.
 - Any implementation dependency on the separately built CRM or simulator.

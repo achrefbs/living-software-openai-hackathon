@@ -2,7 +2,7 @@
 
 > Software that earns the right to evolve.
 
-Living Software is an OpenAI Build Week **Developer Tools** project. It installs a bounded discovery and observation layer into a supported application, derives a source-linked product map, captures privacy-safe workflow and layout evidence, and turns that evidence into deterministic workflow and metric reports. GPT-5.6 may use an exact evidence bundle to draft an evolution brief for human review; it cannot change or activate the host.
+Living Software is an OpenAI Build Week **Developer Tools** project. It installs a bounded discovery and observation layer into a supported application, derives a source-linked product map, captures privacy-safe workflow and layout evidence, and turns that evidence into deterministic workflow and metric reports. Living verifies an exact evidence bundle locally, then GPT-5.6 may use its bounded, privacy-minimized projection to draft an evolution brief for human review; it cannot change or activate the host.
 
 The current automatic adapter supports **TypeScript Next.js App Router 15.3+ repositories that use `src/app`**. Arbitrary Node applications and other frameworks are not current claims.
 
@@ -18,7 +18,7 @@ The standalone reference CRM and its synthetic-user simulator live in separate r
 - Deterministic workflow projection, technical metric analysis, and an optional threshold-based opportunity detector.
 - A neutral, descriptor-driven fixture CLI and offline replay retained as a stable test path.
 - A read-only Living Studio with Product Map, Workflows, Opportunities, Evolutions, and Receipts routes plus empty, disconnected, and invalid-data previews. It can render either the labeled neutral fixture or a validated, gitignored static snapshot exported from an explicitly synthetic automatic-host analysis. This is a one-way file bridge, not live host ingestion; captured-snapshot Evolutions and Receipts remain visibly unconnected.
-- A GPT-5.6 Responses API intelligence package that verifies evidence hashes, minimizes model context, requests a strict structured `EvolutionBrief`, revalidates references, requires human review, and forbids activation. Automated tests use an injected offline transport; a real API call and preserved evidence are still pending.
+- A GPT-5.6 intelligence package with explicit Codex CLI and Responses API transports. Both verify evidence hashes, minimize model context, require a strict structured `EvolutionBrief`, revalidate references, require human review, and forbid activation. The live demo defaults to the authenticated Codex CLI for Build Week and can be switched to the API later without changing the application validation boundary.
 
 Declarative broker execution, proof, approval, activation, measurement, and rollback are intended later lifecycle work, not current functionality.
 
@@ -109,13 +109,28 @@ npm run test
 npm run demo:neutral
 ```
 
-After setting `OPENAI_API_KEY` in the runtime environment, the explicit live proof path is:
+The explicit live proof path currently defaults to an authenticated Codex CLI session:
 
 ```bash
 npm run demo:gpt56
+# equivalent explicit form
+npm run demo:gpt56:cli
 ```
 
-That command sends the exact affected synthetic evidence bundle to GPT-5.6 and prints the validated draft plus non-model response provenance. It performs a live, billable API call; it is not part of the offline judge path. No successful live result is claimed until the run is completed and preserved.
+To preserve a sanitized, create-only proof from a clean commit:
+
+```bash
+npm run proof:gpt56:cli
+```
+
+The future API-key path is an explicit toggle with no automatic fallback:
+
+```bash
+set OPENAI_API_KEY=<runtime-secret>
+npm run demo:gpt56:api
+```
+
+The runner verifies the exact synthetic bundle locally and sends only its bounded projection. Codex CLI runs use an isolated read-only temporary workspace, ephemeral session files, an explicit disable list for every installed host-capable feature surface, strict schema and stream/file caps, and fail-closed rejection of any surfaced event beyond reasoning and the final message. The API path uses `store: false` and a bounded output-token request. Both results pass the same local schema, citation, evidence-scope, and governance checks. The CLI reports a thread ID and token usage, not an API response ID or authoritative actual-response-model field. Live calls are not part of the offline judge path.
 
 To inspect Studio:
 
@@ -161,9 +176,9 @@ The trust boundary is deliberate: the installer can create only its declared int
 
 Codex has been used for rules review, architecture, contract and package implementation, testing, documentation, and integration. Entrant decisions remain recorded in [DECISIONS.md](DECISIONS.md).
 
-`@living-software/intelligence` targets `gpt-5.6` through the OpenAI Responses API with strict Structured Outputs, `store: false`, no tools, and a bounded, privacy-minimized evidence context. It verifies the exact event bundle before the request and rejects responses outside the GPT-5.6 family. These controls establish schema and reference integrity, not semantic truth. Before submission, the project still needs a real GPT-5.6 invocation and preserved evidence showing the resulting human-review draft.
+`@living-software/intelligence` targets `gpt-5.6` through one of two explicit transports. The Build Week command currently uses saved Codex CLI authentication with a pinned model, medium reasoning, an isolated read-only temporary workspace, ignored user/project instructions, an explicit disable list for installed host-capable features, ephemeral session files, strict output schema, bounded streams/files, and fail-closed JSONL inspection. The Responses API transport remains available with strict Structured Outputs, `store: false`, no requested tools, and `OPENAI_API_KEY` read only at send time. There is no automatic fallback between them. Both consume the same bounded, privacy-minimized context and apply the same deterministic validation after generation. These controls establish schema and reference integrity, not semantic truth.
 
-Set `OPENAI_API_KEY` only in the runtime environment when performing that proof run. Never commit it.
+Never commit an API key or Codex authentication files.
 
 ## Hackathon provenance
 
@@ -179,7 +194,7 @@ The current reproducible local judge path is:
 clone -> npm install -> build CLI -> tests -> neutral replay -> inspect Studio
 ```
 
-These commands build the relevant packages locally. A separate prebuilt path that does not require rebuilding from scratch is not implemented. The final judge path must include that required distribution path and preserved real GPT-5.6 evidence before the Devpost submission can be considered complete.
+These commands build the relevant packages locally. A separate prebuilt path that does not require rebuilding from scratch is not implemented. The final judge path must include that required distribution path before the Devpost submission can be considered complete.
 
 ## Documentation
 

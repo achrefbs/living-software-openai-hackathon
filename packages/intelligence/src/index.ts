@@ -5,6 +5,11 @@ export { boundProductContext, buildEvidenceAliasEntries, PRODUCT_CONTEXT_LIMITS 
 export { buildResponsesRequest, GOVERNANCE_INSTRUCTION } from "./prompt.js";
 export { EVOLUTION_BRIEF_JSON_SCHEMA, modelEvolutionBriefSchema } from "./schema.js";
 export { createFetchTransport, MissingApiKeyError } from "./transport.js";
+export {
+  CodexCliExecutionError,
+  CodexCliUnavailableError,
+  createCodexCliTransport,
+} from "./codex-transport.js";
 export type {
   BoundedProductContext,
   DraftEvolutionBriefInput,
@@ -12,6 +17,8 @@ export type {
   EvolutionBrief,
   FetchLike,
   IntelligenceTransport,
+  IntelligenceTransportKind,
+  IntelligenceTokenUsage,
   IntelligenceProvenance,
   NormalizedEvidenceEvent,
   ResponsesRequest,

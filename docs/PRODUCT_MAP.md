@@ -52,12 +52,12 @@ Automatic synthetic analysis can now reach Studio through an explicit, validated
 6. Deterministic workflow projection, technical metric analysis, and optional threshold-based opportunity detection.
 7. Neutral fixture CLI, synthetic replay, and privacy-safe host SDK.
 8. Five-route Studio with a neutral fixture fallback, validated synthetic-only static snapshot ingestion, and preview states.
-9. GPT-5.6 Responses API integration with exact neutral evidence verification, privacy minimization, strict structured output, an opt-in live runner, and offline tests.
+9. GPT-5.6 integration with explicit authenticated Codex CLI and Responses API transports, exact neutral evidence verification, privacy minimization, strict structured output, a create-only proof recorder, and offline tests.
 
 ## Next evidence milestones
 
 1. Keep the completed independent CRM installation, runtime, privacy, and removal proof reproducible from the submission commit.
-2. Run GPT-5.6 live and preserve a schema-valid, citation-valid draft as evidence.
+2. Run GPT-5.6 live and preserve a schema-valid, citation-valid, sanitized draft as evidence.
 3. Verify the fresh-clone path and implement the required judge path that does not require rebuilding from scratch.
 4. Connect automatic host analysis to the GPT-5.6 intelligence boundary only after the current static Studio boundary remains testable.
 5. Only then design the declarative broker and governed lifecycle: prove, approve, activate, measure, disable, and roll back.

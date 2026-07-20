@@ -228,10 +228,14 @@ test("returns validated draft with non-model-authored provenance", async () => {
   assert.equal(result.draft.governance.status, "draft");
   assert.deepEqual(result.provenance, {
     provider: "openai",
+    transport: "responses-api",
     requestedModel: "gpt-5.6",
     actualResponseModel: "gpt-5.6-2026-07-01",
     responseId: "resp_test",
-    stored: false,
+    codexThreadId: null,
+    responseStoreRequested: false,
+    localSessionPersisted: null,
+    tokenUsage: null,
     evidenceAliases: [{ alias: "evidence-001", eventId: "event-001" }],
   });
   assert.deepEqual(result.draft.evidenceCitations.sampleEventIds, ["event-001"]);

@@ -42,7 +42,7 @@ The automatic path can export verified synthetic analysis to Studio through an e
 | Local collector | Same-origin bounded POST batches and append-only hash-linked, manifest-scoped logs below `.living/data/releases/` for single-process local proof | Authentication, evidence-reading API, database durability, multi-instance coordination, or production telemetry operations |
 | Analyzer | Deterministic workflow cases and variants, technical metrics, and optional threshold-based friction opportunity | Business-outcome truth, causal claims, or automatic layout mutation |
 | Host SDK | Event validation, sensitive-key rejection, bounded queues and batches, host-supplied transport, retry restoration, and close/flush behavior | Automatic instrumentation or a production collector service |
-| Intelligence | A callable Responses API boundary fixed to GPT-5.6, exact neutral evidence/hash checks, privacy-minimized context, opaque evidence aliases, strict Structured Outputs, timeout/token bounds, and local reference validation | Automatic-host evidence ingestion, semantic truth guarantees, approval, code generation, host tools, or activation; a successful live proof run is still pending |
+| Intelligence | Explicit Codex CLI and Responses API transports fixed to GPT-5.6, exact neutral evidence/hash checks, privacy-minimized context, opaque evidence aliases, strict structured output, provider-specific isolation/bounds, truthful provenance, and local reference validation | Automatic-host evidence ingestion, semantic truth guarantees, approval, code generation, host tools, or activation; a successful live proof run is still pending |
 | Neutral replay | A synthetic descriptor and event stream that exercise the fixture CLI, projection, detector, and evidence hashing offline | Production telemetry or a claim that synthetic behavior represents real users |
 | Living Studio | Five read-only routes; empty, disconnected, and invalid-data previews; neutral fixture fallback; and validated ingestion of an explicitly synced synthetic-only static snapshot | Live ingestion, model calls, command handling, proof, activation, disable, or rollback |
 
@@ -84,8 +84,8 @@ The independent CRM proof completed supported installation, runtime capture, pri
 
 1. Recompute and verify the neutral manifest and evidence hashes, event links, time window, origin, session count, and projected case count.
 2. Remove host display text, paths, symbols, metadata, release data, and user/session/subject identifiers; replace raw event IDs with opaque aliases.
-3. Send the bounded neutral evidence to GPT-5.6 with `store: false`, no tools, a strict JSON schema, output bounds, and a request timeout.
-4. Revalidate the returned schema, citations, metrics, product nodes, evidence scope, and reported model before returning a local draft and non-model provenance.
+3. Send the bounded neutral evidence to GPT-5.6 through one explicitly selected transport. The Codex CLI path uses an isolated read-only temporary workspace, ephemeral files, an explicit disable list for installed host-capable feature surfaces, strict schema/stream/file bounds, and fail-closed JSONL acceptance. The API path uses `store: false`, no requested tools, strict Structured Outputs, and bounded output tokens.
+4. Revalidate the returned schema, citations, metrics, product nodes, evidence scope, and provider-specific provenance before returning a local draft. API response IDs and actual models remain distinct from CLI thread IDs and requested-model evidence.
 
 ## Planned lifecycle, not current functionality
 

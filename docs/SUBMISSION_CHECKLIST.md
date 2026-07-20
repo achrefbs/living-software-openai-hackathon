@@ -31,7 +31,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
 - [x] Neutral sample data is explicitly synthetic.
 - [x] Studio documentation distinguishes its neutral fixture fallback, explicit synthetic-only static snapshot, and lack of live host/model ingestion.
-- [ ] Real GPT-5.6 Responses API run completed and reproducible evidence saved.
+- [ ] Real GPT-5.6 run completed through an allowed provider and reproducible sanitized evidence saved.
 - [ ] Every final claim tied to the submission commit.
 
 ## Codex and GPT-5.6 evidence

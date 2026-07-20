@@ -81,7 +81,7 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Owner:** Achref Boularess with Codex implementation and adversarial review
 - **Decision:** Deterministic code detects opportunities and verifies the evidence supplied to GPT-5.6. The model may return only a strict, draft-status Evolution Brief for human review; it receives no host tools and cannot approve, activate, or mutate anything.
 - **Why:** Model judgment is useful for turning a workflow signal into a comprehensible hypothesis, but evidence integrity and change authority must not depend on generated prose.
-- **Consequence:** Runtime requests must be bounded, privacy-minimal, schema-constrained, time-limited, and linked to a real response ID. Offline mocks prove the boundary, not material live model use; a real GPT-5.6 run remains required before submission.
+- **Consequence:** Runtime requests must be bounded, privacy-minimal, schema-constrained, time-limited, and linked to truthful provider-specific provenance. API response IDs and actual model fields must never be conflated with Codex CLI thread IDs and requested-model evidence. Offline mocks prove the boundary, not material live model use; a real GPT-5.6 run remains required before submission.
 
 ## D-010 - Keep unfinished Studio states visibly locked
 
@@ -118,3 +118,12 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Decision:** The first Next.js adapter scans root `package.json`, `app/**`, `src/app/**`, `src/components/**`, and `src/lib/**`. It excludes `.living`, root-level simulator/script/test tooling, co-located tests and stories, and build harnesses from product evidence while retaining host route handlers and integrations within the supported application roots.
 - **Why:** A repository-wide JavaScript/TypeScript scan caused simulator types and test/seed `localStorage` calls to appear as product entities and integrations. That contaminated the map and release digest with evidence that does not execute as part of the application.
 - **Consequence:** Product Manifest provenance and release drift now reflect supported application source only. New adapter roots must be added deliberately with regression proof rather than inferred from unrelated repository files.
+
+## D-014 - Use Codex CLI now, preserve an explicit API switch
+
+- **Date:** 2026-07-20
+- **Status:** Accepted
+- **Owner:** Achref Boularess
+- **Decision:** Use saved Codex CLI authentication for the current Build Week GPT-5.6 proof, while retaining an explicit Responses API transport for later API-key deployment. Never fall back silently between them.
+- **Why:** The entrant is already authenticated in Codex, while an API key is not currently provisioned. Keeping one validation boundary lets the transport change without weakening evidence, schema, citation, or governance checks.
+- **Consequence:** The demo defaults to `--provider codex`; the library default remains the API transport. CLI runs pin GPT-5.6 and medium reasoning, run in an isolated ephemeral directory, disable tools and project instructions, cap output, inspect JSONL fail-closed, and label thread/model/storage provenance conservatively. API use must be explicitly selected and reads `OPENAI_API_KEY` only at send time.
