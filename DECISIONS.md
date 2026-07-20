@@ -81,7 +81,7 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Owner:** Achref Boularess with Codex implementation and adversarial review
 - **Decision:** Deterministic code detects opportunities and verifies the evidence supplied to GPT-5.6. The model may return only a strict, draft-status Evolution Brief for human review; it receives no host tools and cannot approve, activate, or mutate anything.
 - **Why:** Model judgment is useful for turning a workflow signal into a comprehensible hypothesis, but evidence integrity and change authority must not depend on generated prose.
-- **Consequence:** Runtime requests must be bounded, privacy-minimal, schema-constrained, time-limited, and linked to truthful provider-specific provenance. API response IDs and actual model fields must never be conflated with Codex CLI thread IDs and requested-model evidence. Offline mocks prove the boundary, not material live model use; a real GPT-5.6 run remains required before submission.
+- **Consequence:** Runtime requests must be bounded, privacy-minimal, schema-constrained, time-limited, and linked to truthful provider-specific provenance. API response IDs and actual model fields must never be conflated with Codex CLI thread IDs and requested-model evidence. Offline mocks prove the boundary, not material live model use; the required real run is now preserved separately in `docs/proof/gpt56-live-codex-cli.json`.
 
 ## D-010 - Keep unfinished Studio states visibly locked
 

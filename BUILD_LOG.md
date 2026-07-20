@@ -385,6 +385,40 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Preserve a real GPT-5.6 Terra evolution brief
+
+**Scope**
+
+- Ran `npm run proof:gpt56:cli` from clean source commit `4c1480f220fb88283a63e160d9dc6da8c6fa82d5` with saved Codex authentication and no API fallback.
+- Sent the verified, bounded projection of 24 synthetic neutral events across three sessions and three subjects to the exact `gpt-5.6-terra` transport model.
+- Locally revalidated the returned `living.evolution-brief/v1` schema, evidence citations, product-node references, synthetic-only scope, draft status, and `activationAllowed: false` before writing the create-only proof.
+- Scanned the artifact for credentials, authorization material, absolute user paths, and session/actor/subject identifiers.
+
+**How Codex accelerated the work**
+
+- Codex CLI provided the authenticated structured-output transport and emitted the thread/token provenance used by the proof recorder.
+
+**How GPT-5.6 was used**
+
+- GPT-5.6 Terra materially interpreted the bounded workflow evidence and drafted an information-surface hypothesis with cited metrics, risks, open questions, limitations, and success criteria.
+- The model did not approve, activate, mutate, browse, inspect the host, or receive host tools. Its draft remains subject to human review.
+
+**Human decisions**
+
+- Preserve the model output as a hypothesis rather than merge it into the captured Studio snapshot or claim automatic-host model ingestion.
+- Report `gpt-5.6-terra` as requested/pinned and leave `actualResponseModel` null because Codex JSONL did not authoritatively report that field.
+
+**Evidence**
+
+- Artifact: `docs/proof/gpt56-live-codex-cli.json`.
+- Artifact SHA-256: `c1f69d30cd2ce099d3d968631aa0784c29f9ea911fd5dc1e164a78f23058c819`.
+- Recorded at `2026-07-20T10:46:25.677Z`; Codex thread `019f7f22-10bd-7fb3-8b05-96ba401b1df3`.
+- Boundary request hash `sha256:107474a1fc8c7eb67031a551274db0bd931a100ffde733e0b78a4dbd29845bae` and output schema hash `sha256:3a810c751a1bb36b38d57233abec5d3859d12825cf1dcf2a163a81365395ba56`.
+- Token usage: 9,721 input, 797 output, and 77 reasoning-output tokens.
+- Artifact privacy/provenance validation passed.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

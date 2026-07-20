@@ -15,3 +15,9 @@ authoritatively report an actual response model or an API storage value.
 
 The recorder refuses a dirty worktree and refuses to overwrite an existing
 artifact.
+
+Current artifact:
+
+- `gpt56-live-codex-cli.json` — authenticated `gpt-5.6-terra` request,
+  clean source commit `4c1480f220fb88283a63e160d9dc6da8c6fa82d5`,
+  locally validated draft, and conservative CLI provenance.

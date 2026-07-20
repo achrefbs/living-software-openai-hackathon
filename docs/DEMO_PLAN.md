@@ -52,7 +52,7 @@ The final public YouTube video must be shorter than three minutes, include audio
 ## Recording gates
 
 - [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
-- [ ] Real GPT-5.6 run completed and evidence preserved.
+- [x] Real GPT-5.6 Terra run completed and evidence preserved.
 - [ ] `npm install`, `npm run build:cli`, `npm run typecheck`, `npm run test`, and `npm run demo:neutral` pass on a fresh Windows 11 / Node.js 22-or-newer checkout.
 - [ ] Required judge path that does not require rebuilding from scratch is implemented and verified before it is claimed.
 - [ ] `npm run dev:studio` starts the five-route Studio.

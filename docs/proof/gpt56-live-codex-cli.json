@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "living.gpt56-proof/v2",
+  "recordedAt": "2026-07-20T10:46:25.677Z",
+  "selectedProvider": "codex",
+  "source": {
+    "commit": "4c1480f220fb88283a63e160d9dc6da8c6fa82d5",
+    "dirty": false
+  },
+  "request": {
+    "boundaryRequestedModel": "gpt-5.6",
+    "transportRequestedModel": "gpt-5.6-terra",
+    "reasoningEffort": "medium",
+    "responseStoreRequested": null,
+    "schemaName": "living_evolution_brief",
+    "boundaryRequestSha256": "sha256:107474a1fc8c7eb67031a551274db0bd931a100ffde733e0b78a4dbd29845bae",
+    "outputSchemaSha256": "sha256:3a810c751a1bb36b38d57233abec5d3859d12825cf1dcf2a163a81365395ba56"
+  },
+  "evidence": {
+    "appId": "sample.operations-console",
+    "manifestHash": "sha256:a6936c29a29c75309416aa477df24c85e08796b19e9c0209928e206e42f9dd92",
+    "opportunityId": "opportunity.backtracking.690e81fdf38e",
+    "eventSetHash": "sha256:4bd383f4e2bc2b260d22b85b66da9bc7e944bbbda6301f95fc99d3b31d3d7cf1",
+    "eventCount": 24,
+    "sessionCount": 3,
+    "subjectCount": 3,
+    "dataOrigin": "synthetic"
+  },
+  "localValidation": {
+    "schema": "passed",
+    "references": "passed",
+    "governance": "passed"
+  },
+  "result": {
+    "draft": {
+      "schemaVersion": "living.evolution-brief/v1",
+      "briefId": "evolution-brief.opportunity.backtracking.690e81fdf38e",
+      "appId": "sample.operations-console",
+      "opportunityId": "opportunity.backtracking.690e81fdf38e",
+      "manifestHash": "sha256:a6936c29a29c75309416aa477df24c85e08796b19e9c0209928e206e42f9dd92",
+      "title": "Provide draft-context access during resumed drafting",
+      "interpretation": "Synthetic development evidence shows three cases in which users resumed a draft after viewing reference and history information. The opportunity records 12 revisits and an affected ratio of 0.75, suggesting that context switching may interrupt resumed drafting; this is a hypothesis, not production evidence.",
+      "proposedChange": {
+        "kind": "information-surface",
+        "summary": "Draft a panel for the existing draft extension point that presents relevant reference and history context while the user is on the draft surface.",
+        "userValue": "Users may review needed context without navigating away from an in-progress draft.",
+        "affectedProductNodeIds": [
+          "extension.draft-panel",
+          "surface.draft",
+          "surface.history",
+          "surface.reference"
+        ],
+        "excludedWork": [
+          "No automatic draft saving or submission.",
+          "No writes through draft.save without the existing required user confirmation.",
+          "No changes outside the supplied draft, history, reference, and extension-panel nodes."
+        ]
+      },
+      "evidenceCitations": {
+        "eventSetHash": "sha256:4bd383f4e2bc2b260d22b85b66da9bc7e944bbbda6301f95fc99d3b31d3d7cf1",
+        "metrics": [
+          {
+            "name": "affected_cases",
+            "observed": 3
+          },
+          {
+            "name": "revisit_count",
+            "observed": 12
+          },
+          {
+            "name": "affected_ratio",
+            "observed": 0.75
+          }
+        ],
+        "sampleEventIds": [
+          "event.case-friction-1.4",
+          "event.case-friction-1.5",
+          "event.case-friction-1.6",
+          "event.case-friction-1.7",
+          "event.case-friction-2.4",
+          "event.case-friction-2.5",
+          "event.case-friction-2.6",
+          "event.case-friction-2.7",
+          "event.case-friction-3.4",
+          "event.case-friction-3.5",
+          "event.case-friction-3.6",
+          "event.case-friction-3.7"
+        ]
+      },
+      "successCriteria": [
+        {
+          "metric": "revisit_count",
+          "direction": "decrease",
+          "target": "Decrease from the synthetic observed value of 12 in a comparable development evaluation.",
+          "measurementWindow": "Comparable synthetic development evaluation covering three cases."
+        },
+        {
+          "metric": "affected_ratio",
+          "direction": "decrease",
+          "target": "Decrease from the synthetic observed value of 0.75 in a comparable development evaluation.",
+          "measurementWindow": "Comparable synthetic development evaluation covering three cases."
+        }
+      ],
+      "risks": [
+        "The panel could present insufficient or irrelevant context because the supplied evidence does not establish which reference or history content users needed.",
+        "Additional panel content could distract from drafting.",
+        "The observed pattern may not occur in production."
+      ],
+      "openQuestions": [
+        "Which reference and history information should the panel display?",
+        "Can the panel read the required context using only the supplied context.read operation?",
+        "Does a comparable synthetic evaluation show fewer revisits after human-approved implementation?"
+      ],
+      "limitations": [
+        "All cited evidence is synthetic, simulator-generated, and from the development environment.",
+        "The evidence covers three subjects and three sessions only.",
+        "The sequence establishes repeated navigation but does not establish user intent, task quality, or causality.",
+        "No production generalization is permitted."
+      ],
+      "evidenceScope": {
+        "origin": "synthetic",
+        "claimScope": "synthetic-only",
+        "productionGeneralizationAllowed": false
+      },
+      "governance": {
+        "status": "draft",
+        "humanApprovalRequired": true,
+        "activationAllowed": false
+      }
+    },
+    "provenance": {
+      "provider": "openai",
+      "transport": "codex-cli",
+      "boundaryRequestedModel": "gpt-5.6",
+      "transportRequestedModel": "gpt-5.6-terra",
+      "actualResponseModel": null,
+      "responseId": null,
+      "codexThreadId": "019f7f22-10bd-7fb3-8b05-96ba401b1df3",
+      "responseStoreRequested": null,
+      "localSessionPersisted": false,
+      "tokenUsage": {
+        "inputTokens": 9721,
+        "cachedInputTokens": 0,
+        "outputTokens": 797,
+        "reasoningOutputTokens": 77
+      },
+      "evidenceAliases": [
+        {
+          "alias": "evidence-005",
+          "eventId": "event.case-friction-1.4"
+        },
+        {
+          "alias": "evidence-006",
+          "eventId": "event.case-friction-1.5"
+        },
+        {
+          "alias": "evidence-007",
+          "eventId": "event.case-friction-1.6"
+        },
+        {
+          "alias": "evidence-008",
+          "eventId": "event.case-friction-1.7"
+        },
+        {
+          "alias": "evidence-013",
+          "eventId": "event.case-friction-2.4"
+        },
+        {
+          "alias": "evidence-014",
+          "eventId": "event.case-friction-2.5"
+        },
+        {
+          "alias": "evidence-015",
+          "eventId": "event.case-friction-2.6"
+        },
+        {
+          "alias": "evidence-016",
+          "eventId": "event.case-friction-2.7"
+        },
+        {
+          "alias": "evidence-021",
+          "eventId": "event.case-friction-3.4"
+        },
+        {
+          "alias": "evidence-022",
+          "eventId": "event.case-friction-3.5"
+        },
+        {
+          "alias": "evidence-023",
+          "eventId": "event.case-friction-3.6"
+        },
+        {
+          "alias": "evidence-024",
+          "eventId": "event.case-friction-3.7"
+        }
+      ]
+    }
+  }
+}

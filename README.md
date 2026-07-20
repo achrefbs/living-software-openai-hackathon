@@ -123,6 +123,14 @@ To preserve a sanitized, create-only proof from a clean commit:
 npm run proof:gpt56:cli
 ```
 
+The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) was
+recorded from clean source commit
+`4c1480f220fb88283a63e160d9dc6da8c6fa82d5`. It binds the exact request,
+schema, and synthetic evidence hashes to a locally validated draft. Provenance
+records the `gpt-5.6-terra` transport request, Codex thread ID, and token
+usage; `actualResponseModel` remains `null` because the CLI did not
+authoritatively report that field.
+
 The future API-key path is an explicit toggle with no automatic fallback:
 
 ```bash

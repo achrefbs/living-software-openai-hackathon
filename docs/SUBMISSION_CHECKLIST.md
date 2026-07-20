@@ -31,7 +31,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
 - [x] Neutral sample data is explicitly synthetic.
 - [x] Studio documentation distinguishes its neutral fixture fallback, explicit synthetic-only static snapshot, and lack of live host/model ingestion.
-- [ ] Real GPT-5.6 run completed through an allowed provider and reproducible sanitized evidence saved.
+- [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
 - [ ] Every final claim tied to the submission commit.
 
 ## Codex and GPT-5.6 evidence
@@ -39,7 +39,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Codex collaboration is documented chronologically.
 - [x] GPT-5.6 package uses strict structured output and offline mock tests.
 - [x] Neutral detector evidence is wired into an explicit live GPT-5.6 runner with local reference validation.
-- [ ] Material live GPT-5.6 product use demonstrated; offline mocks alone are insufficient.
+- [x] Material live GPT-5.6 product use demonstrated with a validated neutral-evidence `EvolutionBrief` and saved proof.
 - [ ] Real `/feedback` Session ID from the task containing the majority of core functionality recorded.
 - [ ] Key entrant product, engineering, and design decisions finalized.
 

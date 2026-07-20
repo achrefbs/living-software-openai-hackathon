@@ -57,7 +57,7 @@ Automatic synthetic analysis can now reach Studio through an explicit, validated
 ## Next evidence milestones
 
 1. Keep the completed independent CRM installation, runtime, privacy, and removal proof reproducible from the submission commit.
-2. Run GPT-5.6 live and preserve a schema-valid, citation-valid, sanitized draft as evidence.
+2. **Completed:** ran GPT-5.6 Terra live and preserved a schema-valid, citation-valid, sanitized draft in [`docs/proof/gpt56-live-codex-cli.json`](proof/gpt56-live-codex-cli.json).
 3. Verify the fresh-clone path and implement the required judge path that does not require rebuilding from scratch.
 4. Connect automatic host analysis to the GPT-5.6 intelligence boundary only after the current static Studio boundary remains testable.
 5. Only then design the declarative broker and governed lifecycle: prove, approve, activate, measure, disable, and roll back.
@@ -68,6 +68,6 @@ Automatic synthetic analysis can now reach Studio through an explicit, validated
 - Automatic observation does not know business goals, outcomes, or causality.
 - The local collector is not a production authenticated or multi-instance telemetry service.
 - Studio does not connect to a live host or GPT-5.6; it receives only an explicit, validated, privacy-minimized static export of synthetic captured evidence.
-- Offline model tests are not evidence of a real GPT-5.6 call.
+- Offline model tests are not evidence of a real GPT-5.6 call; the separate live proof artifact supplies that evidence.
 - Broker execution and end-to-end capability activation/rollback are not implemented.
 - The separate CRM and simulator are not required for the neutral judge path.
