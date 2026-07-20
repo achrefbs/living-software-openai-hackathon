@@ -25,6 +25,8 @@ export function journeyStages(dataset: StudioDataset): JourneyStage[] {
   ).length;
   const hasEvolution = dataset.evolution !== null;
   const hasReceipts = dataset.receipts !== null && dataset.receipts.length > 0;
+  const hasConnectedReview =
+    dataset.app.connection === "captured_snapshot" && detected > 0;
 
   const mapped = manifestNodes > 0;
   const observed = cases > 0;
@@ -54,7 +56,11 @@ export function journeyStages(dataset: StudioDataset): JourneyStage[] {
       step: 3,
       title: "Detect",
       surface: "Opportunity Feed",
-      status: observed ? (hasEvolution ? "complete" : "current") : "locked",
+      status: observed
+        ? hasEvolution || hasConnectedReview
+          ? "complete"
+          : "current"
+        : "locked",
       summary: observed
         ? detected === 0
           ? "No threshold crossed"
@@ -69,13 +75,15 @@ export function journeyStages(dataset: StudioDataset): JourneyStage[] {
       step: 4,
       title: "Review",
       surface: "Evolution Review",
-      status: hasEvolution ? "current" : "locked",
+      status: hasEvolution || hasConnectedReview ? "current" : "locked",
       summary: hasEvolution
-        ? "Evidence ready"
+        ? "Evolution record loaded"
+        : hasConnectedReview
+          ? "Connected review available"
         : detected > 0
           ? "No model run for this snapshot"
           : "No proposal exists",
-      lockReason: hasEvolution
+      lockReason: hasEvolution || hasConnectedReview
         ? undefined
         : detected > 0
           ? "Needs a GPT-5.6 interpretation, which has not run on this snapshot."
@@ -89,9 +97,13 @@ export function journeyStages(dataset: StudioDataset): JourneyStage[] {
       status: hasReceipts ? "current" : "locked",
       summary: hasReceipts
         ? `${dataset.receipts?.length ?? 0} fixture records`
+        : hasConnectedReview
+          ? "Live receipts appear in Review"
         : "No lifecycle has run",
       lockReason: hasReceipts
         ? undefined
+        : hasConnectedReview
+          ? "The immutable analysis snapshot does not embed lifecycle receipts; the connected Review reads the host ledger."
         : "Receipts are only written when the governed lifecycle actually runs.",
     },
   ];
@@ -113,6 +125,13 @@ export function nextAction(dataset: StudioDataset): {
     return {
       label: "Continue the review",
       detail: "An evolution record is loaded and waiting on its next gate.",
+      stageId: "evolutions",
+    };
+  }
+  if (dataset.app.connection === "captured_snapshot" && detected > 0) {
+    return {
+      label: "Review the governed change",
+      detail: "Captured evidence is connected to the live evolution console.",
       stageId: "evolutions",
     };
   }

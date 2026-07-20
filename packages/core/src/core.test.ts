@@ -1,13 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import type { Sha256, WorkflowEvent } from "@living-software/contracts";
+import type { JsonValue, Sha256, WorkflowEvent } from "@living-software/contracts";
 
 import {
   detectBacktrackingOpportunity,
+  detectBacktrackingOpportunityWithEvidence,
   projectWorkflowCases,
   projectWorkflowJourneySteps,
   projectWorkflowVariants,
+  sha256,
 } from "./index.js";
 
 const manifestHash = `sha256:${"a".repeat(64)}` as Sha256;
@@ -380,6 +382,52 @@ test("detects a true A-B-A revisit and samples the filtered event", () => {
   ]);
   assert.deepEqual(opportunity.evidence.sampleEventIds, ["telemetry.1.14"]);
   assert.equal(opportunity.evidence.occurrenceCount, 1);
+});
+
+test("returns the exact minimized evidence set used for Opportunity identity", () => {
+  const allEvents = [
+    ...telemetryCase(1, true),
+    ...telemetryCase(2, true),
+    ...telemetryCase(3, true),
+    ...telemetryCase(4, false),
+  ];
+  const input = {
+    events: allEvents,
+    manifestHash,
+    config: {
+      minimumAffectedCases: 3,
+      minimumRevisitsPerCase: 1,
+    },
+  };
+  const detection = detectBacktrackingOpportunityWithEvidence(input);
+
+  assert.ok(detection);
+  assert.equal(allEvents.length, 60);
+  assert.equal(detection.evidenceEvents.length, 15);
+  assert.ok(
+    detection.evidenceEvents.every(
+      (candidate) =>
+        !candidate.eventId.startsWith("telemetry.4.") &&
+        candidate.kind !== "system" &&
+        candidate.metadata.routePhase !== "start",
+    ),
+  );
+  const canonicalHash = sha256(
+    detection.evidenceEvents
+      .map((candidate) => candidate as unknown as JsonValue)
+      .sort((left, right) =>
+        JSON.stringify(left).localeCompare(JSON.stringify(right)),
+      ),
+  );
+  assert.equal(detection.opportunity.evidence.eventSetHash, canonicalHash);
+  assert.equal(detection.opportunity.evidence.bundle.sha256, canonicalHash);
+  assert.equal(detection.opportunity.evidence.sessionCount, 3);
+  assert.equal(detection.opportunity.evidence.subjectCount, 3);
+  assert.equal(projectWorkflowCases([...detection.evidenceEvents]).length, 3);
+  assert.deepEqual(
+    detectBacktrackingOpportunity(input),
+    detection.opportunity,
+  );
 });
 
 test("is falsifiable below the affected-case threshold", () => {

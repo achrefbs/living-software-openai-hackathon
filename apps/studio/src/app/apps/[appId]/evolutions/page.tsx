@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
+import { LiveEvolutionConsole } from "@/components/live-evolution-console";
 import { RecordedGpt56Brief } from "@/components/recorded-gpt56-brief";
 import {
   Badge,
@@ -20,6 +21,7 @@ import { getPreviewMode, getStudioDataset } from "@/lib/studio-data";
 import { studioAppHref } from "@/lib/studio-routes";
 
 export const metadata: Metadata = { title: "Evolution Review" };
+export const dynamic = "force-dynamic";
 
 export default async function EvolutionsPage({
   params,
@@ -66,86 +68,84 @@ export default async function EvolutionsPage({
           stage={stage && { step: 4, title: "Review", status: stage.status }}
           title={
             detection === undefined
-              ? "Review is locked — no proposal exists"
-              : "Review is locked — honestly"
+              ? "No new proposal from this snapshot"
+              : "Turn detected friction into a governed change"
           }
           description={
             detection === undefined ? (
               <p>
                 Deterministic workflow analysis completed, but no opportunity
-                crossed its threshold. Without detected evidence there is
-                nothing for GPT-5.6 or a human to review, so the downstream
-                lifecycle remains locked.
+                crossed its threshold. New proposal controls remain locked,
+                while any previously applied change stays visible below for
+                exact rollback.
               </p>
             ) : (
               <p>
-                This is where a human would govern a proposed change. The
-                prerequisite is a GPT-5.6 interpretation of the detected
-                evidence, and <strong>no model has run on this snapshot</strong>,
-                so every stage below is shown as it would be — not as if it had
-                happened.
+                The exact CRM evidence is ready. GPT-5.6 may interpret it, but
+                only a deterministic adapter can produce the bounded patch and
+                only a person can approve activation.
               </p>
             )
           }
         >
           <Badge tone="locked">
-            {detection === undefined ? "No proposal" : "Not connected"}
+            {detection === undefined ? "No new evidence" : "Evidence ready"}
           </Badge>
         </PageHeader>
 
+        {dataset.app.connection === "captured_snapshot" && (
+          <LiveEvolutionConsole
+            appId={dataset.app.id}
+            crmUrl={process.env.LIVING_STUDIO_HOST_URL}
+            snapshotIdentity={dataset.evidenceIdentity}
+          />
+        )}
+
         {recordedRunPanel}
 
-        <section
-          aria-labelledby="locked-lifecycle-title"
-          className="panel lifecycle-preview"
-        >
-          <div className="panel-heading">
-            <div>
-              <h2 id="locked-lifecycle-title">
-                The governed lifecycle, stage by stage
-              </h2>
-              <p className="panel-subtitle">
-                What each stage would do once connected — and why none of them
-                have run.
-              </p>
+        {detection === undefined && (
+          <section
+            aria-labelledby="locked-lifecycle-title"
+            className="panel lifecycle-preview"
+          >
+            <div className="panel-heading">
+              <div>
+                <h2 id="locked-lifecycle-title">
+                  The governed lifecycle, stage by stage
+                </h2>
+                <p className="panel-subtitle">
+                  What each stage would do once evidence crosses its threshold.
+                </p>
+              </div>
             </div>
-          </div>
-          <ol className="locked-lifecycle">
-            {previewStages.map((step) => (
-              <li className={"locked-stage locked-" + step.state} key={step.id}>
-                <span aria-hidden="true" className="locked-stage-icon">
-                  <Icon name={step.icon} />
-                </span>
-                <div className="locked-stage-body">
-                  <div className="locked-stage-top">
-                    <h3>{step.title}</h3>
-                    <Badge
-                      tone={
-                        step.state === "available"
-                          ? "positive"
-                          : step.state === "missing"
-                            ? "warning"
-                            : "locked"
-                      }
-                    >
-                      {step.status}
-                    </Badge>
+            <ol className="locked-lifecycle">
+              {previewStages.map((step) => (
+                <li className={"locked-stage locked-" + step.state} key={step.id}>
+                  <span aria-hidden="true" className="locked-stage-icon">
+                    <Icon name={step.icon} />
+                  </span>
+                  <div className="locked-stage-body">
+                    <div className="locked-stage-top">
+                      <h3>{step.title}</h3>
+                      <Badge
+                        tone={
+                          step.state === "available"
+                            ? "positive"
+                            : step.state === "missing"
+                              ? "warning"
+                              : "locked"
+                        }
+                      >
+                        {step.status}
+                      </Badge>
+                    </div>
+                    <p>{step.detail}</p>
                   </div>
-                  <p>{step.detail}</p>
-                  {step.id === "evidence" && detection !== undefined && (
-                    <Link
-                      className="button button-secondary button-inline"
-                      href={studioAppHref(appId, "opportunities")}
-                    >
-                      <Icon name="return" />
-                      Back to the detected evidence
-                    </Link>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
 
         <Panel
           className="boundary-panel"
@@ -165,9 +165,10 @@ export default async function EvolutionsPage({
                 (<EvidenceRef>{detection.detector}</EvidenceRef>).
               </>
             )}{" "}
-            The active lifecycle snapshot contains no attached GPT-5.6
-            interpretation, capability contract, proof result, approval,
-            generated artifact, or activation state.{" "}
+            The captured analysis snapshot itself contains no attached GPT-5.6
+            interpretation or activation authority. When connected, the console
+            above reads a separate, hash-linked lifecycle ledger from the host
+            and never rewrites this evidence.{" "}
             {recordedRunLinkageNote(recordedRunRelation)}
           </p>
         </Panel>

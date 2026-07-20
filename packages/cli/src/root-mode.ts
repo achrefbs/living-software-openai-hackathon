@@ -628,6 +628,28 @@ interface LoadedEvidenceAnalysis {
   readonly analysis: EvidenceAnalysis;
 }
 
+/**
+ * Exact, validated host evidence that may cross into the intelligence boundary.
+ * Raw collector records remain private; callers receive only the versioned
+ * Product Manifest, deterministic Opportunity, and normalized WorkflowEvents.
+ */
+export interface AutomaticEvolutionInput {
+  readonly root: string;
+  /** Hash of the exact Studio projection derived from this same analysis read. */
+  readonly snapshotHash: ReturnType<typeof sha256>;
+  readonly application: {
+    readonly appId: string;
+    readonly displayName: string;
+    readonly environment: ObservationRuntimeMap["application"]["environment"];
+    readonly releaseRevision: string;
+    readonly manifestHash: string;
+    readonly dataOrigin: Opportunity["evidence"]["dataOrigin"];
+  };
+  readonly manifest: ProductManifest;
+  readonly opportunity: Opportunity;
+  readonly evidenceEvents: EvidenceAnalysis["opportunityEvidenceEvents"];
+}
+
 async function loadEvidenceAnalysis(rootInput: string): Promise<LoadedEvidenceAnalysis> {
   const root = await realpath(rootInput);
   const installed = await installedArtifacts(root);
@@ -666,6 +688,42 @@ async function loadEvidenceAnalysis(rootInput: string): Promise<LoadedEvidenceAn
   }
   const analysis = analyzeEvidenceRecords(records, definition);
   return { root, installed, evidencePath, analysis };
+}
+
+export async function loadAutomaticEvolutionInput(
+  rootInput: string,
+): Promise<AutomaticEvolutionInput> {
+  const loaded = await loadEvidenceAnalysis(rootInput);
+  const opportunity = loaded.analysis.opportunity;
+  if (opportunity === null) {
+    throw new RootModeError(
+      "OPPORTUNITY_MISSING",
+      "No deterministic opportunity crossed its threshold for the active evidence set.",
+    );
+  }
+  if (loaded.analysis.opportunityEvidenceEvents.length === 0) {
+    throw new RootModeError(
+      "OPPORTUNITY_EVIDENCE_MISSING",
+      "The detector emitted an Opportunity without its exact evidence set.",
+    );
+  }
+  return Object.freeze({
+    root: loaded.root,
+    snapshotHash: sha256(snapshotFromLoadedAnalysis(loaded)),
+    application: Object.freeze({
+      appId: loaded.installed.manifest.appId,
+      displayName: loaded.installed.config.application.displayName,
+      environment: loaded.installed.runtimeMap.application.environment,
+      releaseRevision: loaded.installed.manifest.release.revision,
+      manifestHash: loaded.installed.manifest.contentHash,
+      dataOrigin: opportunity.evidence.dataOrigin,
+    }),
+    manifest: loaded.installed.manifest,
+    opportunity,
+    evidenceEvents: Object.freeze([
+      ...loaded.analysis.opportunityEvidenceEvents,
+    ]),
+  });
 }
 
 function evidenceSummary(loaded: LoadedEvidenceAnalysis): Record<string, unknown> {
@@ -796,8 +854,9 @@ function snapshotOpportunity(
   };
 }
 
-async function runSnapshot(options: RootCommandOptions): Promise<StudioSnapshot> {
-  const loaded = await loadEvidenceAnalysis(options.root);
+function snapshotFromLoadedAnalysis(
+  loaded: LoadedEvidenceAnalysis,
+): StudioSnapshot {
   const cases = snapshotCases(loaded);
   const opportunity = snapshotOpportunity(loaded.analysis.opportunity);
   return parseStudioSnapshot({
@@ -820,6 +879,10 @@ async function runSnapshot(options: RootCommandOptions): Promise<StudioSnapshot>
     metricReport: loaded.analysis.metricReport,
     ...(opportunity === undefined ? {} : { opportunity }),
   });
+}
+
+async function runSnapshot(options: RootCommandOptions): Promise<StudioSnapshot> {
+  return snapshotFromLoadedAnalysis(await loadEvidenceAnalysis(options.root));
 }
 
 export async function runRootCommand(

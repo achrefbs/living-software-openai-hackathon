@@ -60,7 +60,8 @@ function manifest(nodeCount = 2): ProductManifest {
       provenance: { origin: "scanned" as const, confidence: 1, sources: [{ path: "src/routes.ts", revision: "secret-release-revision" }] },
     })),
   };
-  return { ...content, contentHash: hashContent(content) };
+  const { generatedAt: _generatedAt, ...semanticContent } = content;
+  return { ...content, contentHash: hashContent(semanticContent) };
 }
 
 function evidenceEvents(productManifest: ProductManifest, synthetic = true): WorkflowEvent[] {
@@ -242,6 +243,48 @@ test("returns validated draft with non-model-authored provenance", async () => {
   });
   assert.deepEqual(result.draft.evidenceCitations.sampleEventIds, ["event-001"]);
   assert.equal(requests[0]!.max_output_tokens, 2_400);
+});
+
+test("accepts discovery-style semantic manifest hashes and rejects semantic tampering", async () => {
+  const base = fixture();
+  const { contentHash, generatedAt, ...semanticContent } = base.productManifest;
+  assert.equal(contentHash, hashContent(semanticContent));
+  assert.notEqual(contentHash, hashContent({ ...semanticContent, generatedAt }));
+
+  let calls = 0;
+  const transport: IntelligenceTransport = {
+    async send() {
+      calls += 1;
+      return responseFor(brief(base.detectedOpportunity, base.productManifest));
+    },
+  };
+  const client = createIntelligenceClient(transport);
+
+  await client.draftEvolutionBrief({
+    opportunity: base.detectedOpportunity,
+    manifest: base.productManifest,
+    evidenceEvents: base.events,
+  });
+
+  const timestampChanged = structuredClone(base.productManifest);
+  timestampChanged.generatedAt = "2030-01-01T00:00:00.000Z";
+  await client.draftEvolutionBrief({
+    opportunity: base.detectedOpportunity,
+    manifest: timestampChanged,
+    evidenceEvents: base.events,
+  });
+
+  const semanticTamper = structuredClone(base.productManifest);
+  semanticTamper.nodes[0]!.displayName = "tampered";
+  await assert.rejects(
+    client.draftEvolutionBrief({
+      opportunity: base.detectedOpportunity,
+      manifest: semanticTamper,
+      evidenceEvents: base.events,
+    }),
+    /contentHash/,
+  );
+  assert.equal(calls, 2);
 });
 
 test("records the exact Codex Terra transport model", async () => {

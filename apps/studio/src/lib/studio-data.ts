@@ -54,11 +54,11 @@ export async function loadStudioDataset(
   return studioDatasetFromSnapshot(parseStudioSnapshot(candidate));
 }
 
-let activeDataset: Promise<StudioDataset> | undefined;
-
 export function getStudioDataset(): Promise<StudioDataset> {
-  activeDataset ??= loadStudioDataset();
-  return activeDataset;
+  // studio:sync may replace the captured snapshot while the dev server keeps
+  // running. Always reload it so a browser refresh cannot render stale
+  // evidence against a newer broker connection.
+  return loadStudioDataset();
 }
 
 export async function getStudioApp(appId: string) {

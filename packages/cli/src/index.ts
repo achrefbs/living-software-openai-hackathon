@@ -22,8 +22,10 @@ export {
   REQUIRED_PRESERVED_PATHS,
   ROOT_RESULT_SCHEMA_VERSION,
   RootModeError,
+  loadAutomaticEvolutionInput,
   runRootCommand,
   validateRuntimeBindings,
+  type AutomaticEvolutionInput,
   type RootCommandOptions,
 } from "./root-mode.js";
 export {

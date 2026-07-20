@@ -17,7 +17,7 @@
     "build": "npm run build:packages && npm run build --workspace @living-software/studio",
     "build:automatic": "npm run build --workspace @living-software/contracts && npm run build --workspace @living-software/core && npm run build --workspace @living-software/discovery && npm run build --workspace @living-software/observer && npm run build --workspace @living-software/automatic",
     "build:cli": "npm run build:automatic && npm run build --workspace @living-software/collector && npm run build --workspace @living-software/installer && npm run build --workspace @living-software/host-sdk && npm run build --workspace @living-software/cli",
-    "build:packages": "npm run build:cli && npm run build --workspace @living-software/intelligence",
+    "build:packages": "npm run build:cli && npm run build --workspace @living-software/intelligence && npm run build --workspace @living-software/evolution",
     "check": "node scripts/check-compliance.mjs",
     "dev:studio": "npm run dev --workspace @living-software/studio",
     "studio:check": "npm run check --workspace @living-software/studio",

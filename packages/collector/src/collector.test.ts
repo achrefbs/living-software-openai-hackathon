@@ -203,20 +203,37 @@ test("stores a hash-linked chain and deterministically analyzes workflows", asyn
     assert.equal(response.status, 202);
   }
 
+  const controlSessionId = "session-control";
+  const controlResponse = await collector.handle(request(batch(controlSessionId, [
+    routeEvent(controlSessionId, 0, "leads"),
+    routeEvent(controlSessionId, 1, "tasks"),
+  ])));
+  assert.equal(controlResponse.status, 202);
+
   const records = await collector.readVerified();
-  assert.equal(records.length, 3);
+  assert.equal(records.length, 4);
   assert.equal(records[0]?.previousRecordHash, null);
   assert.equal(records[1]?.previousRecordHash, records[0]?.recordHash);
   assert.equal(records[2]?.previousRecordHash, records[1]?.recordHash);
 
   const first = await collector.analyze();
   const second = analyzeEvidenceRecords(records, definition());
-  assert.equal(first.events.length, 15);
-  assert.equal(first.workflowCases.length, 3);
-  assert.equal(first.workflowVariants.length, 1);
+  assert.equal(first.events.length, 17);
+  assert.equal(first.workflowCases.length, 4);
+  assert.equal(first.workflowVariants.length, 2);
   assert.equal(first.metricReport.schemaVersion, "living.metric-report/v1");
   assert.equal(first.metricReport.dataOrigin, "synthetic");
   assert.ok(first.opportunity);
+  assert.equal(first.opportunityEvidenceEvents.length, 15);
+  assert.ok(
+    first.opportunityEvidenceEvents.every(
+      (candidate) => candidate.sessionId !== controlSessionId,
+    ),
+  );
+  assert.deepEqual(
+    first.opportunityEvidenceEvents,
+    second.opportunityEvidenceEvents,
+  );
   assert.equal(JSON.stringify(first.metricReport), JSON.stringify(second.metricReport));
   assert.equal(first.chainHead, records.at(-1)?.recordHash);
 });

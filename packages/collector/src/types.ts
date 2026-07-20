@@ -86,6 +86,8 @@ export interface EvidenceAnalysis {
   readonly workflowVariants: readonly WorkflowVariant[];
   readonly metricReport: MetricReport;
   readonly opportunity: Opportunity | null;
+  /** Exact minimized detector input; empty when no Opportunity was emitted. */
+  readonly opportunityEvidenceEvents: readonly WorkflowEvent[];
   readonly chainHead: Sha256;
 }
 

@@ -86,7 +86,7 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 ## D-010 - Keep unfinished Studio states visibly locked
 
 - **Date:** 2026-07-19
-- **Status:** Accepted for the current implementation slice
+- **Status:** Superseded for an exact captured-host lifecycle by D-016; retained for fixture, disconnected, and unmatched-proof states
 - **Owner:** Achref Boularess with Codex design review
 - **Decision:** Studio is initially a read-only, explicitly synthetic fixture that exposes Product Map, Workflows, Opportunities, Evolutions, and Receipts while keeping interpretation, contract, proof, and activation states visibly locked when no real artifact exists.
 - **Why:** The interface can communicate the product and trust model without fabricating a live backend or completed lifecycle.
@@ -136,3 +136,12 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Decision:** Studio may display the committed sanitized `living.gpt56-proof/v2` artifact only after strict validation and a privacy-minimized projection. A run is labeled related only when app ID, manifest hash, opportunity ID, and event-set hash all match. Missing or mismatched identity is separate. Rendering or relation never populates `dataset.evolution`, creates receipts, or unlocks lifecycle controls.
 - **Why:** Judges should see material GPT-5.6 output without mistaking neutral replay proof for CRM or fixture evidence.
 - **Consequence:** Raw event IDs and evidence-alias mappings stay outside the Studio projection; requested-model and actual-model provenance remain distinct; the draft's human-review requirement and `activationAllowed: false` remain authoritative.
+
+## D-016 - Prove evolution with one deterministic exact-source adapter
+
+- **Date:** 2026-07-20
+- **Status:** Accepted; CRM-bound model draft and static proof complete, live runtime apply/rollback proof pending
+- **Owner:** Achref Boularess with Codex architecture, implementation, and adversarial review
+- **Decision:** For the detected CRM lead-review backtracking opportunity, GPT-5.6 may interpret the exact bounded evidence, but deterministic code independently owns the only source candidate: `next-crm-lead-review-navigation/v1`, limited to `src/app/leads/[id]/page.tsx`. Studio may prepare a static proof, but source application requires an operator-supplied audit label and confirmation of the exact artifact and proof hashes. The label is not authenticated identity. Apply accepts only the approved preimage; rollback accepts only the exact installed postimage.
+- **Why:** One legible, reversible source change proves the governed-evolution thesis more credibly than arbitrary model-generated mutation. Separating interpretation from compilation preserves a material GPT-5.6 role without giving model output executable authority.
+- **Consequence:** Living does not claim arbitrary files, frameworks, code generation, or automatic activation. The authenticated Codex CLI run prepared one exact artifact and passing static proof while leaving approval, application, and the CRM source unchanged. Source application and runtime verification are separate facts, so the operator must observe the host after its normal rebuild or hot reload. A rolled-back evolution is terminal for the same evidence bundle, and a new attempt requires newly captured evidence. Automatic measurement-after-change is not implemented and must not be claimed as a closed loop.

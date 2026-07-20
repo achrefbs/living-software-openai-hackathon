@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { sha256 } from "@living-software/cli";
 import type { StudioSnapshot } from "@living-software/contracts";
 
 import {
@@ -160,12 +161,14 @@ function snapshot(withOpportunity = true): StudioSnapshot {
 }
 
 test("maps a minimized captured snapshot without inventing lifecycle state", () => {
-  const dataset = studioDatasetFromSnapshot(snapshot());
+  const captured = snapshot();
+  const dataset = studioDatasetFromSnapshot(captured);
 
   assert.equal(dataset.app.connection, "captured_snapshot");
   assert.equal(dataset.app.source.label, "Synthetic capture");
   assert.deepEqual(dataset.evidenceIdentity, {
     appId: "captured-app",
+    snapshotHash: sha256(captured),
     manifestHash: HASH,
     opportunityId: "opportunity.backtracking",
     eventSetHash: HASH,
@@ -201,6 +204,7 @@ test("keeps the neutral fixture available as the fallback dataset", () => {
   assert.equal(dataset.app.source.dataOrigin, "fixture");
   assert.deepEqual(dataset.evidenceIdentity, {
     appId: "sample-operations",
+    snapshotHash: null,
     manifestHash: null,
     opportunityId: null,
     eventSetHash: null,

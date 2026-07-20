@@ -27,6 +27,12 @@ export interface BacktrackingDetectorInput {
   config?: Partial<BacktrackingDetectorConfig>;
 }
 
+export interface BacktrackingOpportunityDetection {
+  readonly opportunity: Opportunity;
+  /** Exact minimized event set used to derive and hash the Opportunity. */
+  readonly evidenceEvents: readonly WorkflowEvent[];
+}
+
 const defaultConfig: BacktrackingDetectorConfig = {
   id: "detector.backtracking",
   version: "1.1.0",
@@ -44,12 +50,12 @@ function dataOrigin(events: WorkflowEvent[]): "observed" | "synthetic" | "mixed"
   return syntheticCount === 0 ? "observed" : "mixed";
 }
 
-export function detectBacktrackingOpportunity({
+export function detectBacktrackingOpportunityWithEvidence({
   events,
   manifestHash,
   evidenceUri,
   config: overrides,
-}: BacktrackingDetectorInput): Opportunity | null {
+}: BacktrackingDetectorInput): BacktrackingOpportunityDetection | null {
   if (events.length === 0) {
     return null;
   }
@@ -86,9 +92,11 @@ export function detectBacktrackingOpportunity({
       ),
     ),
   ].filter((eventId): eventId is string => eventId !== undefined);
-  const sessions = new Set(
-    affected.flatMap((item) => item.workflowCase.sessionIds),
-  );
+  const sessions = new Set(affectedEvents.map((event) => event.sessionId));
+  const evidenceCaseCount = projectWorkflowCases(affectedEvents).length;
+  if (evidenceCaseCount !== affected.length) {
+    throw new TypeError("Backtracking evidence cases do not match the detected cases");
+  }
   const occurrenceCount = affected.reduce(
     (sum, item) => sum + item.revisitIndexes.length,
     0,
@@ -116,10 +124,10 @@ export function detectBacktrackingOpportunity({
     0.5 + (affected.length / Math.max(1, cases.length)) * 0.4,
   );
 
-  return parseOpportunity({
+  const opportunity = parseOpportunity({
     schemaVersion: "living.opportunity/v1",
     opportunityId: `opportunity.backtracking.${identityHash.slice(7, 19)}`,
-    appId: events[0]?.appId,
+    appId: affectedEvents[0]?.appId,
     manifestHash,
     detectedAt: orderedTimes.at(-1),
     detector: {
@@ -161,7 +169,7 @@ export function detectBacktrackingOpportunity({
       },
       eventSetHash,
       sampleEventIds: sampleEventIds.slice(0, 256),
-      subjectCount: affected.length,
+      subjectCount: evidenceCaseCount,
       sessionCount: sessions.size,
       occurrenceCount,
       dataOrigin: dataOrigin(affectedEvents),
@@ -175,4 +183,15 @@ export function detectBacktrackingOpportunity({
       ],
     },
   });
+
+  return Object.freeze({
+    opportunity,
+    evidenceEvents: Object.freeze([...affectedEvents]),
+  });
+}
+
+export function detectBacktrackingOpportunity(
+  input: BacktrackingDetectorInput,
+): Opportunity | null {
+  return detectBacktrackingOpportunityWithEvidence(input)?.opportunity ?? null;
 }

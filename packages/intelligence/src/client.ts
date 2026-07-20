@@ -185,8 +185,8 @@ function eventSetHash(events: readonly WorkflowEvent[]): string {
 }
 
 function verifyManifestHash(manifest: ProductManifest): void {
-  const { contentHash, ...content } = manifest;
-  if (sha256(content as unknown as JsonValue) !== contentHash) {
+  const { contentHash, generatedAt: _generatedAt, ...semanticContent } = manifest;
+  if (sha256(semanticContent as unknown as JsonValue) !== contentHash) {
     throw new Error("Product manifest contentHash does not match its canonical content");
   }
 }

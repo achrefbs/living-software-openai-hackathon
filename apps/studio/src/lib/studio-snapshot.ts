@@ -1,4 +1,5 @@
 import type { StudioSnapshot } from "@living-software/contracts";
+import { sha256 } from "@living-software/cli";
 
 import fixtureJson from "@/data/studio-fixture.json";
 import type {
@@ -160,6 +161,7 @@ export function fixtureStudioDataset(): StudioDataset {
     },
     evidenceIdentity: {
       appId: fixture.app.id,
+      snapshotHash: null,
       manifestHash: null,
       opportunityId: null,
       eventSetHash: null,
@@ -343,6 +345,7 @@ export function studioDatasetFromSnapshot(snapshot: StudioSnapshot): StudioDatas
     },
     evidenceIdentity: {
       appId: snapshot.application.appId,
+      snapshotHash: sha256(snapshot),
       manifestHash: snapshot.application.manifestHash,
       opportunityId: snapshot.opportunity?.opportunityId ?? null,
       eventSetHash: snapshot.opportunity?.evidence.eventSetHash ?? null,

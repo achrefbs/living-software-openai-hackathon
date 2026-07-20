@@ -713,6 +713,29 @@ test("Evolution receipts preserve human authority and hash-chain shape", () => {
       previousHash: null,
     }),
   );
+
+  const compiledReceipt = {
+    ...validReceipt,
+    kind: "artifact.compiled",
+    actor: {
+      type: "system",
+      component: "source-evolution-engine",
+      version: "0.1.0",
+    },
+    refs: { contractHash: HASH_C, artifactHash: HASH_D },
+  };
+  assert.doesNotThrow(() => evolutionReceiptSchema.parse(compiledReceipt));
+  assert.throws(() =>
+    evolutionReceiptSchema.parse({
+      ...compiledReceipt,
+      actor: {
+        type: "model",
+        provider: "openai",
+        model: "gpt-5.6",
+        runId: "run-1",
+      },
+    }),
+  );
 });
 
 test("Studio commands reject cross-application confirmation", () => {

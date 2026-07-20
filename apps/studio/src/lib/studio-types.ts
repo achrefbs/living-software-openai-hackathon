@@ -134,6 +134,7 @@ export type Receipt = {
 
 export type StudioEvidenceIdentity = {
   appId: string;
+  snapshotHash: string | null;
   manifestHash: string | null;
   opportunityId: string | null;
   eventSetHash: string | null;

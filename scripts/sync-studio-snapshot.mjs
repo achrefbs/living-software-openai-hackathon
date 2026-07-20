@@ -11,7 +11,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { canonicalJson, runRootCommand } from "@living-software/cli";
+import { canonicalJson, runRootCommand, sha256 } from "@living-software/cli";
 import { parseStudioSnapshot } from "@living-software/contracts";
 
 const REPOSITORY_ROOT = path.resolve(
@@ -21,6 +21,7 @@ const REPOSITORY_ROOT = path.resolve(
 const STUDIO_ROOT = path.join(REPOSITORY_ROOT, "apps", "studio");
 const LOCAL_DIRECTORY = path.join(STUDIO_ROOT, ".local");
 const SNAPSHOT_PATH = path.join(LOCAL_DIRECTORY, "studio-snapshot.json");
+const CONNECTION_PATH = path.join(LOCAL_DIRECTORY, "studio-connection.json");
 
 function usage() {
   return "Usage: npm run studio:sync -- --root <instrumented-next-app>";
@@ -56,6 +57,13 @@ async function assertSafeLocalTarget() {
   if (targetStat !== undefined && (!targetStat.isFile() || targetStat.isSymbolicLink())) {
     throw new TypeError("The existing Studio snapshot must be a regular file");
   }
+  const connectionStat = await optionalStat(CONNECTION_PATH);
+  if (
+    connectionStat !== undefined &&
+    (!connectionStat.isFile() || connectionStat.isSymbolicLink())
+  ) {
+    throw new TypeError("The existing Studio connection must be a regular file");
+  }
 }
 
 export function assertSyntheticSnapshot(snapshot) {
@@ -68,26 +76,51 @@ export function assertSyntheticSnapshot(snapshot) {
 }
 
 export async function syncSnapshot(hostRoot) {
+  const resolvedHostRoot = await realpath(hostRoot);
   const snapshot = assertSyntheticSnapshot(parseStudioSnapshot(
-    await runRootCommand("snapshot", { root: hostRoot }),
+    await runRootCommand("snapshot", { root: resolvedHostRoot }),
   ));
 
   await assertSafeLocalTarget();
   const content = canonicalJson(snapshot, true);
+  const connection = canonicalJson({
+    schemaVersion: "living.studio-local-connection/v1",
+    hostRoot: resolvedHostRoot,
+    appId: snapshot.application.appId,
+    manifestHash: snapshot.application.manifestHash,
+    opportunityId: snapshot.opportunity?.opportunityId ?? null,
+    eventSetHash: snapshot.opportunity?.evidence.eventSetHash ?? null,
+    snapshotHash: sha256(snapshot),
+  }, true);
   const existing = await optionalStat(SNAPSHOT_PATH);
-  if (existing !== undefined && (await readFile(SNAPSHOT_PATH, "utf8")) === content) {
+  const existingConnection = await optionalStat(CONNECTION_PATH);
+  const snapshotUnchanged =
+    existing !== undefined &&
+    (await readFile(SNAPSHOT_PATH, "utf8")) === content;
+  const connectionUnchanged =
+    existingConnection !== undefined &&
+    (await readFile(CONNECTION_PATH, "utf8")) === connection;
+  if (snapshotUnchanged && connectionUnchanged) {
     return { changed: false, snapshot };
   }
 
-  const temporaryPath = path.join(
+  const nonce = `${process.pid}.${Date.now()}`;
+  const temporaryPath = path.join(LOCAL_DIRECTORY, `.studio-snapshot.${nonce}.tmp`);
+  const temporaryConnectionPath = path.join(
     LOCAL_DIRECTORY,
-    `.studio-snapshot.${process.pid}.${Date.now()}.tmp`,
+    `.studio-connection.${nonce}.tmp`,
   );
   try {
     await writeFile(temporaryPath, content, { encoding: "utf8", flag: "wx" });
+    await writeFile(temporaryConnectionPath, connection, {
+      encoding: "utf8",
+      flag: "wx",
+    });
     await rename(temporaryPath, SNAPSHOT_PATH);
+    await rename(temporaryConnectionPath, CONNECTION_PATH);
   } finally {
     await rm(temporaryPath, { force: true });
+    await rm(temporaryConnectionPath, { force: true });
   }
   return { changed: true, snapshot };
 }

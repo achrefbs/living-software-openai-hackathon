@@ -102,6 +102,7 @@ test("an exact proof relation remains a blocked draft with no lifecycle authorit
     app: { ...fixture.app, id: run.evidence.appId },
     evidenceIdentity: {
       appId: run.evidence.appId,
+      snapshotHash: null,
       manifestHash: run.evidence.manifestHash,
       opportunityId: run.evidence.opportunityId,
       eventSetHash: run.evidence.eventSetHash,

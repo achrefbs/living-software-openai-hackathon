@@ -11,10 +11,16 @@ import {
   type CollectorDefinition,
 } from "@living-software/collector";
 import type {
+  Opportunity,
   WorkflowEvent,
   WorkflowEventBatch,
 } from "@living-software/contracts";
 import { parseStudioSnapshot } from "@living-software/contracts";
+import {
+  createIntelligenceClient,
+  IntelligenceResponseError,
+  type IntelligenceTransport,
+} from "@living-software/intelligence";
 import {
   InstallConflictError,
   type InstallPlan,
@@ -22,9 +28,11 @@ import {
 
 import {
   REQUIRED_PRESERVED_PATHS,
+  loadAutomaticEvolutionInput,
   runRootCommand,
   validateRuntimeBindings,
 } from "./root-mode.js";
+import { sha256 } from "./canonical.js";
 
 const CLOCK = () => new Date("2026-07-19T12:00:00.000Z");
 
@@ -302,6 +310,10 @@ test("analyze verifies the evidence chain and produces deterministic workflow ev
   assert.deepEqual(firstSnapshot.workflows.cases[0]?.journeyNodeIds, [binding.nodeId]);
   assert.match(firstSnapshot.workflows.cases[0]?.caseId ?? "", /^case:[a-f0-9]{64}$/u);
   assert.equal(firstSnapshot.opportunity, undefined);
+  await assert.rejects(
+    loadAutomaticEvolutionInput(root),
+    /No deterministic opportunity crossed its threshold/u,
+  );
   const serializedSnapshot = JSON.stringify(firstSnapshot);
   assert.equal(serializedSnapshot.includes(root), false);
   assert.equal(serializedSnapshot.includes(event.eventId), false);
@@ -345,6 +357,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
 
   const collector = createEvidenceCollector({ rootPath: root, definition, clock: CLOCK });
   const rawIdentifiers: string[] = [];
+  const allEvents: WorkflowEvent[] = [];
   for (let caseIndex = 0; caseIndex < 3; caseIndex += 1) {
     const sessionId = `private-session-${caseIndex}`;
     const journey = [firstRoute, secondRoute, firstRoute, secondRoute, firstRoute];
@@ -379,6 +392,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
       sequence: 0,
       events,
     };
+    allEvents.push(...events);
     const response = await collector.handle(
       new Request("http://localhost:3000/api/living/events", {
         method: "POST",
@@ -389,9 +403,53 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
     assert.equal(response.status, 202, JSON.stringify(await response.clone().json()));
   }
 
+  const controlSessionId = "private-session-control";
+  const controlEvents: WorkflowEvent[] = [firstRoute, secondRoute].map(
+    (binding, sequence) => {
+      const eventId = `private-control-event-${sequence}`;
+      rawIdentifiers.push(eventId, controlSessionId, binding.eventName);
+      return {
+        schemaVersion: "living.workflow-event/v1",
+        eventId,
+        appId: definition.application.appId,
+        environment: definition.application.environment,
+        releaseRevision: definition.application.releaseRevision,
+        occurredAt: new Date(
+          Date.parse("2026-07-19T12:01:05.000Z") + sequence * 100,
+        ).toISOString(),
+        sequence,
+        name: binding.eventName,
+        kind: binding.kind,
+        status: "succeeded",
+        sessionId: controlSessionId,
+        product: {
+          manifestHash: definition.application.manifestHash,
+          nodeId: binding.nodeId,
+          ...(binding.surfaceId === undefined ? {} : { surfaceId: binding.surfaceId }),
+        },
+        metadata: { routePhase: "complete" },
+        provenance: { source: "technical-telemetry", synthetic: true },
+      };
+    },
+  );
+  allEvents.push(...controlEvents);
+  const controlResponse = await collector.handle(
+    new Request("http://localhost:3000/api/living/events", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      body: JSON.stringify({
+        schemaVersion: "living.event-batch/v1",
+        sequence: 0,
+        events: controlEvents,
+      } satisfies WorkflowEventBatch),
+    }),
+  );
+  assert.equal(controlResponse.status, 202, JSON.stringify(await controlResponse.clone().json()));
+
   const snapshot = parseStudioSnapshot(await runRootCommand("snapshot", { root }));
-  assert.equal(snapshot.workflows.cases.length, 3);
-  assert.equal(snapshot.workflows.variants.length, 1);
+  assert.equal(snapshot.evidence.events, 17);
+  assert.equal(snapshot.workflows.cases.length, 4);
+  assert.equal(snapshot.workflows.variants.length, 2);
   assert.equal(snapshot.workflows.variants[0]?.caseCount, 3);
   assert.deepEqual(
     snapshot.workflows.variants[0]?.journeyNodeIds,
@@ -406,6 +464,134 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
   for (const rawIdentifier of rawIdentifiers) {
     assert.equal(serialized.includes(rawIdentifier), false, rawIdentifier);
   }
+
+  const evolutionInput = await loadAutomaticEvolutionInput(root);
+  assert.equal(evolutionInput.snapshotHash, sha256(snapshot));
+  assert.equal(allEvents.length, 17);
+  assert.equal(evolutionInput.evidenceEvents.length, 15);
+  assert.ok(
+    evolutionInput.evidenceEvents.every(
+      (candidate) => candidate.sessionId !== controlSessionId,
+    ),
+  );
+  assert.equal(
+    new Set(evolutionInput.evidenceEvents.map((candidate) => candidate.sessionId)).size,
+    evolutionInput.opportunity.evidence.sessionCount,
+  );
+
+  let transportCalls = 0;
+  const transport: IntelligenceTransport = {
+    kind: "responses-api",
+    async send() {
+      transportCalls += 1;
+      return { status: 503, body: { error: "test-stop-after-validation" } };
+    },
+  };
+  const intelligence = createIntelligenceClient(transport);
+  await assert.rejects(
+    intelligence.draftEvolutionBrief({
+      opportunity: evolutionInput.opportunity,
+      manifest: evolutionInput.manifest,
+      evidenceEvents: allEvents,
+    }),
+    /eventSetHash/u,
+  );
+  const wrongSessionCount: Opportunity = {
+    ...evolutionInput.opportunity,
+    evidence: {
+      ...evolutionInput.opportunity.evidence,
+      sessionCount: evolutionInput.opportunity.evidence.sessionCount + 1,
+    },
+  };
+  await assert.rejects(
+    intelligence.draftEvolutionBrief({
+      opportunity: wrongSessionCount,
+      manifest: evolutionInput.manifest,
+      evidenceEvents: evolutionInput.evidenceEvents,
+    }),
+    /sessionCount/u,
+  );
+  const wrongSubjectCount: Opportunity = {
+    ...evolutionInput.opportunity,
+    evidence: {
+      ...evolutionInput.opportunity.evidence,
+      subjectCount: evolutionInput.opportunity.evidence.subjectCount + 1,
+    },
+  };
+  await assert.rejects(
+    intelligence.draftEvolutionBrief({
+      opportunity: wrongSubjectCount,
+      manifest: evolutionInput.manifest,
+      evidenceEvents: evolutionInput.evidenceEvents,
+    }),
+    /subjectCount/u,
+  );
+  assert.equal(transportCalls, 0);
+  await assert.rejects(
+    intelligence.draftEvolutionBrief({
+      opportunity: evolutionInput.opportunity,
+      manifest: evolutionInput.manifest,
+      evidenceEvents: evolutionInput.evidenceEvents,
+    }),
+    (error: unknown) =>
+      error instanceof IntelligenceResponseError && error.code === "http_error",
+  );
+  assert.equal(transportCalls, 1);
+
+  const lateControlSessionId = "private-session-control-late";
+  const lateControlEvents: WorkflowEvent[] = [firstRoute, secondRoute].map(
+    (binding, sequence) => ({
+      schemaVersion: "living.workflow-event/v1",
+      eventId: `private-control-late-event-${sequence}`,
+      appId: definition.application.appId,
+      environment: definition.application.environment,
+      releaseRevision: definition.application.releaseRevision,
+      occurredAt: new Date(
+        Date.parse("2026-07-19T12:01:15.000Z") + sequence * 100,
+      ).toISOString(),
+      sequence,
+      name: binding.eventName,
+      kind: binding.kind,
+      status: "succeeded",
+      sessionId: lateControlSessionId,
+      product: {
+        manifestHash: definition.application.manifestHash,
+        nodeId: binding.nodeId,
+        ...(binding.surfaceId === undefined ? {} : { surfaceId: binding.surfaceId }),
+      },
+      metadata: { routePhase: "complete" },
+      provenance: { source: "technical-telemetry", synthetic: true },
+    }),
+  );
+  const lateControlResponse = await collector.handle(
+    new Request("http://localhost:3000/api/living/events", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "http://localhost:3000" },
+      body: JSON.stringify({
+        schemaVersion: "living.event-batch/v1",
+        sequence: 0,
+        events: lateControlEvents,
+      } satisfies WorkflowEventBatch),
+    }),
+  );
+  assert.equal(
+    lateControlResponse.status,
+    202,
+    JSON.stringify(await lateControlResponse.clone().json()),
+  );
+
+  const driftedInput = await loadAutomaticEvolutionInput(root);
+  assert.equal(
+    driftedInput.opportunity.opportunityId,
+    evolutionInput.opportunity.opportunityId,
+  );
+  assert.equal(
+    driftedInput.opportunity.evidence.eventSetHash,
+    evolutionInput.opportunity.evidence.eventSetHash,
+  );
+  assert.deepEqual(driftedInput.evidenceEvents, evolutionInput.evidenceEvents);
+  assert.notEqual(driftedInput.snapshotHash, evolutionInput.snapshotHash);
+  assert.equal(transportCalls, 1, "snapshot drift must not require a model call");
 });
 
 test("uninstall preserves evidence policy files and permits a clean reinstall", async (t) => {

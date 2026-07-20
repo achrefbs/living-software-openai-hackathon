@@ -53,3 +53,24 @@ test("journey map summary counts only explorable product nodes", () => {
     "2 explorable capabilities",
   );
 });
+
+test("a connected captured opportunity makes Review current without claiming approval", () => {
+  const fixture = fixtureStudioDataset();
+  const dataset = {
+    ...fixture,
+    app: {
+      ...fixture.app,
+      connection: "captured_snapshot" as const,
+    },
+    evolution: null,
+    receipts: null,
+  };
+
+  const stages = journeyStages(dataset);
+  assert.equal(stages[2]?.status, "complete");
+  assert.equal(stages[3]?.status, "current");
+  assert.equal(stages[3]?.summary, "Connected review available");
+  assert.equal(stages[4]?.status, "locked");
+  assert.equal(stages[4]?.summary, "Live receipts appear in Review");
+  assert.equal(nextAction(dataset).stageId, "evolutions");
+});

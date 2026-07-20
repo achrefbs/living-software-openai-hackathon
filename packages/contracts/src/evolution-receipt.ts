@@ -12,6 +12,7 @@ export const receiptKindSchema = z.enum([
   "hypothesis.created",
   "contract.confirmed",
   "artifact.generated",
+  "artifact.compiled",
   "proof.completed",
   "activation.approved",
   "installation.activated",
@@ -112,11 +113,23 @@ export const evolutionReceiptSchema = z
       });
     }
 
+    if (
+      receipt.kind === "artifact.compiled" &&
+      receipt.actor.type !== "system"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["actor"],
+        message: "Deterministically compiled artifacts require a system actor",
+      });
+    }
+
     const requiredRefs: Partial<Record<ReceiptKind, Array<keyof typeof receipt.refs>>> = {
       "opportunity.detected": ["manifestHash", "opportunityHash"],
       "hypothesis.created": ["opportunityHash"],
       "contract.confirmed": ["opportunityHash", "contractHash"],
       "artifact.generated": ["contractHash", "artifactHash"],
+      "artifact.compiled": ["contractHash", "artifactHash"],
       "proof.completed": ["contractHash", "artifactHash", "proofHash"],
       "activation.approved": ["contractHash", "artifactHash", "proofHash"],
       "installation.activated": ["contractHash", "artifactHash", "proofHash"],

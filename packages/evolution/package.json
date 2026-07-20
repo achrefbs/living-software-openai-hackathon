@@ -1,13 +1,10 @@
 {
-  "name": "@living-software/cli",
+  "name": "@living-software/evolution",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Safe discovery, installation, diagnosis, and analysis CLI for Living Software hosts.",
+  "description": "Bounded, deterministic, human-approved source evolution for Living Software.",
   "license": "MIT",
-  "bin": {
-    "living": "./dist/main.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -15,7 +12,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -23,15 +21,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@living-software/automatic": "0.1.0",
-    "@living-software/collector": "0.1.0",
     "@living-software/contracts": "0.1.0",
-    "@living-software/discovery": "0.1.0",
-    "@living-software/installer": "0.1.0"
+    "@living-software/core": "0.1.0",
+    "zod": "4.1.12"
   },
   "devDependencies": {
-    "@living-software/intelligence": "0.1.0",
-    "@types/node": "24.10.1",
+    "@types/node": "24.13.3",
     "tsx": "4.20.6",
     "typescript": "5.9.3"
   }

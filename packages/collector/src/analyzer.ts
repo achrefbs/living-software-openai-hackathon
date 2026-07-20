@@ -4,7 +4,7 @@ import {
   type WorkflowEvent,
 } from "@living-software/contracts";
 import {
-  detectBacktrackingOpportunity,
+  detectBacktrackingOpportunityWithEvidence,
   projectWorkflowCases,
   projectWorkflowVariants,
 } from "@living-software/core";
@@ -58,7 +58,7 @@ export function analyzeEvidenceRecords(
     },
     values: buildMetricValues(events, workflowCases, workflowVariants),
   });
-  const opportunity = detectBacktrackingOpportunity({
+  const opportunityDetection = detectBacktrackingOpportunityWithEvidence({
     events,
     manifestHash: definition.application.manifestHash,
     evidenceUri: `living://evidence/${chainHead.slice(7)}`,
@@ -70,7 +70,9 @@ export function analyzeEvidenceRecords(
     workflowCases: Object.freeze(workflowCases),
     workflowVariants: Object.freeze(workflowVariants),
     metricReport,
-    opportunity,
+    opportunity: opportunityDetection?.opportunity ?? null,
+    opportunityEvidenceEvents:
+      opportunityDetection?.evidenceEvents ?? Object.freeze([]),
     chainHead,
   });
 }

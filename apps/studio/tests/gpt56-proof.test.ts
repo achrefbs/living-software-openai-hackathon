@@ -70,6 +70,7 @@ test("relates a run only when app, manifest, opportunity, and event set all matc
   const run = await getCommittedGpt56Run();
   const dataset = datasetWithIdentity({
     appId: run.evidence.appId,
+    snapshotHash: null,
     manifestHash: run.evidence.manifestHash,
     opportunityId: run.evidence.opportunityId,
     eventSetHash: run.evidence.eventSetHash,
@@ -97,6 +98,7 @@ test("treats every missing or mismatched identity component as separate", async 
   const run = await getCommittedGpt56Run();
   const exact: StudioEvidenceIdentity = {
     appId: run.evidence.appId,
+    snapshotHash: null,
     manifestHash: run.evidence.manifestHash,
     opportunityId: run.evidence.opportunityId,
     eventSetHash: run.evidence.eventSetHash,
@@ -173,6 +175,7 @@ test("relation-aware page copy never grants lifecycle authority", async () => {
     run,
     datasetWithIdentity({
       appId: run.evidence.appId,
+      snapshotHash: null,
       manifestHash: run.evidence.manifestHash,
       opportunityId: run.evidence.opportunityId,
       eventSetHash: run.evidence.eventSetHash,

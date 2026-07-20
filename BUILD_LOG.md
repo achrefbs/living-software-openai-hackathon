@@ -452,6 +452,46 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-20 - Add one operator-governed source-evolution path
+
+**Scope**
+
+- Added an exact captured-host connection beside Studio's minimized snapshot. The local broker revalidates the app, snapshot, manifest, opportunity, and event-set identities before exposing any lifecycle state or accepting a command.
+- Connected the existing authenticated Codex CLI / Responses API provider toggle to captured-evidence preparation. GPT-5.6 produces a strict evidence interpretation only; it does not select the source target or return executable code.
+- Added the deterministic `next-crm-lead-review-navigation/v1` adapter. Its entire source authority is one installed Next.js host file, `src/app/leads/[id]/page.tsx`, and its candidate adds Previous/Next lead-review navigation for a deterministic backtracking opportunity.
+- Added prepared, approved, applied, and rolled-back lifecycle states with exact artifact/proof hashes, an operator-supplied audit label, revision checks, a hash-linked receipt trail, bounded source transactions, and exact preimage/postimage gates. The label is not authenticated identity.
+- Added Studio controls that keep GPT-5.6 interpretation visibly separate from the deterministic source candidate, show a bounded diff and static proof, require exact-hash operator approval, label source application separately from runtime verification, and expose explicit rollback.
+- Kept neutral fixture and unmatched committed-proof states read-only. A rolled-back state is terminal for the same evidence, and measurement-after-change remains unimplemented.
+
+**How Codex accelerated the work**
+
+- Codex designed and implemented the installed-host input boundary, source-evolution contracts and engine, deterministic adapter, local Studio broker, UI lifecycle, receipts, concurrency/recovery guards, tests, and documentation.
+- Parallel Codex reviews audited the independent CRM seam, evidence identity, stale-snapshot behavior, approval authority, diff bounds, polling concurrency, source transaction safety, and truthful UI language.
+
+**How GPT-5.6 was used**
+
+- The new prepare path can use either the explicitly selected authenticated Codex CLI transport (`gpt-5.6-terra`) or Responses API transport (`gpt-5.6`) to interpret the exact bounded evidence.
+- A real CRM-bound Codex CLI Prepare completed as thread `019f7fc2-e97a-74f2-8705-ea02ef4bb517`, requesting `gpt-5.6-terra` with 24,027 input tokens, 959 output tokens, and 91 reasoning-output tokens. The validated interpretation is titled “Preserve lead-list context when returning from a lead.”
+- Deterministic code compiled prepared evolution `evolution.source.7f3455d8686daf440c10fcdf`, artifact `sha256:09261a230f93d5f34a53871000b902ffe2ec72aed812ed177619b57e0b334e3e`, and static proof `sha256:e215a0ae94b8cf259e339129810c8d878ca9254fb6769f3c16a9ae96e9860757`. Approval and application remain null.
+- GPT-5.6 has no patch-generation, approval, apply, rollback, network, process, Git, or secret authority in this lifecycle.
+
+**Human decisions**
+
+- Prove one useful lead-review change instead of claiming arbitrary self-modification.
+- Require an operator-supplied audit label and confirmation of the exact artifact and proof hashes before source application; do not represent the label as authenticated identity.
+- Treat source application, host hot reload/rebuild, and browser runtime verification as separate facts.
+- Require newly captured evidence after rollback and defer automatic post-change measurement.
+
+**Evidence**
+
+- Public independent host: `https://github.com/achrefbs/crm-workflow-lab.git`, tested clean revision `843331c`. Living's generated instrumentation is intentionally not committed there.
+- Current gitignored synthetic-only CRM input: three cases, three variants, 135 captured events, and 18 backtracking revisits across all three cases.
+- The detector now hands intelligence the exact 46-event supporting subset; a 17-event regression fixture proves that only its 15 affected events cross the boundary, while the full set and tampered counts fail before transport.
+- The CRM now contains one gitignored prepared state with four hash-linked receipts and a passing deterministic proof. Its target remains the exact preimage `sha256:e37b5c1bb7fe8665fd2d4dd313859e5cfa86256d1040afd07ade3117dfb1d5ab`; no approval, source application, hot-reload verification, or rollback is claimed by this entry.
+- Adversarial lifecycle verification passes 17/17 tests, including forged approval, lifecycle-pointer substitution, install drift, untrusted lock-path traversal, concurrent approval, every apply crash point, rollback crash recovery, and exact rollback. CLI passes 19/19, Studio passes 31/31 plus typecheck, the repository-wide test gate passes, and the full production build succeeds.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome
