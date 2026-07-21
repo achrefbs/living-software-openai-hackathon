@@ -6,6 +6,7 @@ import {
   prepareSourceEvolution,
   rollbackSourceEvolution,
   type PrepareSourceEvolutionInput,
+  type SourceEvolutionProgressObserver,
   type SourceEvolutionState,
   type SourceEvolutionSummary,
   sourcePatchModelProvenanceSchema,
@@ -14,6 +15,7 @@ import {
 import {
   gpt56EvolutionBriefSchema,
   intelligenceProvenanceSchema,
+  parseInstallRecord,
 } from "@living-software/contracts";
 import {
   createCodexCliTransport,
@@ -21,7 +23,10 @@ import {
   createIntelligenceClient,
   type DraftEvolutionBriefResult,
   type DraftSourcePatchResult,
+  type IntelligenceLifecycleEvent,
+  type IntelligenceLifecycleReporter,
   type IntelligenceClient,
+  type IntelligenceTokenUsage,
 } from "@living-software/intelligence";
 import { isDeepStrictEqual } from "node:util";
 
@@ -95,11 +100,113 @@ export type TerminalResult = Readonly<
   }
 >;
 
+export type TerminalModelOperation = "interpretation" | "source-patch";
+
+/**
+ * Safe, closed lifecycle metadata for the terminal-first improve path. Model
+ * prompts, response text, reasoning, source content, stdout, and stderr are
+ * deliberately absent.
+ */
+export type TerminalLifecycleEvent =
+  | Readonly<{
+      type: "evidence.package.validated";
+      appId: string;
+      manifestHash: string;
+      opportunityId: string;
+      eventSetHash: string;
+      dataOrigin: AutomaticEvolutionInput["application"]["dataOrigin"];
+    }>
+  | Readonly<{
+      type: "proposal.reused";
+      summary: "Existing evidence-bound proposal reused";
+      evolutionId: string;
+      status: SourceEvolutionState["status"];
+      artifactHash: string;
+      proofHash: string;
+      receiptCount: number;
+    }>
+  | Readonly<{
+      type: "model.request.dispatched";
+      operation: TerminalModelOperation;
+      transport: IntelligenceLifecycleEvent["transport"];
+    }>
+  | Readonly<{
+      type: "model.thread.started";
+      operation: TerminalModelOperation;
+      transport: "codex-cli";
+      threadId: string;
+    }>
+  | Readonly<{
+      type: "model.turn.started";
+      operation: TerminalModelOperation;
+      transport: "codex-cli";
+      threadId: string;
+    }>
+  | Readonly<{
+      type: "model.turn.completed";
+      operation: TerminalModelOperation;
+      transport: "codex-cli";
+      threadId: string;
+      tokenUsage: IntelligenceTokenUsage;
+    }>
+  | Readonly<{
+      type: "model.result.validated";
+      operation: TerminalModelOperation;
+      transport: DraftEvolutionBriefResult["provenance"]["transport"];
+      runId: string | null;
+      tokenUsage: IntelligenceTokenUsage | null;
+    }>
+  | Readonly<{
+      type: "source-candidates.selected";
+      count: number;
+      candidates: readonly Readonly<{
+        path: string;
+        preimageHash: string;
+      }>[];
+    }>
+  | Readonly<{
+      type: "evolution.preparation.started";
+      proposalId: string;
+      targetPath: string;
+      preimageHash: string;
+    }>
+  | Readonly<{
+      type: "evolution.prepared";
+      evolutionId: string;
+      targetPath: string;
+      artifactHash: string;
+      proofHash: string;
+      preimageHash: string;
+      postimageHash: string;
+      proofChecks: readonly Readonly<{
+        id: string;
+        status: "passed" | "failed";
+      }>[];
+      receiptCount: number;
+      chainHead: string;
+    }>;
+
+export type TerminalLifecycleReporter = (
+  event: TerminalLifecycleEvent,
+) => void;
+
+export type TerminalRunOptions = Readonly<{
+  lifecycleReporter?: TerminalLifecycleReporter;
+  evolutionProgressObserver?: SourceEvolutionProgressObserver;
+}>;
+
+export type TerminalIntelligenceOptions = Readonly<{
+  lifecycleReporter?: IntelligenceLifecycleReporter;
+}>;
+
 export type TerminalDependencies = Readonly<{
   runRoot: typeof runRootCommand;
   loadEvolutionInput: typeof loadAutomaticEvolutionInput;
   collectCandidates: typeof collectSourceCandidates;
-  createIntelligence(provider: TerminalProvider): IntelligenceClient;
+  createIntelligence(
+    provider: TerminalProvider,
+    options?: TerminalIntelligenceOptions,
+  ): IntelligenceClient;
   prepareEvolution(input: PrepareSourceEvolutionInput): Promise<SourceEvolutionState>;
   approveEvolution: typeof approveSourceEvolution;
   applyEvolution: typeof applySourceEvolution;
@@ -112,7 +219,7 @@ const defaultDependencies: TerminalDependencies = {
   runRoot: runRootCommand,
   loadEvolutionInput: loadAutomaticEvolutionInput,
   collectCandidates: collectSourceCandidates,
-  createIntelligence(provider) {
+  createIntelligence(provider, options = {}) {
     return createIntelligenceClient(
       provider === "codex"
         ? createCodexCliTransport()
@@ -120,6 +227,9 @@ const defaultDependencies: TerminalDependencies = {
       {
         timeoutMs: 120_000,
         maxPatchOutputTokens: 8_000,
+        ...(options.lifecycleReporter === undefined
+          ? {}
+          : { lifecycleReporter: options.lifecycleReporter }),
       },
     );
   },
@@ -146,6 +256,93 @@ function result(
   });
 }
 
+function reportTerminalLifecycle(
+  reporter: TerminalLifecycleReporter | undefined,
+  event: TerminalLifecycleEvent,
+): void {
+  if (reporter === undefined) return;
+  try {
+    const reported = reporter(Object.freeze(event));
+    void Promise.resolve(reported).catch(() => undefined);
+  } catch {
+    // Reporting is observational and must never alter lifecycle authority.
+  }
+}
+
+function lifecycleTokenUsage(
+  value: IntelligenceTokenUsage,
+): IntelligenceTokenUsage;
+function lifecycleTokenUsage(value: null): null;
+function lifecycleTokenUsage(
+  value: IntelligenceTokenUsage | null,
+): IntelligenceTokenUsage | null;
+function lifecycleTokenUsage(
+  value: IntelligenceTokenUsage | null,
+): IntelligenceTokenUsage | null {
+  return value === null
+    ? null
+    : Object.freeze({
+        inputTokens: value.inputTokens,
+        cachedInputTokens: value.cachedInputTokens,
+        outputTokens: value.outputTokens,
+        reasoningOutputTokens: value.reasoningOutputTokens,
+      });
+}
+
+function lifecycleRunId(value: string | null): string | null {
+  return value !== null && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u.test(value)
+    ? value
+    : null;
+}
+
+function modelOperation(
+  schemaName: IntelligenceLifecycleEvent["schemaName"],
+): TerminalModelOperation {
+  return schemaName === "living_evolution_brief"
+    ? "interpretation"
+    : "source-patch";
+}
+
+function reportIntelligenceToTerminal(
+  reporter: TerminalLifecycleReporter | undefined,
+  event: IntelligenceLifecycleEvent,
+): void {
+  const operation = modelOperation(event.schemaName);
+  switch (event.type) {
+    case "request.dispatched":
+      reportTerminalLifecycle(reporter, {
+        type: "model.request.dispatched",
+        operation,
+        transport: event.transport,
+      });
+      return;
+    case "thread.started":
+      reportTerminalLifecycle(reporter, {
+        type: "model.thread.started",
+        operation,
+        transport: "codex-cli",
+        threadId: event.threadId,
+      });
+      return;
+    case "turn.started":
+      reportTerminalLifecycle(reporter, {
+        type: "model.turn.started",
+        operation,
+        transport: "codex-cli",
+        threadId: event.threadId,
+      });
+      return;
+    case "turn.completed":
+      reportTerminalLifecycle(reporter, {
+        type: "model.turn.completed",
+        operation,
+        transport: "codex-cli",
+        threadId: event.threadId,
+        tokenUsage: lifecycleTokenUsage(event.tokenUsage),
+      });
+  }
+}
+
 function quote(value: string): string {
   return JSON.stringify(value);
 }
@@ -170,12 +367,12 @@ function nextCommand(
       const proofHash = "proof" in state
         ? state.proof.proofHash
         : state.proofHash;
-      return `living approve --root ${quote(root)} --evolution ${state.evolutionId} --actor <actor> --artifact-hash ${artifactHash} --proof-hash ${proofHash} --apply`;
+      return `npm run living -- approve --root ${quote(root)} --evolution ${state.evolutionId} --actor hackathon-demo --artifact-hash ${artifactHash} --proof-hash ${proofHash} --apply`;
     }
     case "approved":
-      return `living apply --root ${quote(root)} --evolution ${state.evolutionId}`;
+      return `npm run living -- apply --root ${quote(root)} --evolution ${state.evolutionId}`;
     case "applied":
-      return `living rollback --root ${quote(root)} --evolution ${state.evolutionId} --actor <actor>`;
+      return `npm run living -- rollback --root ${quote(root)} --evolution ${state.evolutionId} --actor hackathon-demo`;
     case "rolled-back":
       return undefined;
   }
@@ -385,6 +582,7 @@ async function install(
     | Readonly<{
         manifest?: Readonly<{
           appId?: string;
+          contentHash?: string;
           nodes?: readonly unknown[];
           edges?: readonly unknown[];
         }>;
@@ -392,22 +590,47 @@ async function install(
       }>
     | undefined;
   const installResult = installed.result as
-    | Readonly<{ status?: string }>
+    | Readonly<{ status?: string; record?: unknown }>
     | undefined;
+  if (
+    discovery?.manifest?.appId === undefined ||
+    discovery.manifest.contentHash === undefined ||
+    (installResult?.status !== "installed" &&
+      installResult?.status !== "unchanged") ||
+    installResult.record === undefined
+  ) {
+    throw new TypeError(
+      "Installation did not return a validated public install result",
+    );
+  }
+  const installRecord = parseInstallRecord(installResult.record);
+  if (
+    installRecord.appId !== discovery.manifest.appId ||
+    installRecord.manifestHash !== discovery.manifest.contentHash
+  ) {
+    throw new TypeError(
+      "Installed record identity does not match the discovered application",
+    );
+  }
   const application = {
-    appId: discovery?.manifest?.appId ?? "unknown",
-    nodes: discovery?.manifest?.nodes?.length ?? 0,
-    edges: discovery?.manifest?.edges?.length ?? 0,
+    appId: discovery.manifest.appId,
+    nodes: discovery.manifest.nodes?.length ?? 0,
+    edges: discovery.manifest.edges?.length ?? 0,
   };
   return result(
     "install",
-    installResult?.status ?? "installed",
+    installResult.status,
     "Living Software is installed and observation is ready.",
     {
       root: installed.root,
       synthetic: args.synthetic,
       application,
-      nextCommand: `living improve --root ${quote(args.rootPath)} --provider codex`,
+      installRecord: {
+        installId: installRecord.installId,
+        manifestHash: installRecord.manifestHash,
+        mutationPolicy: installRecord.mutationPolicy,
+      },
+      nextCommand: `npm run living -- improve --root ${quote(args.rootPath)} --provider codex`,
     },
   );
 }
@@ -415,8 +638,17 @@ async function install(
 async function improve(
   args: ImproveArguments,
   dependencies: TerminalDependencies,
+  options: TerminalRunOptions,
 ): Promise<TerminalResult> {
   const input = await dependencies.loadEvolutionInput(args.rootPath);
+  reportTerminalLifecycle(options.lifecycleReporter, {
+    type: "evidence.package.validated",
+    appId: input.application.appId,
+    manifestHash: input.application.manifestHash,
+    opportunityId: input.opportunity.opportunityId,
+    eventSetHash: input.opportunity.evidence.eventSetHash,
+    dataOrigin: input.application.dataOrigin,
+  });
   const summaries = [...await dependencies.listEvolutions(args.rootPath)].sort(
     (left, right) => right.updatedAt.localeCompare(left.updatedAt),
   );
@@ -442,10 +674,19 @@ async function improve(
         "This evidence already produced a rolled-back evolution. Capture new workflow evidence before improving again.",
       );
     }
+    reportTerminalLifecycle(options.lifecycleReporter, {
+      type: "proposal.reused",
+      summary: "Existing evidence-bound proposal reused",
+      evolutionId: existing.evolutionId,
+      status: existing.status,
+      artifactHash: existing.artifact.contentHash,
+      proofHash: existing.proof.proofHash,
+      receiptCount: existing.receiptCount,
+    });
     return result(
       "improve",
       existing.status,
-      "The exact evidence already has a governed improvement; no model call was repeated.",
+      "Existing evidence-bound proposal reused. No model call was made.",
       {
         root: input.root,
         reused: true,
@@ -466,11 +707,23 @@ async function improve(
     );
   }
 
-  const intelligence = dependencies.createIntelligence(args.provider);
+  const intelligence = dependencies.createIntelligence(args.provider, {
+    lifecycleReporter: (event) =>
+      reportIntelligenceToTerminal(options.lifecycleReporter, event),
+  });
   const brief = await intelligence.draftEvolutionBrief({
     manifest: input.manifest,
     opportunity: input.opportunity,
     evidenceEvents: input.evidenceEvents,
+  });
+  reportTerminalLifecycle(options.lifecycleReporter, {
+    type: "model.result.validated",
+    operation: "interpretation",
+    transport: brief.provenance.transport,
+    runId: lifecycleRunId(
+      brief.provenance.codexThreadId ?? brief.provenance.responseId,
+    ),
+    tokenUsage: lifecycleTokenUsage(brief.provenance.tokenUsage),
   });
   const candidates = await dependencies.collectCandidates({
     repositoryRoot: input.root,
@@ -480,9 +733,30 @@ async function improve(
         brief.draft.proposedChange.affectedProductNodeIds,
     },
   });
+  reportTerminalLifecycle(options.lifecycleReporter, {
+    type: "source-candidates.selected",
+    count: candidates.length,
+    candidates: Object.freeze(
+      candidates.map((candidate) =>
+        Object.freeze({
+          path: candidate.path,
+          preimageHash: candidate.preimageHash,
+        })
+      ),
+    ),
+  });
   const patch = await intelligence.draftSourcePatch({
     brief: brief.draft,
     candidates,
+  });
+  reportTerminalLifecycle(options.lifecycleReporter, {
+    type: "model.result.validated",
+    operation: "source-patch",
+    transport: patch.provenance.transport,
+    runId: lifecycleRunId(
+      patch.provenance.codexThreadId ?? patch.provenance.responseId,
+    ),
+    tokenUsage: lifecycleTokenUsage(patch.provenance.tokenUsage),
   });
   const target = candidates.find(
     (candidate: SourceCandidate) =>
@@ -502,6 +776,12 @@ async function improve(
     "prepare",
   );
 
+  reportTerminalLifecycle(options.lifecycleReporter, {
+    type: "evolution.preparation.started",
+    proposalId: patch.proposal.proposalId,
+    targetPath: target.path,
+    preimageHash: target.preimageHash,
+  });
   const state = await dependencies.prepareEvolution({
     root: input.root,
     app: input.application,
@@ -519,6 +799,25 @@ async function improve(
       path: target.path,
       preimage: target.content,
     },
+    ...(options.evolutionProgressObserver === undefined
+      ? {}
+      : { progress: options.evolutionProgressObserver }),
+  });
+  reportTerminalLifecycle(options.lifecycleReporter, {
+    type: "evolution.prepared",
+    evolutionId: state.evolutionId,
+    targetPath: state.artifact.target.path,
+    artifactHash: state.artifact.contentHash,
+    proofHash: state.proof.proofHash,
+    preimageHash: state.artifact.target.preimageHash,
+    postimageHash: state.artifact.target.postimageHash,
+    proofChecks: Object.freeze(
+      state.proof.checks.map((check) =>
+        Object.freeze({ id: check.id, status: check.status })
+      ),
+    ),
+    receiptCount: state.receiptCount,
+    chainHead: state.chainHead,
   });
   return result(
     "improve",
@@ -606,8 +905,8 @@ async function status(
       ...(newest === undefined
         ? {
             nextCommand: installed
-              ? `living improve --root ${quote(args.rootPath)} --provider codex`
-              : `living install --root ${quote(args.rootPath)}`,
+              ? `npm run living -- improve --root ${quote(args.rootPath)} --provider codex`
+              : `npm run living -- install --root ${quote(args.rootPath)}`,
           }
         : {
             nextCommand: nextCommand(args.rootPath, newest),
@@ -619,6 +918,7 @@ async function status(
 async function lifecycle(
   args: ApproveArguments | ApplyArguments | RollbackArguments,
   dependencies: TerminalDependencies,
+  options: TerminalRunOptions,
 ): Promise<TerminalResult> {
   const current = await dependencies.getEvolution(
     args.rootPath,
@@ -640,6 +940,9 @@ async function lifecycle(
       expectedArtifactHash: args.expectedArtifactHash,
       expectedProofHash: args.expectedProofHash,
       expectedRevision: current.receiptCount,
+      ...(options.evolutionProgressObserver === undefined
+        ? {}
+        : { progress: options.evolutionProgressObserver }),
     });
     if (args.applyAfterApproval) {
       await assertNoConflictingActiveEvolution(
@@ -653,6 +956,9 @@ async function lifecycle(
           root: args.rootPath,
           evolutionId: approved.evolutionId,
           expectedRevision: approved.receiptCount,
+          ...(options.evolutionProgressObserver === undefined
+            ? {}
+            : { progress: options.evolutionProgressObserver }),
         });
     } else {
       updated = approved;
@@ -669,6 +975,9 @@ async function lifecycle(
       root: args.rootPath,
       evolutionId: current.evolutionId,
       expectedRevision: current.receiptCount,
+      ...(options.evolutionProgressObserver === undefined
+        ? {}
+        : { progress: options.evolutionProgressObserver }),
     });
   } else {
     updated = await dependencies.rollbackEvolution({
@@ -676,6 +985,9 @@ async function lifecycle(
       evolutionId: current.evolutionId,
       humanId: args.actor,
       expectedRevision: current.receiptCount,
+      ...(options.evolutionProgressObserver === undefined
+        ? {}
+        : { progress: options.evolutionProgressObserver }),
     });
   }
   const messages = {
@@ -697,6 +1009,7 @@ async function lifecycle(
 export async function runTerminalCommand(
   args: TerminalArguments,
   overrides: Partial<TerminalDependencies> = {},
+  options: TerminalRunOptions = {},
 ): Promise<TerminalResult> {
   const dependencies: TerminalDependencies = {
     ...defaultDependencies,
@@ -706,13 +1019,13 @@ export async function runTerminalCommand(
     case "install":
       return install(args, dependencies);
     case "improve":
-      return improve(args, dependencies);
+      return improve(args, dependencies, options);
     case "status":
       return status(args, dependencies);
     case "approve":
     case "apply":
     case "rollback":
-      return lifecycle(args, dependencies);
+      return lifecycle(args, dependencies, options);
   }
 }
 

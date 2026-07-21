@@ -71,6 +71,143 @@ const ENGINE_ACTOR = {
 
 type Clock = () => Date;
 
+export type SourceEvolutionProgressEvent =
+  | Readonly<{
+      stage: "prepare.compilation-started";
+      evolutionId: string;
+      targetPath: string;
+      preimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "prepare.proof-started";
+      evolutionId: string;
+      targetPath: string;
+      artifactHash: Sha256;
+      preimageHash: Sha256;
+      postimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "prepare.proof-check-completed";
+      evolutionId: string;
+      artifactHash: Sha256;
+      proofHash: Sha256;
+      checkId: (typeof SOURCE_EVOLUTION_TESTS)[number];
+      detail: string;
+    }>
+  | Readonly<{
+      stage: "prepare.persisted";
+      evolutionId: string;
+      revision: number;
+      chainHead: Sha256;
+      artifactHash: Sha256;
+      proofHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "approve.hashes-selected";
+      evolutionId: string;
+      revision: number;
+      humanId: string;
+      contractHash: Sha256;
+      artifactHash: Sha256;
+      proofHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "approve.receipts-persisted";
+      evolutionId: string;
+      revision: number;
+      humanId: string;
+      chainHead: Sha256;
+      approvalReceiptHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "apply.artifact-selected";
+      evolutionId: string;
+      revision: number;
+      targetPath: string;
+      artifactHash: Sha256;
+      preimageHash: Sha256;
+      postimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "apply.preimage-verified";
+      evolutionId: string;
+      targetPath: string;
+      preimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "apply.postimage-written";
+      evolutionId: string;
+      targetPath: string;
+      postimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "apply.receipt-state-persisted";
+      evolutionId: string;
+      revision: number;
+      chainHead: Sha256;
+      receiptHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "apply.hash-transition-completed";
+      evolutionId: string;
+      targetPath: string;
+      fromHash: Sha256;
+      toHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "rollback.artifact-selected";
+      evolutionId: string;
+      revision: number;
+      targetPath: string;
+      artifactHash: Sha256;
+      postimageHash: Sha256;
+      preimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "rollback.postimage-verified";
+      evolutionId: string;
+      targetPath: string;
+      postimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "rollback.preimage-written";
+      evolutionId: string;
+      targetPath: string;
+      preimageHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "rollback.receipt-state-persisted";
+      evolutionId: string;
+      revision: number;
+      chainHead: Sha256;
+      receiptHash: Sha256;
+    }>
+  | Readonly<{
+      stage: "rollback.hash-transition-completed";
+      evolutionId: string;
+      targetPath: string;
+      fromHash: Sha256;
+      toHash: Sha256;
+    }>;
+
+export type SourceEvolutionProgressObserver = (
+  event: SourceEvolutionProgressEvent,
+) => unknown;
+
+function observeProgress(
+  observer: SourceEvolutionProgressObserver | undefined,
+  event: SourceEvolutionProgressEvent,
+): void {
+  if (observer === undefined) return;
+  try {
+    const result = observer(Object.freeze({ ...event }));
+    void Promise.resolve(result).catch(() => undefined);
+  } catch {
+    // Progress is deliberately non-authoritative. An observer can neither
+    // permit nor prevent a lifecycle transition.
+  }
+}
+
 export type PrepareSourceEvolutionInput = Readonly<{
   root: string;
   app: SourceEvolutionApplication;
@@ -85,6 +222,7 @@ export type PrepareSourceEvolutionInput = Readonly<{
     preimage: string;
   }>;
   clock?: Clock;
+  progress?: SourceEvolutionProgressObserver;
 }>;
 
 export type ApproveSourceEvolutionInput = Readonly<{
@@ -95,6 +233,7 @@ export type ApproveSourceEvolutionInput = Readonly<{
   expectedProofHash: Sha256;
   expectedRevision: number;
   clock?: Clock;
+  progress?: SourceEvolutionProgressObserver;
 }>;
 
 export type ApplySourceEvolutionInput = Readonly<{
@@ -102,6 +241,7 @@ export type ApplySourceEvolutionInput = Readonly<{
   evolutionId: string;
   expectedRevision: number;
   clock?: Clock;
+  progress?: SourceEvolutionProgressObserver;
 }>;
 
 export type RollbackSourceEvolutionInput = Readonly<{
@@ -110,6 +250,7 @@ export type RollbackSourceEvolutionInput = Readonly<{
   humanId: string;
   expectedRevision: number;
   clock?: Clock;
+  progress?: SourceEvolutionProgressObserver;
 }>;
 
 function now(clock?: Clock): string {
@@ -332,7 +473,7 @@ async function atomicReplaceTarget(
   nextContent: string,
   evolutionId: string,
   mismatchCode: "TARGET_PREIMAGE_MISMATCH" | "TARGET_POSTIMAGE_MISMATCH",
-): Promise<void> {
+): Promise<"written" | "already-present"> {
   const segments = safeSegments(targetPath);
   const parentRelative = segments.slice(0, -1).join("/");
   const parent = await assertSafeDirectory(root, parentRelative);
@@ -424,7 +565,7 @@ async function atomicReplaceTarget(
       }
       await unlink(temporary);
     }
-    return;
+    return "already-present";
   }
 
   if (target.kind === "file" && !matches(target, expectedBytes, expectedHash)) {
@@ -489,11 +630,13 @@ async function atomicReplaceTarget(
     }
   }
 
+  let disposition: "written" | "already-present";
   try {
     // Hard-link publication is an atomic no-overwrite operation. If another
     // writer recreated the target after capture, EEXIST preserves their bytes
     // and the exact prior image remains in the guard.
     await link(temporary, targetPathAbsolute);
+    disposition = "written";
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     const appeared = await inspect(targetPathAbsolute);
@@ -504,6 +647,7 @@ async function atomicReplaceTarget(
         { cause: error },
       );
     }
+    disposition = "already-present";
   }
   const installed = await inspect(targetPathAbsolute);
   if (!matches(installed, nextBytes, nextHash)) {
@@ -523,6 +667,7 @@ async function atomicReplaceTarget(
     );
   }
   await unlink(guardPath);
+  return disposition;
 }
 
 function validateEvolutionId(evolutionId: string): void {
@@ -1704,9 +1849,23 @@ async function readPendingTransaction(
   }
 }
 
+type LifecycleObservationHooks = Readonly<{
+  onTargetVerified?: () => void;
+  onTargetWritten?: () => void;
+}>;
+
+function invokeObservationHook(hook: (() => void) | undefined): void {
+  try {
+    hook?.();
+  } catch {
+    // Observation cannot influence transaction authority or recovery.
+  }
+}
+
 async function recoverPendingTransaction(
   root: string,
   evolutionId: string,
+  observation?: LifecycleObservationHooks,
 ): Promise<SourceEvolutionState | undefined> {
   const pending = await readPendingTransaction(root, evolutionId);
   if (pending === undefined) return undefined;
@@ -1789,7 +1948,7 @@ async function recoverPendingTransaction(
       transaction.operation === "apply"
         ? transaction.nextState.source.postimage
         : transaction.nextState.source.preimage;
-    await atomicReplaceTarget(
+    const disposition = await atomicReplaceTarget(
       root,
       transaction.target.path,
       fromContent,
@@ -1800,6 +1959,9 @@ async function recoverPendingTransaction(
         ? "TARGET_PREIMAGE_MISMATCH"
         : "TARGET_POSTIMAGE_MISMATCH",
     );
+    if (disposition === "written") {
+      invokeObservationHook(observation?.onTargetWritten);
+    }
     await injectFault("after-target");
   }
   if (currentReceipts.length !== finalReceipts.length) {
@@ -1853,6 +2015,7 @@ async function commitLifecycleTransaction(
   additions: readonly EvolutionReceipt[],
   operation: PendingOperation,
   target: PendingTarget | null,
+  observation?: LifecycleObservationHooks,
 ): Promise<SourceEvolutionState> {
   if (target !== null) {
     await readExpectedTarget(
@@ -1866,6 +2029,7 @@ async function commitLifecycleTransaction(
         ? "TARGET_PREIMAGE_MISMATCH"
         : "TARGET_POSTIMAGE_MISMATCH",
     );
+    invokeObservationHook(observation?.onTargetVerified);
   }
 
   const content: PendingTransactionContent = {
@@ -1895,6 +2059,7 @@ async function commitLifecycleTransaction(
   const recovered = await recoverPendingTransaction(
     loaded.root,
     loaded.state.evolutionId,
+    observation,
   );
   if (recovered === undefined) {
     throw new SourceEvolutionError(
@@ -1996,6 +2161,25 @@ export async function prepareSourceEvolution(
     preimageHash,
     "TARGET_PREIMAGE_MISMATCH",
   );
+  const identityHash = hashJson({
+    schemaVersion: "living.source-evolution-identity/v2",
+    policy: SOURCE_EVOLUTION_POLICY,
+    app,
+    manifest,
+    opportunity,
+    brief,
+    briefModelProvenance,
+    patchProposal,
+    patchModelProvenance,
+    target: { path: input.target.path, preimageHash },
+  });
+  const evolutionId = `evolution.source.v2.${identityHash.slice(7, 31)}`;
+  observeProgress(input.progress, {
+    stage: "prepare.compilation-started",
+    evolutionId,
+    targetPath: input.target.path,
+    preimageHash,
+  });
   const compiled = compileModelPatch(patchProposal, input.target.preimage);
   const postimage = compiled.postimage;
   const postimageHash = compiled.postimageHash;
@@ -2019,19 +2203,6 @@ export async function prepareSourceEvolution(
     patchProposalHash,
     patchModelProvenanceHash,
   };
-  const identityHash = hashJson({
-    schemaVersion: "living.source-evolution-identity/v2",
-    policy: SOURCE_EVOLUTION_POLICY,
-    app,
-    manifest,
-    opportunity,
-    brief,
-    briefModelProvenance,
-    patchProposal,
-    patchModelProvenance,
-    target: { path: input.target.path, preimageHash },
-  });
-  const evolutionId = `evolution.source.v2.${identityHash.slice(7, 31)}`;
   const contract = makeContract(input.target.path);
   const artifactContent = {
     schemaVersion: "living.source-evolution-artifact/v2" as const,
@@ -2058,6 +2229,14 @@ export async function prepareSourceEvolution(
       ...artifactContent,
       contentHash: hashJson(artifactContent),
     });
+  observeProgress(input.progress, {
+    stage: "prepare.proof-started",
+    evolutionId,
+    targetPath: input.target.path,
+    artifactHash: artifact.contentHash,
+    preimageHash,
+    postimageHash,
+  });
   const proofContent = {
     schemaVersion: "living.source-evolution-proof/v2" as const,
     proofId: `proof.source.v2.${artifact.contentHash.slice(7, 31)}`,
@@ -2093,6 +2272,16 @@ export async function prepareSourceEvolution(
     ...proofContent,
     proofHash: hashJson(proofContent),
   });
+  for (const check of proof.checks) {
+    observeProgress(input.progress, {
+      stage: "prepare.proof-check-completed",
+      evolutionId,
+      artifactHash: artifact.contentHash,
+      proofHash: proof.proofHash,
+      checkId: check.id,
+      detail: check.detail,
+    });
+  }
 
   const recordedAt = now(input.clock);
   const receipts: EvolutionReceipt[] = [];
@@ -2248,6 +2437,14 @@ export async function prepareSourceEvolution(
     receipts.map(serializeEvolutionReceipt).join(""),
   );
   await writeNewFile(statePath, `${canonicalJson(state)}\n`);
+  observeProgress(input.progress, {
+    stage: "prepare.persisted",
+    evolutionId,
+    revision: state.receiptCount,
+    chainHead: state.chainHead,
+    artifactHash: state.artifact.contentHash,
+    proofHash: state.proof.proofHash,
+  });
   return state;
 }
 
@@ -2273,6 +2470,15 @@ async function approveSourceEvolutionUnlocked(
       "Human approval hashes do not match the exact prepared artifact and proof",
     );
   }
+  observeProgress(input.progress, {
+    stage: "approve.hashes-selected",
+    evolutionId: state.evolutionId,
+    revision: state.receiptCount,
+    humanId,
+    contractHash: state.contract.contentHash,
+    artifactHash: state.artifact.contentHash,
+    proofHash: state.proof.proofHash,
+  });
   const recordedAt = now(input.clock);
   const additions: EvolutionReceipt[] = [];
   let previousHash = loaded.receipts.at(-1)?.receiptHash ?? null;
@@ -2335,7 +2541,22 @@ async function approveSourceEvolutionUnlocked(
     chainHead: approvalReceipt.receiptHash,
     updatedAt: recordedAt,
   });
-  return commitLifecycleTransaction(loaded, next, additions, "approve", null);
+  const approved = await commitLifecycleTransaction(
+    loaded,
+    next,
+    additions,
+    "approve",
+    null,
+  );
+  observeProgress(input.progress, {
+    stage: "approve.receipts-persisted",
+    evolutionId: approved.evolutionId,
+    revision: approved.receiptCount,
+    humanId,
+    chainHead: approved.chainHead,
+    approvalReceiptHash: approvalReceipt.receiptHash,
+  });
+  return approved;
 }
 
 async function applySourceEvolutionUnlocked(
@@ -2370,6 +2591,15 @@ async function applySourceEvolutionUnlocked(
   // exact source bytes. Re-check at the mutation boundary so a copied ledger
   // or an uninstall/reinstall drift cannot authorize another host.
   await validateInstalledHost(loaded.root, state.app);
+  observeProgress(input.progress, {
+    stage: "apply.artifact-selected",
+    evolutionId: state.evolutionId,
+    revision: state.receiptCount,
+    targetPath: state.artifact.target.path,
+    artifactHash: state.artifact.contentHash,
+    preimageHash: state.artifact.target.preimageHash,
+    postimageHash: state.artifact.target.postimageHash,
+  });
   const recordedAt = now(input.clock);
   const receipt = buildEvolutionReceipt({
     appId: state.app.appId,
@@ -2406,11 +2636,60 @@ async function applySourceEvolutionUnlocked(
     chainHead: receipt.receiptHash,
     updatedAt: recordedAt,
   });
-  return commitLifecycleTransaction(loaded, next, [receipt], "apply", {
-    path: state.artifact.target.path,
-    fromHash: state.artifact.target.preimageHash,
-    toHash: state.artifact.target.postimageHash,
+  const applied = await commitLifecycleTransaction(
+    loaded,
+    next,
+    [receipt],
+    "apply",
+    {
+      path: state.artifact.target.path,
+      fromHash: state.artifact.target.preimageHash,
+      toHash: state.artifact.target.postimageHash,
+    },
+    {
+      onTargetVerified: () =>
+        observeProgress(input.progress, {
+          stage: "apply.preimage-verified",
+          evolutionId: state.evolutionId,
+          targetPath: state.artifact.target.path,
+          preimageHash: state.artifact.target.preimageHash,
+        }),
+      onTargetWritten: () =>
+        observeProgress(input.progress, {
+          stage: "apply.postimage-written",
+          evolutionId: state.evolutionId,
+          targetPath: state.artifact.target.path,
+          postimageHash: state.artifact.target.postimageHash,
+        }),
+    },
+  );
+  observeProgress(input.progress, {
+    stage: "apply.receipt-state-persisted",
+    evolutionId: applied.evolutionId,
+    revision: applied.receiptCount,
+    chainHead: applied.chainHead,
+    receiptHash: receipt.receiptHash,
   });
+  try {
+    await readExpectedTarget(
+      loaded.root,
+      state.artifact.target.path,
+      state.source.postimage,
+      state.artifact.target.postimageHash,
+      "TARGET_POSTIMAGE_MISMATCH",
+    );
+    observeProgress(input.progress, {
+      stage: "apply.hash-transition-completed",
+      evolutionId: applied.evolutionId,
+      targetPath: state.artifact.target.path,
+      fromHash: state.artifact.target.preimageHash,
+      toHash: state.artifact.target.postimageHash,
+    });
+  } catch {
+    // A post-commit observation race cannot roll back or invalidate a durable
+    // transition. Absence of the event truthfully leaves verification open.
+  }
+  return applied;
 }
 
 async function rollbackSourceEvolutionUnlocked(
@@ -2426,6 +2705,15 @@ async function rollbackSourceEvolutionUnlocked(
       `Rollback is valid only from applied state, not '${state.status}'`,
     );
   }
+  observeProgress(input.progress, {
+    stage: "rollback.artifact-selected",
+    evolutionId: state.evolutionId,
+    revision: state.receiptCount,
+    targetPath: state.artifact.target.path,
+    artifactHash: state.artifact.contentHash,
+    postimageHash: state.artifact.target.postimageHash,
+    preimageHash: state.artifact.target.preimageHash,
+  });
   const recordedAt = now(input.clock);
   const receipt = buildEvolutionReceipt({
     appId: state.app.appId,
@@ -2463,11 +2751,59 @@ async function rollbackSourceEvolutionUnlocked(
     chainHead: receipt.receiptHash,
     updatedAt: recordedAt,
   });
-  return commitLifecycleTransaction(loaded, next, [receipt], "rollback", {
-    path: state.artifact.target.path,
-    fromHash: state.artifact.target.postimageHash,
-    toHash: state.artifact.target.preimageHash,
+  const rolledBack = await commitLifecycleTransaction(
+    loaded,
+    next,
+    [receipt],
+    "rollback",
+    {
+      path: state.artifact.target.path,
+      fromHash: state.artifact.target.postimageHash,
+      toHash: state.artifact.target.preimageHash,
+    },
+    {
+      onTargetVerified: () =>
+        observeProgress(input.progress, {
+          stage: "rollback.postimage-verified",
+          evolutionId: state.evolutionId,
+          targetPath: state.artifact.target.path,
+          postimageHash: state.artifact.target.postimageHash,
+        }),
+      onTargetWritten: () =>
+        observeProgress(input.progress, {
+          stage: "rollback.preimage-written",
+          evolutionId: state.evolutionId,
+          targetPath: state.artifact.target.path,
+          preimageHash: state.artifact.target.preimageHash,
+        }),
+    },
+  );
+  observeProgress(input.progress, {
+    stage: "rollback.receipt-state-persisted",
+    evolutionId: rolledBack.evolutionId,
+    revision: rolledBack.receiptCount,
+    chainHead: rolledBack.chainHead,
+    receiptHash: receipt.receiptHash,
   });
+  try {
+    await readExpectedTarget(
+      loaded.root,
+      state.artifact.target.path,
+      state.source.preimage,
+      state.artifact.target.preimageHash,
+      "TARGET_PREIMAGE_MISMATCH",
+    );
+    observeProgress(input.progress, {
+      stage: "rollback.hash-transition-completed",
+      evolutionId: rolledBack.evolutionId,
+      targetPath: state.artifact.target.path,
+      fromHash: state.artifact.target.postimageHash,
+      toHash: state.artifact.target.preimageHash,
+    });
+  } catch {
+    // See apply: post-commit verification is informative, never authority.
+  }
+  return rolledBack;
 }
 
 async function getEvolutionStatusUnlocked(
@@ -2667,6 +3003,20 @@ export async function getEvolutionStatus(
   return withEvolutionLock(root, evolutionId, () =>
     getEvolutionStatusUnlocked(root, evolutionId),
   );
+}
+
+export async function getEvolutionReceipts(
+  root: string,
+  evolutionId: string,
+): Promise<readonly EvolutionReceipt[]> {
+  const settled = await loadSettledEvolutionReadOnly(root, evolutionId);
+  if (settled !== undefined) {
+    return Object.freeze([...settled.receipts]);
+  }
+  return withEvolutionLock(root, evolutionId, async () => {
+    const loaded = await loadEvolution(root, evolutionId);
+    return Object.freeze([...loaded.receipts]);
+  });
 }
 
 export async function listEvolutionStatuses(

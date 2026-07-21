@@ -33,6 +33,7 @@ export {
 export {
   applySourceEvolution,
   approveSourceEvolution,
+  getEvolutionReceipts,
   getEvolutionStatus,
   listEvolutionStatuses,
   prepareSourceEvolution,
@@ -41,4 +42,6 @@ export {
   type ApproveSourceEvolutionInput,
   type PrepareSourceEvolutionInput,
   type RollbackSourceEvolutionInput,
+  type SourceEvolutionProgressEvent,
+  type SourceEvolutionProgressObserver,
 } from "./lifecycle.js";

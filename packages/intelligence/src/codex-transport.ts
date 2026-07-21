@@ -10,12 +10,17 @@ import {
   join,
   resolve,
 } from "node:path";
+import { StringDecoder } from "node:string_decoder";
 
 import {
   assertIntelligenceRequestContract,
   governanceForRequest,
 } from "./request-contract.js";
+import { reportIntelligenceLifecycle } from "./lifecycle.js";
 import type {
+  IntelligenceLifecycleReporter,
+  IntelligenceSchemaName,
+  IntelligenceTokenUsage,
   IntelligenceTransport,
   ResponsesRequest,
   TransportResponse,
@@ -285,27 +290,61 @@ function usageInteger(
     : undefined;
 }
 
-function inspectJsonl(stdout: string, finalMessage: string): Readonly<{
+type CodexInspection = Readonly<{
   threadId: string;
-  usage: Readonly<{
-    inputTokens: number;
-    cachedInputTokens: number;
-    outputTokens: number;
-    reasoningOutputTokens: number;
-  }>;
-}> {
+  usage: IntelligenceTokenUsage;
+}>;
+
+type CodexJsonlInspector = Readonly<{
+  acceptLine(line: string): void;
+  finish(finalMessage: string): CodexInspection;
+}>;
+
+function completeUsage(value: unknown): IntelligenceTokenUsage {
+  const usage = record(value);
+  if (usage === undefined) {
+    throw new CodexCliExecutionError(
+      "Codex CLI did not report complete token usage",
+    );
+  }
+  const inputTokens = usageInteger(usage, "input_tokens");
+  const cachedInputTokens = usageInteger(usage, "cached_input_tokens");
+  const outputTokens = usageInteger(usage, "output_tokens");
+  const reasoningOutputTokens = usageInteger(usage, "reasoning_output_tokens");
+  if (
+    inputTokens === undefined ||
+    cachedInputTokens === undefined ||
+    outputTokens === undefined ||
+    reasoningOutputTokens === undefined
+  ) {
+    throw new CodexCliExecutionError(
+      "Codex CLI did not report complete token usage",
+    );
+  }
+  return Object.freeze({
+    inputTokens,
+    cachedInputTokens,
+    outputTokens,
+    reasoningOutputTokens,
+  });
+}
+
+function createJsonlInspector(
+  schemaName: IntelligenceSchemaName,
+  lifecycleReporter?: IntelligenceLifecycleReporter,
+): CodexJsonlInspector {
   let threadId: string | undefined;
   let lifecycle: "initial" | "thread" | "turn" | "completed" = "initial";
   let threadStarted = 0;
   let turnStarted = 0;
   let turnCompleted = 0;
-  let usage: ReturnType<typeof record>;
+  let usage: IntelligenceTokenUsage | undefined;
   let agentMessage: string | undefined;
-  const lines = stdout.split(/\r?\n/u).filter((line) => line.trim() !== "");
-  if (lines.length === 0) {
-    throw new CodexCliExecutionError("Codex CLI returned no JSONL events");
-  }
-  for (const line of lines) {
+  let lineCount = 0;
+
+  const acceptLine = (line: string): void => {
+    if (line.trim() === "") return;
+    lineCount += 1;
     let parsed: unknown;
     try {
       parsed = JSON.parse(line);
@@ -332,25 +371,43 @@ function inspectJsonl(stdout: string, finalMessage: string): Readonly<{
       threadStarted += 1;
       if (
         typeof event.thread_id !== "string" ||
-        event.thread_id.length < 1 ||
-        event.thread_id.length > 256
+        !/^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u.test(event.thread_id)
       ) {
         throw new CodexCliExecutionError("Codex CLI did not report a valid thread id");
       }
       threadId = event.thread_id;
+      reportIntelligenceLifecycle(lifecycleReporter, {
+        type: "thread.started",
+        schemaName,
+        transport: "codex-cli",
+        threadId,
+      });
     } else if (event.type === "turn.started") {
       if (lifecycle !== "thread") {
         throw new CodexCliExecutionError("Codex CLI returned an invalid event order");
       }
       lifecycle = "turn";
       turnStarted += 1;
+      reportIntelligenceLifecycle(lifecycleReporter, {
+        type: "turn.started",
+        schemaName,
+        transport: "codex-cli",
+        threadId: threadId!,
+      });
     } else if (event.type === "turn.completed") {
       if (lifecycle !== "turn") {
         throw new CodexCliExecutionError("Codex CLI returned an invalid event order");
       }
+      usage = completeUsage(event.usage);
       lifecycle = "completed";
       turnCompleted += 1;
-      usage = record(event.usage);
+      reportIntelligenceLifecycle(lifecycleReporter, {
+        type: "turn.completed",
+        schemaName,
+        transport: "codex-cli",
+        threadId: threadId!,
+        tokenUsage: usage,
+      });
     } else if (event.type === "item.started" || event.type === "item.completed") {
       if (lifecycle !== "turn") {
         throw new CodexCliExecutionError("Codex CLI returned an invalid event order");
@@ -376,46 +433,48 @@ function inspectJsonl(stdout: string, finalMessage: string): Readonly<{
         agentMessage = item.text;
       }
     }
-  }
-  if (
-    threadId === undefined ||
-    threadStarted !== 1 ||
-    turnStarted !== 1 ||
-    turnCompleted !== 1 ||
-    lifecycle !== "completed" ||
-    usage === undefined ||
-    agentMessage === undefined
-  ) {
-    throw new CodexCliExecutionError("Codex CLI did not complete a verifiable turn");
-  }
-  const inputTokens = usageInteger(usage, "input_tokens");
-  const cachedInputTokens = usageInteger(usage, "cached_input_tokens");
-  const outputTokens = usageInteger(usage, "output_tokens");
-  const reasoningOutputTokens = usageInteger(usage, "reasoning_output_tokens");
-  if (
-    inputTokens === undefined ||
-    cachedInputTokens === undefined ||
-    outputTokens === undefined ||
-    reasoningOutputTokens === undefined
-  ) {
-    throw new CodexCliExecutionError("Codex CLI did not report complete token usage");
-  }
-  const normalizeMessage = (value: string): string =>
-    value.replace(/\r\n/gu, "\n").trimEnd();
-  if (normalizeMessage(agentMessage) !== normalizeMessage(finalMessage)) {
-    throw new CodexCliExecutionError(
-      "Codex CLI JSONL message did not match its structured output file",
-    );
-  }
+  };
+
   return {
-    threadId,
-    usage: {
-      inputTokens,
-      cachedInputTokens,
-      outputTokens,
-      reasoningOutputTokens,
+    acceptLine,
+    finish(finalMessage: string): CodexInspection {
+      if (lineCount === 0) {
+        throw new CodexCliExecutionError("Codex CLI returned no JSONL events");
+      }
+      if (
+        threadId === undefined ||
+        threadStarted !== 1 ||
+        turnStarted !== 1 ||
+        turnCompleted !== 1 ||
+        lifecycle !== "completed" ||
+        usage === undefined ||
+        agentMessage === undefined
+      ) {
+        throw new CodexCliExecutionError(
+          "Codex CLI did not complete a verifiable turn",
+        );
+      }
+      const normalizeMessage = (value: string): string =>
+        value.replace(/\r\n/gu, "\n").trimEnd();
+      if (normalizeMessage(agentMessage) !== normalizeMessage(finalMessage)) {
+        throw new CodexCliExecutionError(
+          "Codex CLI JSONL message did not match its structured output file",
+        );
+      }
+      return { threadId, usage };
     },
   };
+}
+
+function inspectJsonl(
+  stdout: string,
+  finalMessage: string,
+  schemaName: IntelligenceSchemaName,
+  lifecycleReporter?: IntelligenceLifecycleReporter,
+): CodexInspection {
+  const inspector = createJsonlInspector(schemaName, lifecycleReporter);
+  for (const line of stdout.split(/\r?\n/u)) inspector.acceptLine(line);
+  return inspector.finish(finalMessage);
 }
 
 function abortError(): Error {
@@ -426,8 +485,12 @@ function abortError(): Error {
 
 async function defaultRun(
   invocation: CodexCliInvocation,
+  schemaName: IntelligenceSchemaName,
+  lifecycleReporter: IntelligenceLifecycleReporter | undefined,
   cliPath?: string,
-): Promise<CodexCliRunnerResult> {
+): Promise<CodexCliRunnerResult & Readonly<{
+  inspection?: CodexInspection;
+}>> {
   const executable = resolveCodexExecutable(cliPath);
   const directory = await mkdtemp(join(tmpdir(), "living-gpt56-"));
   const schemaPath = join(directory, "output-schema.json");
@@ -490,6 +553,13 @@ async function defaultRun(
       });
       const stdout: Buffer[] = [];
       const stderr: Buffer[] = [];
+      const decoder = new StringDecoder("utf8");
+      const incrementalInspector = createJsonlInspector(
+        schemaName,
+        lifecycleReporter,
+      );
+      let pendingLine = "";
+      let incrementalFailed = false;
       let stdoutBytes = 0;
       let stderrBytes = 0;
       let settled = false;
@@ -501,6 +571,35 @@ async function defaultRun(
         child.kill("SIGKILL");
       };
       const onAbort = (): void => stopWithError(abortError());
+
+      const inspectDecoded = (decoded: string, ending = false): void => {
+        if (incrementalFailed) return;
+        pendingLine += decoded;
+        try {
+          let newline = pendingLine.indexOf("\n");
+          while (newline >= 0) {
+            incrementalInspector.acceptLine(
+              pendingLine.slice(0, newline).replace(/\r$/u, ""),
+            );
+            pendingLine = pendingLine.slice(newline + 1);
+            newline = pendingLine.indexOf("\n");
+          }
+          if (ending && pendingLine !== "") {
+            incrementalInspector.acceptLine(pendingLine.replace(/\r$/u, ""));
+            pendingLine = "";
+          }
+        } catch {
+          // The strict full-stream validator below remains authoritative. Stop
+          // reporting this unverified stream prefix, but do not affect the run.
+          incrementalFailed = true;
+        }
+      };
+
+      reportIntelligenceLifecycle(lifecycleReporter, {
+        type: "request.dispatched",
+        schemaName,
+        transport: "codex-cli",
+      });
       invocation.signal?.addEventListener("abort", onAbort, { once: true });
       if (invocation.signal?.aborted) onAbort();
 
@@ -521,6 +620,7 @@ async function defaultRun(
           return;
         }
         stdout.push(chunk);
+        inspectDecoded(decoder.write(chunk));
       });
       child.stderr.on("data", (chunk: Buffer) => {
         stderrBytes += chunk.length;
@@ -531,6 +631,7 @@ async function defaultRun(
         stderr.push(chunk);
       });
       child.once("close", (code) => {
+        inspectDecoded(decoder.end(), true);
         invocation.signal?.removeEventListener("abort", onAbort);
         if (settled) return;
         settled = true;
@@ -575,7 +676,19 @@ async function defaultRun(
         throw new CodexCliExecutionError("Codex CLI final message was empty or changed after exit");
       }
     }
-    return { ...result, finalMessage };
+    return {
+      ...result,
+      finalMessage,
+      ...(result.exitCode === 0
+        ? {
+            inspection: inspectJsonl(
+              result.stdout,
+              finalMessage,
+              schemaName,
+            ),
+          }
+        : {}),
+    };
   } catch (error) {
     primaryError = error;
     throw error;
@@ -591,7 +704,6 @@ async function defaultRun(
 export function createCodexCliTransport(
   options: CodexCliTransportOptions = {},
 ): IntelligenceTransport {
-  const run = options.run ?? ((invocation) => defaultRun(invocation, options.cliPath));
   return {
     kind: "codex-cli",
     async send(request: ResponsesRequest, sendOptions): Promise<TransportResponse> {
@@ -603,21 +715,46 @@ export function createCodexCliTransport(
             (error instanceof Error ? `: ${error.message}` : ""),
         );
       }
-      const result = await run({
+      const schemaName = request.text.format.name;
+      const invocation: CodexCliInvocation = {
         prompt: buildPrompt(request),
         developerInstructions: codexCliDeveloperInstructions(request),
         schema: request.text.format.schema,
         model: CODEX_CLI_GPT56_MODEL,
         reasoningEffort: request.reasoning.effort,
         ...(sendOptions?.signal === undefined ? {} : { signal: sendOptions.signal }),
-      });
+      };
+      let result: CodexCliRunnerResult;
+      let inspected: CodexInspection | undefined;
+      if (options.run === undefined) {
+        const executed = await defaultRun(
+          invocation,
+          schemaName,
+          sendOptions?.lifecycleReporter,
+          options.cliPath,
+        );
+        result = executed;
+        inspected = executed.inspection;
+      } else {
+        reportIntelligenceLifecycle(sendOptions?.lifecycleReporter, {
+          type: "request.dispatched",
+          schemaName,
+          transport: "codex-cli",
+        });
+        result = await options.run(invocation);
+      }
       if (result.exitCode !== 0) {
         throw new CodexCliExecutionError(
           "Codex CLI exited with code " + result.exitCode +
           "; verify local authentication and CLI compatibility",
         );
       }
-      const inspected = inspectJsonl(result.stdout, result.finalMessage);
+      inspected ??= inspectJsonl(
+        result.stdout,
+        result.finalMessage,
+        schemaName,
+        sendOptions?.lifecycleReporter,
+      );
       return {
         status: 200,
         body: {

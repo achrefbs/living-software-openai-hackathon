@@ -32,6 +32,7 @@ import type {
   DraftSourcePatchResult,
   EvolutionBrief,
   Gpt56TransportModel,
+  IntelligenceLifecycleReporter,
   IntelligenceTokenUsage,
   IntelligenceTransport,
   ResponsesRequest,
@@ -432,6 +433,7 @@ async function requestStructuredJson(
   transport: IntelligenceTransport,
   request: ResponsesRequest,
   timeoutMs: number,
+  lifecycleReporter?: IntelligenceLifecycleReporter,
 ): Promise<Readonly<{
   value: unknown;
   envelope: ResponseEnvelope;
@@ -442,7 +444,10 @@ async function requestStructuredJson(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let response;
   try {
-    response = await transport.send(request, { signal: controller.signal });
+    response = await transport.send(request, {
+      signal: controller.signal,
+      ...(lifecycleReporter === undefined ? {} : { lifecycleReporter }),
+    });
   } catch (error) {
     if (controller.signal.aborted) {
       throw new IntelligenceResponseError("GPT-5.6 request timed out", "timeout");
@@ -501,6 +506,7 @@ export type IntelligenceClientOptions = Readonly<{
   timeoutMs?: number;
   maxOutputTokens?: number;
   maxPatchOutputTokens?: number;
+  lifecycleReporter?: IntelligenceLifecycleReporter;
 }>;
 
 export type IntelligenceClient = Readonly<{
@@ -515,6 +521,7 @@ export function createIntelligenceClient(
   const timeoutMs = options.timeoutMs ?? 30_000;
   const maxOutputTokens = options.maxOutputTokens ?? 2_400;
   const maxPatchOutputTokens = options.maxPatchOutputTokens ?? 8_000;
+  const lifecycleReporter = options.lifecycleReporter;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) {
     throw new Error("timeoutMs must be an integer between 1 and 120000");
   }
@@ -548,6 +555,7 @@ export function createIntelligenceClient(
         transport,
         request,
         timeoutMs,
+        lifecycleReporter,
       );
       const parsedBrief = modelEvolutionBriefSchema.safeParse(value);
       if (!parsedBrief.success) {
@@ -573,6 +581,7 @@ export function createIntelligenceClient(
         transport,
         request,
         timeoutMs,
+        lifecycleReporter,
       );
       const parsed = modelSourcePatchSchema.safeParse(value);
       if (!parsed.success) {

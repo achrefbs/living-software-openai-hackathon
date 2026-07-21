@@ -19,7 +19,9 @@ export function usage() {
         "Advanced and compatibility commands:",
         "Usage: living init --root <repository> [--dry-run|--apply] [--synthetic]",
         "       living doctor --root <repository> [--synthetic]",
-        "       living <map|analyze|snapshot> --root <repository>",
+        "       living map --root <repository>",
+        "       living analyze --root <repository> [--json]",
+        "       living snapshot --root <repository>",
         "       living uninstall --root <repository> [--dry-run|--apply]",
         "       living <init|map|doctor|uninstall> --fixture <fixture.json> [--dry-run]",
         "       living doctor --fixture <fixture.json> [--config <config.json>] [--manifest <manifest.json>]",
@@ -47,7 +49,7 @@ const TERMINAL_COMMANDS = new Set([
     "rollback",
 ]);
 const VALUE_FLAGS = new Set(["--fixture", "--root", "--config", "--manifest"]);
-const BOOLEAN_FLAGS = new Set(["--dry-run", "--apply", "--synthetic"]);
+const BOOLEAN_FLAGS = new Set(["--dry-run", "--apply", "--synthetic", "--json"]);
 const SHA256 = /^sha256:[a-f0-9]{64}$/u;
 function isCommand(value) {
     return value !== undefined && COMMANDS.has(value);
@@ -222,6 +224,9 @@ export function parseArguments(argv) {
         if (booleans.has("--apply")) {
             throw new TypeError("--apply is unavailable for --fixture mode; use --dry-run");
         }
+        if (booleans.has("--json")) {
+            throw new TypeError("--json is unavailable for --fixture mode");
+        }
         if (booleans.has("--synthetic")) {
             throw new TypeError("--synthetic is only available with --root");
         }
@@ -242,6 +247,9 @@ export function parseArguments(argv) {
     if (booleans.has("--synthetic") && command !== "init" && command !== "doctor") {
         throw new TypeError(`--synthetic is unavailable for ${command}`);
     }
+    if (booleans.has("--json") && command !== "analyze") {
+        throw new TypeError(`--json is unavailable for ${command}; only analyze supports it in root mode`);
+    }
     return {
         mode: "root",
         command,
@@ -249,15 +257,180 @@ export function parseArguments(argv) {
         apply: booleans.has("--apply"),
         synthetic: booleans.has("--synthetic"),
         syntheticSpecified: booleans.has("--synthetic"),
+        json: booleans.has("--json"),
     };
+}
+function record(value) {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+        ? value
+        : null;
+}
+function count(value) {
+    return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+        ? value
+        : 0;
+}
+function signalLabel(value) {
+    switch (value) {
+        case "repeated-sequence":
+            return "Recurring workflow";
+        case "rework-loop":
+            return "Repeated rework";
+        case "failure-cluster":
+            return "Interaction failures";
+        case "backtracking":
+            return "Navigation backtracking";
+        default:
+            return String(value ?? "Unknown pattern");
+    }
+}
+/** Human-first projection of the canonical analyze result. */
+export function formatAnalyzeResult(output) {
+    const manifest = record(output.manifest);
+    const metricReport = record(output.metricReport);
+    const totals = record(metricReport?.totals);
+    const opportunity = record(output.opportunity);
+    const opportunitySignal = record(opportunity?.signal);
+    const opportunityEvidence = record(output.opportunityEvidence);
+    const evidence = record(opportunity?.evidence);
+    const confidence = record(opportunity?.confidence);
+    const detector = record(opportunity?.detector);
+    const lines = [
+        "",
+        "Living Software analysis",
+        `App: ${String(manifest?.appId ?? "unknown")}`,
+        `Captured: ${count(totals?.events)} events · ${count(totals?.cases)} workflows · ${count(totals?.sessions)} sessions`,
+    ];
+    if (opportunity === null) {
+        lines.push("Result: No improvement suggestion has enough evidence yet.");
+        const progress = Array.isArray(output.detectorProgress)
+            ? output.detectorProgress
+            : [];
+        if (progress.length > 0) {
+            lines.push("Detector progress:");
+            for (const candidate of progress) {
+                const item = record(candidate);
+                if (item === null)
+                    continue;
+                const caseProgress = `${count(item.affectedCases)}/${count(item.minimumAffectedCases)} cases`;
+                const sessionProgress = item.affectedSessions === undefined
+                    ? ""
+                    : ` · ${count(item.affectedSessions)}/${count(item.minimumIndependentSessions)} sessions`;
+                lines.push(`  ${signalLabel(item.signalKind)}: ${caseProgress}${sessionProgress} · ${count(item.occurrenceCount)} occurrences`);
+            }
+        }
+    }
+    else {
+        lines.push(`Detected: ${signalLabel(opportunitySignal?.kind)} · ${Math.round(Number(confidence?.score ?? 0) * 100)}% confidence`, `Detector: ${String(detector?.id ?? "unknown")}@${String(detector?.version ?? "unknown")}`, `Support: ${count(evidence?.subjectCount)} cases · ${count(evidence?.sessionCount)} sessions · ${count(evidence?.occurrenceCount)} occurrences`);
+        const steps = Array.isArray(opportunityEvidence?.steps)
+            ? opportunityEvidence.steps
+            : [];
+        const stepLabels = steps.flatMap((candidate) => {
+            const step = record(candidate);
+            if (step === null)
+                return [];
+            const displayName = String(step.displayName ?? "").trim();
+            return displayName.length > 0 ? [displayName] : [String(step.name ?? "unknown step")];
+        });
+        if (stepLabels.length > 0) {
+            lines.push("Observed sequence:", `  ${stepLabels.join(" → ")}`);
+        }
+        else {
+            lines.push("Observed sequence: no ordered sequence is asserted by this detector.");
+        }
+        lines.push(`Supporting events: ${count(opportunityEvidence?.eventCount)} exact events · ${count(opportunityEvidence?.explicitSignalEventCount)} explicit technical signals`, `Full captured cohort: ${count(opportunityEvidence?.cohortExplicitSignalEventCount)} explicit technical signals`);
+    }
+    lines.push("Caveat: recurrence shows what happened repeatedly; it does not prove user intent, causality, or that a proposed change will improve outcomes.");
+    if (opportunity !== null && typeof output.root === "string") {
+        lines.push("", "Next:", `  npm run living -- improve --root ${JSON.stringify(output.root)} --provider codex`);
+    }
+    return `${lines.join("\n")}\n`;
+}
+function tokenTotal(event) {
+    return event.tokenUsage.inputTokens + event.tokenUsage.outputTokens;
+}
+export function formatTerminalLifecycleLine(event) {
+    switch (event.type) {
+        case "evidence.package.validated":
+            return `✓ Evidence package verified (${event.dataOrigin})`;
+        case "proposal.reused":
+            return `✓ Existing evidence-bound proposal reused (${event.status})`;
+        case "model.request.dispatched":
+            return `→ GPT-5.6 ${event.operation} requested via ${event.transport}`;
+        case "model.thread.started":
+            return `  Codex run started: ${event.threadId}`;
+        case "model.turn.started":
+            return `  GPT-5.6 is working on the ${event.operation}`;
+        case "model.turn.completed":
+            return `✓ GPT-5.6 ${event.operation} completed · ${tokenTotal(event)} tokens`;
+        case "model.result.validated":
+            return `✓ Structured ${event.operation} validated${event.runId === null ? "" : ` · run ${event.runId}`}`;
+        case "source-candidates.selected":
+            return `✓ ${event.count} bounded source candidate${event.count === 1 ? "" : "s"} selected${event.candidates[0] === undefined ? "" : ` · ${event.candidates[0].path}`}`;
+        case "evolution.preparation.started":
+            return `→ Compiling and proving GPT-5.6 patch · ${event.targetPath}`;
+        case "evolution.prepared": {
+            const passed = event.proofChecks.filter((check) => check.status === "passed").length;
+            return `✓ Proposal prepared · ${passed}/${event.proofChecks.length} proof checks passed · ${event.evolutionId}`;
+        }
+    }
+}
+/** Safe progress projection: no prompts, reasoning, or source content. */
+export function formatSourceEvolutionProgressLine(event) {
+    switch (event.stage) {
+        case "prepare.compilation-started":
+            return `  [prepare] Compiling bounded patch · ${event.targetPath}`;
+        case "prepare.proof-started":
+            return "  [prepare] Running deterministic proof";
+        case "prepare.proof-check-completed":
+            return `  [proof] ✓ ${event.checkId}`;
+        case "prepare.persisted":
+            return `  [prepare] Audit ledger persisted · revision ${event.revision}`;
+        case "approve.hashes-selected":
+            return "  [approve] Exact artifact and proof hashes selected";
+        case "approve.receipts-persisted":
+            return `  [approve] Human approval receipt persisted · revision ${event.revision}`;
+        case "apply.artifact-selected":
+            return `  [apply] Approved artifact selected · ${event.targetPath}`;
+        case "apply.preimage-verified":
+            return "  [apply] Current source matches approved preimage";
+        case "apply.postimage-written":
+            return `  [apply] GPT-5.6 postimage written · ${event.targetPath}`;
+        case "apply.receipt-state-persisted":
+            return `  [apply] Audit receipt persisted · revision ${event.revision}`;
+        case "apply.hash-transition-completed":
+            return "  [apply] ✓ Source hash transition verified";
+        case "rollback.artifact-selected":
+            return `  [rollback] Applied artifact selected · ${event.targetPath}`;
+        case "rollback.postimage-verified":
+            return "  [rollback] Current source matches applied postimage";
+        case "rollback.preimage-written":
+            return `  [rollback] Original preimage restored · ${event.targetPath}`;
+        case "rollback.receipt-state-persisted":
+            return `  [rollback] Audit receipt persisted · revision ${event.revision}`;
+        case "rollback.hash-transition-completed":
+            return "  [rollback] ✓ Original source hash verified";
+    }
+}
+export function createTerminalRunOptions(args, write) {
+    if (args.json || args.command === "install" || args.command === "status") {
+        return {};
+    }
+    return {
+        lifecycleReporter: (event) => write(formatTerminalLifecycleLine(event)),
+        evolutionProgressObserver: (event) => write(formatSourceEvolutionProgressLine(event)),
+    };
+}
+export function isHelpRequest(argv) {
+    return argv.length === 1 && (argv[0] === "--help" || argv[0] === "help");
 }
 async function readJson(filePath) {
     return JSON.parse(await readFile(filePath, "utf8"));
 }
-export async function executeCommand(argv) {
+export async function executeCommand(argv, terminalOptions = {}) {
     const args = parseArguments(argv);
     if (args.mode === "terminal") {
-        return runTerminalCommand(args);
+        return runTerminalCommand(args, {}, terminalOptions);
     }
     if (args.mode === "root") {
         return runRootCommand(args.command, {
@@ -276,11 +449,20 @@ export async function executeCommand(argv) {
     });
 }
 export async function main(argv = process.argv.slice(2)) {
+    if (isHelpRequest(argv)) {
+        process.stdout.write(`${usage()}\n`);
+        return;
+    }
     const args = parseArguments(argv);
-    const output = await executeCommand(argv);
+    const terminalOptions = args.mode === "terminal"
+        ? createTerminalRunOptions(args, (line) => process.stderr.write(`${line}\n`))
+        : {};
+    const output = await executeCommand(argv, terminalOptions);
     process.stdout.write(args.mode === "terminal" && !args.json
         ? formatTerminalResult(output)
-        : canonicalJson(output, true));
+        : args.mode === "root" && args.command === "analyze" && !args.json
+            ? formatAnalyzeResult(output)
+            : canonicalJson(output, true));
 }
 if (process.argv[1] !== undefined &&
     import.meta.url === pathToFileURL(process.argv[1]).href) {

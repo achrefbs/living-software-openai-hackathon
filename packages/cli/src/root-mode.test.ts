@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -29,6 +37,7 @@ import {
 import {
   REQUIRED_PRESERVED_PATHS,
   loadAutomaticEvolutionInput,
+  loadLiveHostState,
   runRootCommand,
   validateRuntimeBindings,
 } from "./root-mode.js";
@@ -286,12 +295,41 @@ test("analyze verifies the evidence chain and produces deterministic workflow ev
     definition.application.manifestHash,
   );
   assert.deepEqual(first, second);
+  assert.ok(Array.isArray(first.detectorProgress));
+  assert.deepEqual(first.opportunityEvidence, {
+    eventCount: 0,
+    explicitSignalEventCount: 0,
+    cohortExplicitSignalEventCount: 0,
+    steps: [],
+  });
+  const liveWithEvidence = await loadLiveHostState(root);
+  if (liveWithEvidence.installation.status !== "installed") {
+    assert.fail("Expected installed live host with active evidence");
+  }
+  assert.equal("analysis" in liveWithEvidence.installation, false);
 
   const evidencePath = path.join(
     root,
     ...evidenceRelativePathForManifestHash(definition.application.manifestHash).split("/"),
   );
   const evidence = await readFile(evidencePath, "utf8");
+  await writeFile(evidencePath, `${evidence}{"partial"`, "utf8");
+  const liveDuringPartialAppend = await loadLiveHostState(root);
+  if (liveDuringPartialAppend.installation.status !== "installed") {
+    assert.fail("Expected installed live host during a partial evidence append");
+  }
+  assert.equal("analysis" in liveDuringPartialAppend.installation, false);
+  await writeFile(
+    evidencePath,
+    evidence.replace('"succeeded"', '"failed"'),
+    "utf8",
+  );
+  const liveDuringCorruptEvidence = await loadLiveHostState(root);
+  if (liveDuringCorruptEvidence.installation.status !== "installed") {
+    assert.fail("Expected host loading to remain independent from evidence parsing");
+  }
+  assert.equal("analysis" in liveDuringCorruptEvidence.installation, false);
+  await writeFile(evidencePath, evidence, "utf8");
   const firstSnapshot = parseStudioSnapshot(
     await runRootCommand("snapshot", { root }),
   );
@@ -331,6 +369,11 @@ test("analyze verifies the evidence chain and produces deterministic workflow ev
     (legacy.evidence as { path: string }).path,
     LEGACY_EVIDENCE_RELATIVE_PATH,
   );
+  const liveWithoutActiveEvidence = await loadLiveHostState(root);
+  if (liveWithoutActiveEvidence.installation.status !== "installed") {
+    assert.fail("Expected installed live host after legacy evidence move");
+  }
+  assert.equal("analysis" in liveWithoutActiveEvidence.installation, false);
   assert.equal(await readFile(legacyPath, "utf8"), evidence);
 
   await writeFile(legacyPath, evidence.replace('"succeeded"', '"failed"'), "utf8");
@@ -459,6 +502,27 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
     }),
   );
   assert.equal(controlResponse.status, 202, JSON.stringify(await controlResponse.clone().json()));
+
+  const analyzed = await runRootCommand("analyze", { root });
+  const analyzedOpportunity = analyzed.opportunity as {
+    signal: { sequence?: readonly string[] };
+  };
+  const analyzedEvidence = analyzed.opportunityEvidence as {
+    eventCount: number;
+    explicitSignalEventCount: number;
+    cohortExplicitSignalEventCount: number;
+    steps: readonly { displayName: string; nodeId: string; name: string; kind: string }[];
+  };
+  assert.equal(analyzedEvidence.eventCount > 0, true);
+  assert.equal(analyzedEvidence.explicitSignalEventCount, 0);
+  assert.equal(analyzedEvidence.cohortExplicitSignalEventCount, 0);
+  assert.equal(
+    analyzedEvidence.steps.length,
+    analyzedOpportunity.signal.sequence?.length ?? 0,
+  );
+  assert.ok(
+    analyzedEvidence.steps.every((step) => step.displayName.length > 0),
+  );
 
   const snapshot = parseStudioSnapshot(await runRootCommand("snapshot", { root }));
   assert.equal(snapshot.evidence.events, 20);
@@ -641,6 +705,102 @@ test("doctor is read-only and reports an uninstalled host without creating state
   const diagnostics = result.diagnostics as Array<{ code: string }>;
   assert.ok(diagnostics.some((diagnostic) => diagnostic.code === "NOT_INSTALLED"));
   assert.equal(await exists(path.join(root, ".living")), false);
+});
+
+test("live host loading maps an uninstalled host without creating state", async (t) => {
+  const root = await createNextHost(t);
+  const loaded = await loadLiveHostState(root);
+
+  assert.equal(loaded.root, await realpath(root));
+  assert.equal(loaded.application.appId, "automatic-crm");
+  assert.ok(loaded.application.nodes > 0);
+  assert.equal(loaded.installation.status, "not-installed");
+  assert.equal(await exists(path.join(root, ".living")), false);
+});
+
+test("live host loading returns exact installed artifacts without reading evidence", async (t) => {
+  const root = await createNextHost(t);
+  await init(root, {
+    apply: true,
+    synthetic: true,
+    installId: "install-live-host",
+  });
+  const loaded = await loadLiveHostState(root);
+  if (loaded.installation.status !== "installed") {
+    assert.fail(`Expected installed state, received ${loaded.installation.status}`);
+  }
+
+  assert.equal(loaded.installation.record.installId, "install-live-host");
+  assert.equal(loaded.installation.record.appId, loaded.application.appId);
+  assert.equal(
+    loaded.installation.record.manifestHash,
+    loaded.installation.manifest.contentHash,
+  );
+  assert.equal(
+    loaded.installation.collectorDefinition.application.manifestHash,
+    loaded.installation.manifest.contentHash,
+  );
+  assert.equal(
+    loaded.installation.evidenceRelativePath,
+    evidenceRelativePathForManifestHash(
+      loaded.installation.manifest.contentHash,
+    ),
+  );
+  assert.equal("analysis" in loaded.installation, false);
+  assert.equal(
+    await exists(
+      path.join(
+        root,
+        ...loaded.installation.evidenceRelativePath.split("/"),
+      ),
+    ),
+    false,
+  );
+});
+
+test("live host loading reports a valid-schema install identity mismatch as invalid", async (t) => {
+  const root = await createNextHost(t);
+  await init(root, {
+    apply: true,
+    synthetic: true,
+    installId: "install-live-mismatch",
+  });
+  const recordPath = path.join(root, ".living", "install-record.json");
+  const record = JSON.parse(await readFile(recordPath, "utf8")) as {
+    appId: string;
+  };
+  record.appId = "other.application";
+  await writeFile(recordPath, `${JSON.stringify(record)}\n`, "utf8");
+
+  const loaded = await loadLiveHostState(root);
+  assert.equal(loaded.installation.status, "invalid");
+  if (loaded.installation.status !== "invalid") assert.fail("Expected invalid state");
+  assert.equal(loaded.installation.reason, "install-record-mismatch");
+});
+
+test("live host loading keeps governed source drift separate from installation identity", async (t) => {
+  const root = await createNextHost(t);
+  await init(root, {
+    apply: true,
+    synthetic: true,
+    installId: "install-live-source-drift",
+  });
+  const pagePath = path.join(root, "src", "app", "page.tsx");
+  await writeFile(
+    pagePath,
+    `${await readFile(pagePath, "utf8")}\n// governed source transition\n`,
+    "utf8",
+  );
+
+  const loaded = await loadLiveHostState(root);
+  if (loaded.installation.status !== "installed") {
+    assert.fail(`Source drift must remain installed, received ${loaded.installation.status}`);
+  }
+  assert.notEqual(
+    loaded.application.releaseRevision,
+    loaded.installation.manifest.release.revision,
+  );
+  assert.equal(loaded.installation.record.appId, loaded.application.appId);
 });
 
 test("an unchanged installed host remains idempotent and healthy across fresh scans", async (t) => {

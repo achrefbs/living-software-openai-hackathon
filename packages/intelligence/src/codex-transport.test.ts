@@ -16,7 +16,11 @@ import {
   SOURCE_PATCH_JSON_SCHEMA,
 } from "./schema.js";
 import { SOURCE_PATCH_GOVERNANCE_INSTRUCTION } from "./source-prompt.js";
-import type { ResponsesRequest } from "./types.js";
+import { createFetchTransport } from "./transport.js";
+import type {
+  IntelligenceLifecycleEvent,
+  ResponsesRequest,
+} from "./types.js";
 
 const request: ResponsesRequest = {
   model: "gpt-5.6",
@@ -111,7 +115,22 @@ async function createFakeCodexCli(): Promise<Readonly<{
     "    },",
     "  }),",
     "];",
-    'process.stdout.write(output.join("\\n") + "\\n");',
+    'const serialized = output.join("\\n") + "\\n";',
+    'if (input === "SPLIT") {',
+    '  const prefix = output.slice(0, 2).join("\\n") + "\\n";',
+    '  const suffix = output.slice(2).join("\\n") + "\\n";',
+    '  for (let index = 0; index < prefix.length; index += 7) {',
+    '    process.stdout.write(prefix.slice(index, index + 7));',
+    '    await Promise.resolve();',
+    '  }',
+    '  await new Promise((resolve) => setTimeout(resolve, 75));',
+    '  for (let index = 0; index < suffix.length; index += 11) {',
+    '    process.stdout.write(suffix.slice(index, index + 11));',
+    '    await Promise.resolve();',
+    '  }',
+    '} else {',
+    '  process.stdout.write(serialized);',
+    '}',
   ].join("\n");
   await writeFile(cliPath, source, { encoding: "utf8", flag: "wx" });
   return { directory, cliPath, diagnosticPath };
@@ -155,6 +174,42 @@ test("adapts an isolated Codex CLI structured result to the intelligence boundar
       },
     },
   });
+});
+
+test("reports API dispatch only after the fetch invocation and ignores reporter failure", async () => {
+  let releaseFetch!: () => void;
+  const fetchReleased = new Promise<void>((resolve) => {
+    releaseFetch = resolve;
+  });
+  let invoked = false;
+  const lifecycleEvents: IntelligenceLifecycleEvent[] = [];
+  const transport = createFetchTransport({
+    getApiKey: () => "test-key",
+    async fetch() {
+      invoked = true;
+      await fetchReleased;
+      return new Response(JSON.stringify({ status: "completed" }), {
+        status: 200,
+      });
+    },
+  });
+
+  const pending = transport.send(requestWithUser("api-prompt-secret"), {
+    async lifecycleReporter(event) {
+      lifecycleEvents.push(event);
+      throw new Error("broken API reporter");
+    },
+  });
+  assert.equal(invoked, true);
+  assert.deepEqual(lifecycleEvents, [{
+    type: "request.dispatched",
+    schemaName: "living_evolution_brief",
+    transport: "responses-api",
+  }]);
+  assert.equal(JSON.stringify(lifecycleEvents).includes("api-prompt-secret"), false);
+
+  releaseFetch();
+  assert.equal((await pending).status, 200);
 });
 
 test("rejects a downgraded or modified developer role contract", async () => {
@@ -324,6 +379,106 @@ test("rejects failed and unverifiable Codex CLI runs", async () => {
     () => unknownEvent.send(request),
     /unexpected event type: item.updated/,
   );
+});
+
+test("reports only closed lifecycle metadata and ignores reporter failures", async () => {
+  const reasoningSecret = "private-reasoning-must-never-be-reported";
+  const finalMessage = JSON.stringify({ ok: true });
+  const stdout = [
+    JSON.stringify({ type: "thread.started", thread_id: "thread-safe-1" }),
+    JSON.stringify({ type: "turn.started" }),
+    JSON.stringify({
+      type: "item.completed",
+      item: { id: "reasoning-1", type: "reasoning", text: reasoningSecret },
+    }),
+    JSON.stringify({
+      type: "item.completed",
+      item: { id: "message-1", type: "agent_message", text: finalMessage },
+    }),
+    JSON.stringify({
+      type: "turn.completed",
+      usage: {
+        input_tokens: 100,
+        cached_input_tokens: 20,
+        output_tokens: 10,
+        reasoning_output_tokens: 4,
+      },
+    }),
+  ].join("\n");
+  const lifecycleEvents: IntelligenceLifecycleEvent[] = [];
+  const transport = createCodexCliTransport({
+    async run() {
+      return { exitCode: 0, stdout, stderr: "stderr-secret", finalMessage };
+    },
+  });
+
+  const response = await transport.send(requestWithUser("prompt-secret"), {
+    async lifecycleReporter(event) {
+      lifecycleEvents.push(event);
+      throw new Error("broken intelligence reporter");
+    },
+  });
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(
+    lifecycleEvents.map((event) => event.type),
+    ["request.dispatched", "thread.started", "turn.started", "turn.completed"],
+  );
+  assert.ok(lifecycleEvents.every((event) => Object.isFrozen(event)));
+  assert.deepEqual(Object.keys(lifecycleEvents[0]!).sort(), [
+    "schemaName",
+    "transport",
+    "type",
+  ]);
+  const serialized = JSON.stringify(lifecycleEvents);
+  for (const forbidden of [
+    reasoningSecret,
+    finalMessage,
+    "prompt-secret",
+    "stderr-secret",
+    "broken intelligence reporter",
+  ]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});
+
+test("incrementally reports chunk-split Codex starts before the real run completes", {
+  timeout: 5_000,
+}, async () => {
+  const fixture = await createFakeCodexCli();
+  const lifecycleEvents: IntelligenceLifecycleEvent[] = [];
+  let settled = false;
+  let sawTurnStarted!: () => void;
+  const turnStarted = new Promise<void>((resolve) => {
+    sawTurnStarted = resolve;
+  });
+  try {
+    const transport = createCodexCliTransport({ cliPath: fixture.cliPath });
+    const pending = transport.send(requestWithUser("SPLIT"), {
+      lifecycleReporter(event) {
+        lifecycleEvents.push(event);
+        if (event.type === "turn.started") sawTurnStarted();
+      },
+    }).finally(() => {
+      settled = true;
+    });
+
+    await turnStarted;
+    assert.equal(settled, false);
+    assert.deepEqual(
+      lifecycleEvents.map((event) => event.type),
+      ["request.dispatched", "thread.started", "turn.started"],
+    );
+
+    const response = await pending;
+    assert.equal(response.status, 200);
+    assert.deepEqual(
+      lifecycleEvents.map((event) => event.type),
+      ["request.dispatched", "thread.started", "turn.started", "turn.completed"],
+    );
+  } finally {
+    await rm(fixture.directory, { force: true, recursive: true });
+  }
 });
 
 test("production runner isolates argv, stdin, environment, files, and aborts", async () => {

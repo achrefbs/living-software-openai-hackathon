@@ -13,6 +13,7 @@ import {
   formatTerminalResult,
   runTerminalCommand,
   type TerminalDependencies,
+  type TerminalLifecycleEvent,
 } from "./terminal.js";
 
 const HASH_A = `sha256:${"a".repeat(64)}` as const;
@@ -182,7 +183,8 @@ function state(
           ? 7
           : status === "applied"
             ? 8
-            : 9,
+          : 9,
+    chainHead: HASH_A,
     updatedAt: "2026-07-20T12:00:00.000Z",
   } as unknown as SourceEvolutionState;
 }
@@ -222,6 +224,7 @@ const automaticInput = {
       subjectCount: 3,
       occurrenceCount: 18,
       dataOrigin: "synthetic",
+      eventSetHash: HASH_C,
     },
   },
   evidenceEvents: [],
@@ -245,11 +248,25 @@ test("install is an explicit apply alias and keeps synthetic provenance", async 
           discovery: {
             manifest: {
               appId: "crm-demo",
+              contentHash: HASH_A,
               nodes: [{}, {}],
               edges: [{}],
             },
           },
-          result: { status: "installed" },
+          result: {
+            status: "installed",
+            record: {
+              schemaVersion: "living.install-record/v1",
+              installId: "install.crm-demo",
+              installedAt: "2026-07-20T12:00:00.000Z",
+              appId: "crm-demo",
+              adapter: { id: "nextjs", version: "1.0.0" },
+              manifestHash: HASH_A,
+              mutationPolicy: "create-only",
+              files: [{ path: ".living/config.json", installedHash: HASH_B }],
+              preservedDataPaths: [".living/data"],
+            },
+          },
         };
       },
     },
@@ -265,7 +282,38 @@ test("install is an explicit apply alias and keeps synthetic provenance", async 
     },
   });
   assert.equal(output.outcome, "installed");
-  assert.match(String(output.nextCommand), /^living improve --root/u);
+  assert.deepEqual(output.installRecord, {
+    installId: "install.crm-demo",
+    manifestHash: HASH_A,
+    mutationPolicy: "create-only",
+  });
+  assert.match(String(output.nextCommand), /^npm run living -- improve --root/u);
+});
+
+test("install rejects completion without a public validated install record", async () => {
+  await assert.rejects(
+    runTerminalCommand(
+      {
+        mode: "terminal",
+        command: "install",
+        rootPath: "C:\\demo\\crm",
+        synthetic: true,
+        json: false,
+      },
+      {
+        async runRoot(_command, options) {
+          return {
+            root: options.root,
+            discovery: {
+              manifest: { appId: "crm-demo", contentHash: HASH_A },
+            },
+            result: { status: "installed" },
+          };
+        },
+      },
+    ),
+    /validated public install result/u,
+  );
 });
 
 test("improve performs both GPT runs, prepares only, and prints exact model-authored edits", async () => {
@@ -336,7 +384,7 @@ test("improve performs both GPT runs, prepares only, and prints exact model-auth
   assert.equal(output.outcome, "prepared");
   assert.match(
     String(output.nextCommand),
-    /^living approve --root .* --artifact-hash sha256:[a-f0-9]{64} --proof-hash sha256:[a-f0-9]{64} --apply$/u,
+    /^npm run living -- approve --root .* --artifact-hash sha256:[a-f0-9]{64} --proof-hash sha256:[a-f0-9]{64} --apply$/u,
   );
   const human = formatTerminalResult(output);
   assert.match(human, /GPT patch preview \(exact model-authored edits\)/u);
@@ -348,6 +396,167 @@ test("improve performs both GPT runs, prepares only, and prints exact model-auth
   assert.match(human, new RegExp(`Proof hash: ${HASH_C}`, "u"));
 });
 
+test("improve reports ordered safe milestones only after each awaited result validates", async () => {
+  function deferred(): Readonly<{
+    promise: Promise<void>;
+    resolve(): void;
+  }> {
+    let release!: () => void;
+    const promise = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    return { promise, resolve: release };
+  }
+
+  const briefEntered = deferred();
+  const briefRelease = deferred();
+  const candidatesEntered = deferred();
+  const candidatesRelease = deferred();
+  const patchEntered = deferred();
+  const patchRelease = deferred();
+  const prepareEntered = deferred();
+  const prepareRelease = deferred();
+  const lifecycleEvents: TerminalLifecycleEvent[] = [];
+  const evolutionProgressObserver = () => undefined;
+  const candidate = {
+    path: patchProposal.target.path,
+    content: patchProposal.edits[0].anchor,
+    preimageHash: HASH_B,
+  } as const;
+
+  const pending = runTerminalCommand(
+    {
+      mode: "terminal",
+      command: "improve",
+      rootPath: automaticInput.root,
+      provider: "codex",
+      json: false,
+    },
+    {
+      async loadEvolutionInput() {
+        return automaticInput;
+      },
+      async listEvolutions() {
+        return [];
+      },
+      createIntelligence(_provider, options) {
+        const report = options?.lifecycleReporter;
+        assert.ok(report);
+        const reportRun = (
+          schemaName: "living_evolution_brief" | "living_source_patch",
+          threadId: string,
+        ) => {
+          report({ type: "request.dispatched", schemaName, transport: "codex-cli" });
+          report({ type: "thread.started", schemaName, transport: "codex-cli", threadId });
+          report({ type: "turn.started", schemaName, transport: "codex-cli", threadId });
+          report({
+            type: "turn.completed",
+            schemaName,
+            transport: "codex-cli",
+            threadId,
+            tokenUsage: briefResult.provenance.tokenUsage!,
+          });
+        };
+        return {
+          async draftEvolutionBrief() {
+            reportRun("living_evolution_brief", "thread-brief-demo");
+            briefEntered.resolve();
+            await briefRelease.promise;
+            return briefResult;
+          },
+          async draftSourcePatch() {
+            reportRun("living_source_patch", "thread-code-demo");
+            patchEntered.resolve();
+            await patchRelease.promise;
+            return patchResult;
+          },
+        };
+      },
+      async collectCandidates() {
+        candidatesEntered.resolve();
+        await candidatesRelease.promise;
+        return [candidate];
+      },
+      async prepareEvolution(input) {
+        assert.equal(input.progress, evolutionProgressObserver);
+        prepareEntered.resolve();
+        await prepareRelease.promise;
+        return state("prepared");
+      },
+    },
+    {
+      async lifecycleReporter(event) {
+        lifecycleEvents.push(event);
+        throw new Error("broken visualization reporter");
+      },
+      evolutionProgressObserver,
+    },
+  );
+
+  await briefEntered.promise;
+  assert.deepEqual(
+    lifecycleEvents.map((event) => event.type),
+    [
+      "evidence.package.validated",
+      "model.request.dispatched",
+      "model.thread.started",
+      "model.turn.started",
+      "model.turn.completed",
+    ],
+  );
+  assert.equal(
+    lifecycleEvents.some((event) => event.type === "model.result.validated"),
+    false,
+  );
+
+  briefRelease.resolve();
+  await candidatesEntered.promise;
+  assert.equal(lifecycleEvents.at(-1)?.type, "model.result.validated");
+  assert.equal(
+    lifecycleEvents.filter((event) => event.type === "model.result.validated").length,
+    1,
+  );
+
+  candidatesRelease.resolve();
+  await patchEntered.promise;
+  assert.deepEqual(
+    lifecycleEvents.slice(-5).map((event) => event.type),
+    [
+      "source-candidates.selected",
+      "model.request.dispatched",
+      "model.thread.started",
+      "model.turn.started",
+      "model.turn.completed",
+    ],
+  );
+
+  patchRelease.resolve();
+  await prepareEntered.promise;
+  assert.deepEqual(
+    lifecycleEvents.slice(-2).map((event) => event.type),
+    ["model.result.validated", "evolution.preparation.started"],
+  );
+  assert.equal(
+    lifecycleEvents.some((event) => event.type === "evolution.prepared"),
+    false,
+  );
+
+  prepareRelease.resolve();
+  const output = await pending;
+  assert.equal(output.outcome, "prepared");
+  assert.equal(lifecycleEvents.at(-1)?.type, "evolution.prepared");
+  assert.ok(lifecycleEvents.every((event) => Object.isFrozen(event)));
+  const serialized = JSON.stringify(lifecycleEvents);
+  for (const forbidden of [
+    patchProposal.edits[0].anchor,
+    patchProposal.edits[0].replacement,
+    briefResult.draft.interpretation,
+    "broken visualization reporter",
+  ]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
+});
+
 test("improve reuses only an exact full Opportunity contract", async () => {
   const exact = {
     ...state("prepared"),
@@ -357,6 +566,7 @@ test("improve reuses only an exact full Opportunity contract", async () => {
     },
   } as SourceEvolutionState;
   let modelRequested = false;
+  const reuseEvents: TerminalLifecycleEvent[] = [];
   const reused = await runTerminalCommand(
     {
       mode: "terminal",
@@ -380,9 +590,27 @@ test("improve reuses only an exact full Opportunity contract", async () => {
         throw new Error("an exact Opportunity must not call the model");
       },
     },
+    {
+      lifecycleReporter(event) {
+        reuseEvents.push(event);
+      },
+    },
   );
   assert.equal(reused.reused, true);
   assert.equal(modelRequested, false);
+  assert.deepEqual(
+    reuseEvents.map((event) => event.type),
+    ["evidence.package.validated", "proposal.reused"],
+  );
+  assert.equal(
+    reuseEvents.some((event) => event.type.startsWith("model.")),
+    false,
+  );
+  const reuse = reuseEvents[1];
+  assert.equal(
+    reuse?.type === "proposal.reused" ? reuse.summary : undefined,
+    "Existing evidence-bound proposal reused",
+  );
 
   const driftedInput = {
     ...automaticInput,
@@ -425,6 +653,7 @@ test("approve --apply preserves separate approval and application transitions", 
   const calls: unknown[] = [];
   const approved = state("approved");
   const applied = state("applied");
+  const progress = () => undefined;
   const output = await runTerminalCommand(
     {
       mode: "terminal",
@@ -453,9 +682,12 @@ test("approve --apply preserves separate approval and application transitions", 
         return applied;
       },
     },
+    { evolutionProgressObserver: progress },
   );
 
   assert.equal(calls.length, 2);
+  assert.equal((calls[0] as { input: { progress: unknown } }).input.progress, progress);
+  assert.equal((calls[1] as { input: { progress: unknown } }).input.progress, progress);
   assert.equal(
     (calls[0] as { transition: string }).transition,
     "approve",
@@ -477,9 +709,37 @@ test("approve --apply preserves separate approval and application transitions", 
   );
   assert.equal(output.outcome, "applied");
   assert.match(output.message, /approved, then/u);
-  assert.match(String(output.nextCommand), /^living rollback --root/u);
+  assert.match(String(output.nextCommand), /^npm run living -- rollback --root/u);
 });
 
+test("rollback passes the non-authoritative progress observer to the evolution engine", async () => {
+  const progress = () => undefined;
+  let receivedProgress: unknown;
+  const output = await runTerminalCommand(
+    {
+      mode: "terminal",
+      command: "rollback",
+      rootPath: "C:\\demo\\crm",
+      evolutionId: state().evolutionId,
+      actor: "operator.demo",
+      json: false,
+    },
+    {
+      async getEvolution() {
+        return state("applied");
+      },
+      async rollbackEvolution(input) {
+        receivedProgress = input.progress;
+        return state("rolled-back");
+      },
+    },
+    { evolutionProgressObserver: progress },
+  );
+
+  assert.equal(receivedProgress, progress);
+  assert.equal(output.outcome, "rolled-back");
+  assert.equal(output.nextCommand, undefined);
+});
 test("improve refuses to prepare beside an approved or applied evolution for the same app and root", async () => {
   for (const activeStatus of ["approved", "applied"] as const) {
     const active = {
@@ -613,6 +873,6 @@ test("status retains the stored GPT proposal, exact patch preview, and code-run 
   assert.match(human, new RegExp(`Proof hash: ${HASH_C}`, "u"));
   assert.match(
     String(output.nextCommand),
-    /^living approve --root .* --artifact-hash sha256:[a-f0-9]{64} --proof-hash sha256:[a-f0-9]{64} --apply$/u,
+    /^npm run living -- approve --root .* --artifact-hash sha256:[a-f0-9]{64} --proof-hash sha256:[a-f0-9]{64} --apply$/u,
   );
 });

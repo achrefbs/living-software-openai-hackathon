@@ -8,11 +8,14 @@ import type {
 export type BoundedProductNode = Readonly<{
   id: string;
   kind: ProductManifest["nodes"][number]["kind"];
+  displayName: string;
 }>;
 
 export type NormalizedEvidenceEvent = Readonly<{
   ordinal: number;
   citationAlias: string;
+  caseAlias: string;
+  caseStep: number;
   name: string;
   kind: WorkflowEvent["kind"];
   status: WorkflowEvent["status"];
@@ -21,6 +24,7 @@ export type NormalizedEvidenceEvent = Readonly<{
   productNodeId: string | null;
   surfaceId: string | null;
   durationMs: number | null;
+  interaction: "click" | "change" | "submit" | null;
   source: WorkflowEvent["provenance"]["source"];
   synthetic: boolean;
 }>;
@@ -120,6 +124,47 @@ export type IntelligenceSchemaName =
   | "living_evolution_brief"
   | "living_source_patch";
 
+/**
+ * A closed, content-free projection of an intelligence transport lifecycle.
+ * Model prompts, output text, JSONL item content, stderr, and stdout are never
+ * valid lifecycle fields.
+ */
+export type IntelligenceLifecycleEvent =
+  | Readonly<{
+      type: "request.dispatched";
+      schemaName: IntelligenceSchemaName;
+      transport: IntelligenceTransportKind;
+    }>
+  | Readonly<{
+      type: "thread.started";
+      schemaName: IntelligenceSchemaName;
+      transport: "codex-cli";
+      threadId: string;
+    }>
+  | Readonly<{
+      type: "turn.started";
+      schemaName: IntelligenceSchemaName;
+      transport: "codex-cli";
+      threadId: string;
+    }>
+  | Readonly<{
+      type: "turn.completed";
+      schemaName: IntelligenceSchemaName;
+      transport: "codex-cli";
+      threadId: string;
+      tokenUsage: IntelligenceTokenUsage;
+    }>;
+
+/** Reporter failures are deliberately ignored by every transport. */
+export type IntelligenceLifecycleReporter = (
+  event: IntelligenceLifecycleEvent,
+) => void;
+
+export type IntelligenceSendOptions = Readonly<{
+  signal?: AbortSignal;
+  lifecycleReporter?: IntelligenceLifecycleReporter;
+}>;
+
 export type ResponsesRequest = Readonly<{
   model: "gpt-5.6";
   store: false;
@@ -156,7 +201,10 @@ export type IntelligenceTokenUsage = Readonly<{
 
 export interface IntelligenceTransport {
   readonly kind?: IntelligenceTransportKind;
-  send(request: ResponsesRequest, options?: Readonly<{ signal?: AbortSignal }>): Promise<TransportResponse>;
+  send(
+    request: ResponsesRequest,
+    options?: IntelligenceSendOptions,
+  ): Promise<TransportResponse>;
 }
 
 export type IntelligenceProvenance = Readonly<{

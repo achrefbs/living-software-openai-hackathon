@@ -1,5 +1,5 @@
 import { applySourceEvolution, approveSourceEvolution, getEvolutionStatus, listEvolutionStatuses, prepareSourceEvolution, rollbackSourceEvolution, sourcePatchModelProvenanceSchema, sourcePatchProposalSchema, } from "@living-software/evolution";
-import { gpt56EvolutionBriefSchema, intelligenceProvenanceSchema, } from "@living-software/contracts";
+import { gpt56EvolutionBriefSchema, intelligenceProvenanceSchema, parseInstallRecord, } from "@living-software/contracts";
 import { createCodexCliTransport, createFetchTransport, createIntelligenceClient, } from "@living-software/intelligence";
 import { isDeepStrictEqual } from "node:util";
 import { loadAutomaticEvolutionInput, runRootCommand, } from "./root-mode.js";
@@ -8,12 +8,15 @@ const defaultDependencies = {
     runRoot: runRootCommand,
     loadEvolutionInput: loadAutomaticEvolutionInput,
     collectCandidates: collectSourceCandidates,
-    createIntelligence(provider) {
+    createIntelligence(provider, options = {}) {
         return createIntelligenceClient(provider === "codex"
             ? createCodexCliTransport()
             : createFetchTransport(), {
             timeoutMs: 120_000,
             maxPatchOutputTokens: 8_000,
+            ...(options.lifecycleReporter === undefined
+                ? {}
+                : { lifecycleReporter: options.lifecycleReporter }),
         });
     },
     prepareEvolution: prepareSourceEvolution,
@@ -32,6 +35,73 @@ function result(command, outcome, message, fields = {}) {
         ...fields,
     });
 }
+function reportTerminalLifecycle(reporter, event) {
+    if (reporter === undefined)
+        return;
+    try {
+        const reported = reporter(Object.freeze(event));
+        void Promise.resolve(reported).catch(() => undefined);
+    }
+    catch {
+        // Reporting is observational and must never alter lifecycle authority.
+    }
+}
+function lifecycleTokenUsage(value) {
+    return value === null
+        ? null
+        : Object.freeze({
+            inputTokens: value.inputTokens,
+            cachedInputTokens: value.cachedInputTokens,
+            outputTokens: value.outputTokens,
+            reasoningOutputTokens: value.reasoningOutputTokens,
+        });
+}
+function lifecycleRunId(value) {
+    return value !== null && /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,255}$/u.test(value)
+        ? value
+        : null;
+}
+function modelOperation(schemaName) {
+    return schemaName === "living_evolution_brief"
+        ? "interpretation"
+        : "source-patch";
+}
+function reportIntelligenceToTerminal(reporter, event) {
+    const operation = modelOperation(event.schemaName);
+    switch (event.type) {
+        case "request.dispatched":
+            reportTerminalLifecycle(reporter, {
+                type: "model.request.dispatched",
+                operation,
+                transport: event.transport,
+            });
+            return;
+        case "thread.started":
+            reportTerminalLifecycle(reporter, {
+                type: "model.thread.started",
+                operation,
+                transport: "codex-cli",
+                threadId: event.threadId,
+            });
+            return;
+        case "turn.started":
+            reportTerminalLifecycle(reporter, {
+                type: "model.turn.started",
+                operation,
+                transport: "codex-cli",
+                threadId: event.threadId,
+            });
+            return;
+        case "turn.completed":
+            reportTerminalLifecycle(reporter, {
+                type: "model.turn.completed",
+                operation,
+                transport: "codex-cli",
+                threadId: event.threadId,
+                tokenUsage: lifecycleTokenUsage(event.tokenUsage),
+            });
+    }
+}
 function quote(value) {
     return JSON.stringify(value);
 }
@@ -44,12 +114,12 @@ function nextCommand(root, state) {
             const proofHash = "proof" in state
                 ? state.proof.proofHash
                 : state.proofHash;
-            return `living approve --root ${quote(root)} --evolution ${state.evolutionId} --actor <actor> --artifact-hash ${artifactHash} --proof-hash ${proofHash} --apply`;
+            return `npm run living -- approve --root ${quote(root)} --evolution ${state.evolutionId} --actor hackathon-demo --artifact-hash ${artifactHash} --proof-hash ${proofHash} --apply`;
         }
         case "approved":
-            return `living apply --root ${quote(root)} --evolution ${state.evolutionId}`;
+            return `npm run living -- apply --root ${quote(root)} --evolution ${state.evolutionId}`;
         case "applied":
-            return `living rollback --root ${quote(root)} --evolution ${state.evolutionId} --actor <actor>`;
+            return `npm run living -- rollback --root ${quote(root)} --evolution ${state.evolutionId} --actor hackathon-demo`;
         case "rolled-back":
             return undefined;
     }
@@ -199,20 +269,45 @@ async function install(args, dependencies) {
     });
     const discovery = installed.discovery;
     const installResult = installed.result;
+    if (discovery?.manifest?.appId === undefined ||
+        discovery.manifest.contentHash === undefined ||
+        (installResult?.status !== "installed" &&
+            installResult?.status !== "unchanged") ||
+        installResult.record === undefined) {
+        throw new TypeError("Installation did not return a validated public install result");
+    }
+    const installRecord = parseInstallRecord(installResult.record);
+    if (installRecord.appId !== discovery.manifest.appId ||
+        installRecord.manifestHash !== discovery.manifest.contentHash) {
+        throw new TypeError("Installed record identity does not match the discovered application");
+    }
     const application = {
-        appId: discovery?.manifest?.appId ?? "unknown",
-        nodes: discovery?.manifest?.nodes?.length ?? 0,
-        edges: discovery?.manifest?.edges?.length ?? 0,
+        appId: discovery.manifest.appId,
+        nodes: discovery.manifest.nodes?.length ?? 0,
+        edges: discovery.manifest.edges?.length ?? 0,
     };
-    return result("install", installResult?.status ?? "installed", "Living Software is installed and observation is ready.", {
+    return result("install", installResult.status, "Living Software is installed and observation is ready.", {
         root: installed.root,
         synthetic: args.synthetic,
         application,
-        nextCommand: `living improve --root ${quote(args.rootPath)} --provider codex`,
+        installRecord: {
+            installId: installRecord.installId,
+            manifestHash: installRecord.manifestHash,
+            mutationPolicy: installRecord.mutationPolicy,
+        },
+        nextCommand: `npm run living -- improve --root ${quote(args.rootPath)} --provider codex`,
     });
 }
-async function improve(args, dependencies) {
+async function improve(args, dependencies, options) {
     const input = await dependencies.loadEvolutionInput(args.rootPath);
+    reportTerminalLifecycle(options.lifecycleReporter, {
+        type: "evidence.package.validated",
+        appId: input.application.appId,
+        manifestHash: input.application.manifestHash,
+        opportunityId: input.opportunity.opportunityId,
+        eventSetHash: input.opportunity.evidence.eventSetHash,
+        dataOrigin: input.application.dataOrigin,
+    });
     const summaries = [...await dependencies.listEvolutions(args.rootPath)].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
     const existing = await exactExistingEvolution(args.rootPath, input, dependencies, summaries);
     const activeConflict = conflictingActiveEvolution(summaries, input.application.appId, existing?.evolutionId);
@@ -223,7 +318,16 @@ async function improve(args, dependencies) {
         if (existing.status === "rolled-back") {
             throw new TypeError("This evidence already produced a rolled-back evolution. Capture new workflow evidence before improving again.");
         }
-        return result("improve", existing.status, "The exact evidence already has a governed improvement; no model call was repeated.", {
+        reportTerminalLifecycle(options.lifecycleReporter, {
+            type: "proposal.reused",
+            summary: "Existing evidence-bound proposal reused",
+            evolutionId: existing.evolutionId,
+            status: existing.status,
+            artifactHash: existing.artifact.contentHash,
+            proofHash: existing.proof.proofHash,
+            receiptCount: existing.receiptCount,
+        });
+        return result("improve", existing.status, "Existing evidence-bound proposal reused. No model call was made.", {
             root: input.root,
             reused: true,
             opportunity: {
@@ -240,11 +344,20 @@ async function improve(args, dependencies) {
                 : {}),
         });
     }
-    const intelligence = dependencies.createIntelligence(args.provider);
+    const intelligence = dependencies.createIntelligence(args.provider, {
+        lifecycleReporter: (event) => reportIntelligenceToTerminal(options.lifecycleReporter, event),
+    });
     const brief = await intelligence.draftEvolutionBrief({
         manifest: input.manifest,
         opportunity: input.opportunity,
         evidenceEvents: input.evidenceEvents,
+    });
+    reportTerminalLifecycle(options.lifecycleReporter, {
+        type: "model.result.validated",
+        operation: "interpretation",
+        transport: brief.provenance.transport,
+        runId: lifecycleRunId(brief.provenance.codexThreadId ?? brief.provenance.responseId),
+        tokenUsage: lifecycleTokenUsage(brief.provenance.tokenUsage),
     });
     const candidates = await dependencies.collectCandidates({
         repositoryRoot: input.root,
@@ -253,9 +366,24 @@ async function improve(args, dependencies) {
             affectedProductNodeIds: brief.draft.proposedChange.affectedProductNodeIds,
         },
     });
+    reportTerminalLifecycle(options.lifecycleReporter, {
+        type: "source-candidates.selected",
+        count: candidates.length,
+        candidates: Object.freeze(candidates.map((candidate) => Object.freeze({
+            path: candidate.path,
+            preimageHash: candidate.preimageHash,
+        }))),
+    });
     const patch = await intelligence.draftSourcePatch({
         brief: brief.draft,
         candidates,
+    });
+    reportTerminalLifecycle(options.lifecycleReporter, {
+        type: "model.result.validated",
+        operation: "source-patch",
+        transport: patch.provenance.transport,
+        runId: lifecycleRunId(patch.provenance.codexThreadId ?? patch.provenance.responseId),
+        tokenUsage: lifecycleTokenUsage(patch.provenance.tokenUsage),
     });
     const target = candidates.find((candidate) => candidate.path === patch.proposal.target.path &&
         candidate.preimageHash === patch.proposal.target.preimageHash);
@@ -263,6 +391,12 @@ async function improve(args, dependencies) {
         throw new TypeError("GPT-5.6 selected a source target outside the exact candidate projection");
     }
     await assertNoConflictingActiveEvolution(input.root, input.application.appId, dependencies, "prepare");
+    reportTerminalLifecycle(options.lifecycleReporter, {
+        type: "evolution.preparation.started",
+        proposalId: patch.proposal.proposalId,
+        targetPath: target.path,
+        preimageHash: target.preimageHash,
+    });
     const state = await dependencies.prepareEvolution({
         root: input.root,
         app: input.application,
@@ -276,6 +410,21 @@ async function improve(args, dependencies) {
             path: target.path,
             preimage: target.content,
         },
+        ...(options.evolutionProgressObserver === undefined
+            ? {}
+            : { progress: options.evolutionProgressObserver }),
+    });
+    reportTerminalLifecycle(options.lifecycleReporter, {
+        type: "evolution.prepared",
+        evolutionId: state.evolutionId,
+        targetPath: state.artifact.target.path,
+        artifactHash: state.artifact.contentHash,
+        proofHash: state.proof.proofHash,
+        preimageHash: state.artifact.target.preimageHash,
+        postimageHash: state.artifact.target.postimageHash,
+        proofChecks: Object.freeze(state.proof.checks.map((check) => Object.freeze({ id: check.id, status: check.status }))),
+        receiptCount: state.receiptCount,
+        chainHead: state.chainHead,
     });
     return result("improve", "prepared", "GPT-5.6 proposed one bounded change. Proof passed; the source is still unchanged.", {
         root: input.root,
@@ -338,15 +487,15 @@ async function status(args, dependencies) {
         ...(newest === undefined
             ? {
                 nextCommand: installed
-                    ? `living improve --root ${quote(args.rootPath)} --provider codex`
-                    : `living install --root ${quote(args.rootPath)}`,
+                    ? `npm run living -- improve --root ${quote(args.rootPath)} --provider codex`
+                    : `npm run living -- install --root ${quote(args.rootPath)}`,
             }
             : {
                 nextCommand: nextCommand(args.rootPath, newest),
             }),
     });
 }
-async function lifecycle(args, dependencies) {
+async function lifecycle(args, dependencies, options) {
     const current = await dependencies.getEvolution(args.rootPath, args.evolutionId);
     let updated;
     if (args.command === "approve") {
@@ -358,6 +507,9 @@ async function lifecycle(args, dependencies) {
             expectedArtifactHash: args.expectedArtifactHash,
             expectedProofHash: args.expectedProofHash,
             expectedRevision: current.receiptCount,
+            ...(options.evolutionProgressObserver === undefined
+                ? {}
+                : { progress: options.evolutionProgressObserver }),
         });
         if (args.applyAfterApproval) {
             await assertNoConflictingActiveEvolution(args.rootPath, approved.app.appId, dependencies, "apply", approved.evolutionId);
@@ -365,6 +517,9 @@ async function lifecycle(args, dependencies) {
                 root: args.rootPath,
                 evolutionId: approved.evolutionId,
                 expectedRevision: approved.receiptCount,
+                ...(options.evolutionProgressObserver === undefined
+                    ? {}
+                    : { progress: options.evolutionProgressObserver }),
             });
         }
         else {
@@ -377,6 +532,9 @@ async function lifecycle(args, dependencies) {
             root: args.rootPath,
             evolutionId: current.evolutionId,
             expectedRevision: current.receiptCount,
+            ...(options.evolutionProgressObserver === undefined
+                ? {}
+                : { progress: options.evolutionProgressObserver }),
         });
     }
     else {
@@ -385,6 +543,9 @@ async function lifecycle(args, dependencies) {
             evolutionId: current.evolutionId,
             humanId: args.actor,
             expectedRevision: current.receiptCount,
+            ...(options.evolutionProgressObserver === undefined
+                ? {}
+                : { progress: options.evolutionProgressObserver }),
         });
     }
     const messages = {
@@ -400,7 +561,7 @@ async function lifecycle(args, dependencies) {
         nextCommand: nextCommand(args.rootPath, updated),
     });
 }
-export async function runTerminalCommand(args, overrides = {}) {
+export async function runTerminalCommand(args, overrides = {}, options = {}) {
     const dependencies = {
         ...defaultDependencies,
         ...overrides,
@@ -409,13 +570,13 @@ export async function runTerminalCommand(args, overrides = {}) {
         case "install":
             return install(args, dependencies);
         case "improve":
-            return improve(args, dependencies);
+            return improve(args, dependencies, options);
         case "status":
             return status(args, dependencies);
         case "approve":
         case "apply":
         case "rollback":
-            return lifecycle(args, dependencies);
+            return lifecycle(args, dependencies, options);
     }
 }
 function record(value) {

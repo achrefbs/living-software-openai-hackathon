@@ -21,11 +21,13 @@ import {
 import {
   metricCatalogSchema,
   parseDiscoveryResult,
+  parseInstallRecord,
   parseLivingConfig,
   parseObservationRuntimeMap,
   parseProductManifest,
   parseStudioSnapshot,
   STUDIO_SNAPSHOT_SCHEMA_VERSION,
+  type InstallRecord,
   type LivingConfig,
   type ObservationEventBinding,
   type ObservationRuntimeMap,
@@ -36,11 +38,9 @@ import {
   type StudioSnapshotOpportunity,
   type StudioSnapshotVariant,
 } from "@living-software/contracts";
+import { discoverNextApp, type DiscoveryResult } from "@living-software/discovery";
 import {
-  discoverNextApp,
-  type DiscoveryResult,
-} from "@living-software/discovery";
-import {
+  INSTALL_RECORD_PATH,
   applyCreateOnlyInstall,
   applySafeUninstall,
   planCreateOnlyInstall,
@@ -442,6 +442,7 @@ async function installedArtifacts(root: string): Promise<{
   config: LivingConfig;
   manifest: ProductManifest;
   runtimeMap: ObservationRuntimeMap;
+  collectorDefinition: CollectorDefinition;
 }> {
   const config = parseLivingConfig(await readJsonArtifact(root, INSTALLED_CONFIG_PATH));
   const manifest = parseProductManifest(await readJsonArtifact(root, INSTALLED_MANIFEST_PATH));
@@ -451,8 +452,174 @@ async function installedArtifacts(root: string): Promise<{
     config,
   );
   metricCatalogSchema.parse(await readJsonArtifact(root, INSTALLED_METRIC_CATALOG_PATH));
-  collectorDefinitionFromObservationRuntimeMap(toCollectorRuntimeMap(runtimeMap));
-  return { config, manifest, runtimeMap };
+  const collectorDefinition = collectorDefinitionFromObservationRuntimeMap(
+    toCollectorRuntimeMap(runtimeMap),
+  );
+  return { config, manifest, runtimeMap, collectorDefinition };
+}
+
+export interface LiveHostApplicationSummary {
+  readonly appId: ProductManifest["appId"];
+  readonly displayName: LivingConfig["application"]["displayName"];
+  readonly framework: DiscoveryResult["support"]["framework"];
+  readonly detectedVersion: DiscoveryResult["support"]["detectedVersion"];
+  readonly releaseRevision: ProductManifest["release"]["revision"];
+  readonly manifestHash: ProductManifest["contentHash"];
+  readonly nodes: number;
+  readonly edges: number;
+}
+
+export type LiveHostInvalidInstallationReason =
+  | "install-record-invalid"
+  | "installed-artifacts-invalid"
+  | "install-record-mismatch"
+  | "current-map-mismatch";
+
+export type LiveHostInstallation =
+  | Readonly<{ status: "not-installed" }>
+  | Readonly<{
+      status: "invalid";
+      reason: LiveHostInvalidInstallationReason;
+      message: string;
+    }>
+  | Readonly<{
+      status: "installed";
+      record: InstallRecord;
+      config: LivingConfig;
+      manifest: ProductManifest;
+      runtimeMap: ObservationRuntimeMap;
+      collectorDefinition: CollectorDefinition;
+      evidenceRelativePath: string;
+    }>;
+
+export interface LiveHostState {
+  readonly root: string;
+  readonly application: LiveHostApplicationSummary;
+  readonly installation: LiveHostInstallation;
+}
+
+function liveHostApplicationSummary(
+  discovery: ReturnType<typeof parseDiscoveryResult>,
+): LiveHostApplicationSummary {
+  if (discovery.config.application.id !== discovery.manifest.appId) {
+    throw new RootModeError(
+      "CURRENT_MAP_IDENTITY_INVALID",
+      "Current discovery config and product manifest identify different applications.",
+    );
+  }
+  return Object.freeze({
+    appId: discovery.manifest.appId,
+    displayName: discovery.config.application.displayName,
+    framework: discovery.support.framework,
+    detectedVersion: discovery.support.detectedVersion,
+    releaseRevision: discovery.manifest.release.revision,
+    manifestHash: discovery.manifest.contentHash,
+    nodes: discovery.manifest.nodes.length,
+    edges: discovery.manifest.edges.length,
+  });
+}
+
+function invalidLiveHostInstallation(
+  reason: LiveHostInvalidInstallationReason,
+  message: string,
+): LiveHostInstallation {
+  return Object.freeze({ status: "invalid", reason, message });
+}
+
+async function readLiveHostInstallRecord(
+  root: string,
+): Promise<InstallRecord | undefined> {
+  const source = await optionalSafeRead(root, INSTALL_RECORD_PATH);
+  return source === undefined
+    ? undefined
+    : parseInstallRecord(JSON.parse(source) as unknown);
+}
+
+/**
+ * Reconstruct the current live-host state exclusively from validated reads.
+ * This deliberately does not read evidence or create storage. Live consumers
+ * must reconstruct evidence through their own bounded, append-safe reader.
+ */
+export async function loadLiveHostState(
+  rootInput: string,
+): Promise<LiveHostState> {
+  const root = await realpath(rootInput);
+  const discovery = parseDiscoveryResult(
+    await discoverNextApp({ repositoryRoot: root }),
+  );
+  const application = liveHostApplicationSummary(discovery);
+
+  let record: InstallRecord | undefined;
+  try {
+    record = await readLiveHostInstallRecord(root);
+  } catch {
+    return Object.freeze({
+      root,
+      application,
+      installation: invalidLiveHostInstallation(
+        "install-record-invalid",
+        "The Living install record failed safe-path or public contract validation.",
+      ),
+    });
+  }
+  if (record === undefined) {
+    return Object.freeze({
+      root,
+      application,
+      installation: Object.freeze({ status: "not-installed" }),
+    });
+  }
+
+  let installed: Awaited<ReturnType<typeof installedArtifacts>>;
+  try {
+    installed = await installedArtifacts(root);
+  } catch {
+    return Object.freeze({
+      root,
+      application,
+      installation: invalidLiveHostInstallation(
+        "installed-artifacts-invalid",
+        "One or more installed Living artifacts failed safe-path or contract validation.",
+      ),
+    });
+  }
+  if (
+    record.appId !== installed.manifest.appId ||
+    record.manifestHash !== installed.manifest.contentHash
+  ) {
+    return Object.freeze({
+      root,
+      application,
+      installation: invalidLiveHostInstallation(
+        "install-record-mismatch",
+        "The install record identity does not match the installed product manifest.",
+      ),
+    });
+  }
+  if (installed.manifest.appId !== application.appId) {
+    return Object.freeze({
+      root,
+      application,
+      installation: invalidLiveHostInstallation(
+        "current-map-mismatch",
+        "The installed application identity does not match the current source map.",
+      ),
+    });
+  }
+
+  const evidenceRelativePath = evidenceRelativePathForManifestHash(
+    installed.collectorDefinition.application.manifestHash,
+  );
+  return Object.freeze({
+    root,
+    application,
+    installation: Object.freeze({
+      status: "installed",
+      record,
+      ...installed,
+      evidenceRelativePath,
+    }),
+  });
 }
 
 async function runDoctor(options: RootCommandOptions): Promise<Record<string, unknown>> {
@@ -653,9 +820,7 @@ export interface AutomaticEvolutionInput {
 async function loadEvidenceAnalysis(rootInput: string): Promise<LoadedEvidenceAnalysis> {
   const root = await realpath(rootInput);
   const installed = await installedArtifacts(root);
-  const definition = collectorDefinitionFromObservationRuntimeMap(
-    toCollectorRuntimeMap(installed.runtimeMap),
-  );
+  const definition = installed.collectorDefinition;
   const activeEvidencePath = evidenceRelativePathForManifestHash(
     definition.application.manifestHash,
   );
@@ -735,6 +900,55 @@ function evidenceSummary(loaded: LoadedEvidenceAnalysis): Record<string, unknown
   };
 }
 
+function opportunityEvidenceSummary(
+  loaded: LoadedEvidenceAnalysis,
+): Readonly<{
+  eventCount: number;
+  explicitSignalEventCount: number;
+  cohortExplicitSignalEventCount: number;
+  steps: readonly Readonly<{
+    kind: EvidenceAnalysis["events"][number]["kind"];
+    nodeId: string;
+    name: string;
+    displayName: string;
+  }>[];
+}> {
+  const events = loaded.analysis.opportunityEvidenceEvents;
+  const sequence = loaded.analysis.opportunity?.signal.sequence ?? [];
+  const nodesById = new Map(
+    loaded.installed.manifest.nodes.map((node) => [node.id, node] as const),
+  );
+  let cursor = 0;
+  const steps = sequence.flatMap((name) => {
+    const relativeIndex = events
+      .slice(cursor)
+      .findIndex((event) => event.name === name);
+    const index = relativeIndex < 0 ? -1 : cursor + relativeIndex;
+    const event = index < 0
+      ? events.find((candidate) => candidate.name === name)
+      : events[index];
+    if (event === undefined) return [];
+    if (index >= 0) cursor = index + 1;
+    const nodeId = event.product?.nodeId ?? "unmapped";
+    return [Object.freeze({
+      kind: event.kind,
+      nodeId,
+      name: event.name,
+      displayName: nodesById.get(nodeId)?.displayName ?? nodeId,
+    })];
+  });
+  const hasExplicitSignal = (
+    event: EvidenceAnalysis["events"][number],
+  ): boolean => typeof event.metadata.signal === "string";
+  return Object.freeze({
+    eventCount: events.length,
+    explicitSignalEventCount: events.filter(hasExplicitSignal).length,
+    cohortExplicitSignalEventCount:
+      loaded.analysis.events.filter(hasExplicitSignal).length,
+    steps: Object.freeze(steps),
+  });
+}
+
 async function runAnalyze(options: RootCommandOptions): Promise<Record<string, unknown>> {
   const loaded = await loadEvidenceAnalysis(options.root);
   return {
@@ -747,7 +961,9 @@ async function runAnalyze(options: RootCommandOptions): Promise<Record<string, u
     workflowCases: loaded.analysis.workflowCases,
     workflowVariants: loaded.analysis.workflowVariants,
     metricReport: loaded.analysis.metricReport,
+    detectorProgress: loaded.analysis.detectorProgress,
     opportunity: loaded.analysis.opportunity,
+    opportunityEvidence: opportunityEvidenceSummary(loaded),
   };
 }
 

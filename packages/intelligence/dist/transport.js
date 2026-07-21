@@ -1,4 +1,5 @@
 import { assertIntelligenceRequestContract } from "./request-contract.js";
+import { reportIntelligenceLifecycle } from "./lifecycle.js";
 export class MissingApiKeyError extends Error {
     constructor() {
         super("OPENAI_API_KEY is required at runtime");
@@ -17,7 +18,7 @@ export function createFetchTransport(options = {}) {
             if (apiKey === undefined || apiKey.trim() === "") {
                 throw new MissingApiKeyError();
             }
-            const response = await fetchImpl(`${baseUrl}/v1/responses`, {
+            const pendingResponse = fetchImpl(`${baseUrl}/v1/responses`, {
                 method: "POST",
                 headers: {
                     authorization: `Bearer ${apiKey}`,
@@ -26,6 +27,12 @@ export function createFetchTransport(options = {}) {
                 body: JSON.stringify(request),
                 ...(sendOptions?.signal === undefined ? {} : { signal: sendOptions.signal }),
             });
+            reportIntelligenceLifecycle(sendOptions?.lifecycleReporter, {
+                type: "request.dispatched",
+                schemaName: request.text.format.name,
+                transport: "responses-api",
+            });
+            const response = await pendingResponse;
             const raw = await response.text();
             let body = raw;
             if (raw !== "") {

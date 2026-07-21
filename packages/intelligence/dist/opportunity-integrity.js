@@ -1,6 +1,10 @@
 import { findBacktrackingRevisitIndexes, projectWorkflowCases, projectWorkflowJourneySteps, sha256, } from "@living-software/core";
 const BUILT_IN_DETECTORS = new Map([
     ["detector.backtracking@1.2.0", "backtracking"],
+    [
+        "detector.workflow-pattern.repeated-sequence@1.0.0",
+        "repeated-sequence",
+    ],
     ["detector.technical-friction.correction@1.0.0", "correction"],
     [
         "detector.technical-friction.interaction-failure@1.0.0",
@@ -17,6 +21,21 @@ const BACKTRACKING_REASON_CODES = [
     "minimum-revisits-met",
     "friction-corroborated",
     "deterministic-evidence",
+];
+const REPEATED_SEQUENCE_CONFIG = {
+    id: "detector.workflow-pattern.repeated-sequence",
+    version: "1.0.0",
+    minimumAffectedCases: 3,
+    minimumIndependentSessions: 3,
+    minimumSequenceLength: 2,
+    minimumOccurrencesPerCase: 2,
+    maximumSequenceLength: 64,
+};
+const REPEATED_SEQUENCE_REASON_CODES = [
+    "minimum-cases-met",
+    "minimum-sessions-met",
+    "repeated-sequence-observed",
+    "minimized-evidence",
 ];
 function fail(detail) {
     throw new Error(`Built-in Opportunity semantic integrity failed: ${detail}`);
@@ -249,6 +268,169 @@ function validateBacktracking(opportunity, events) {
     expectConfidence(opportunity, Math.min(0.95, 0.5 + ratio * 0.4), BACKTRACKING_REASON_CODES);
     expectOpportunityIdentity(opportunity);
 }
+function uniqueOrderedEvents(events) {
+    return [
+        ...new Map(events.map((event) => [event.eventId, event])).values(),
+    ].sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt) ||
+        left.sequence - right.sequence ||
+        left.eventId.localeCompare(right.eventId));
+}
+function repeatedStepToken(step) {
+    return JSON.stringify([step.kind, step.nodeId, step.event.name]);
+}
+function repeatedSequenceCandidates(events) {
+    const candidates = new Map();
+    for (const workflowCase of projectWorkflowCases([...events])) {
+        const journey = projectWorkflowJourneySteps(workflowCase.events);
+        const tokens = journey.map(repeatedStepToken);
+        const casePatterns = new Map();
+        const maximumLength = Math.min(REPEATED_SEQUENCE_CONFIG.maximumSequenceLength, Math.floor(journey.length /
+            REPEATED_SEQUENCE_CONFIG.minimumOccurrencesPerCase));
+        for (let length = REPEATED_SEQUENCE_CONFIG.minimumSequenceLength; length <= maximumLength; length += 1) {
+            for (let start = 0; start + length <= journey.length; start += 1) {
+                const key = JSON.stringify(tokens.slice(start, start + length));
+                const existing = casePatterns.get(key);
+                if (existing === undefined) {
+                    casePatterns.set(key, {
+                        sequence: journey
+                            .slice(start, start + length)
+                            .map((step) => step.event.name),
+                        length,
+                        starts: [start],
+                    });
+                }
+                else {
+                    existing.starts.push(start);
+                }
+            }
+        }
+        for (const [key, pattern] of casePatterns) {
+            const acceptedStarts = [];
+            let nextAvailableIndex = 0;
+            for (const start of pattern.starts) {
+                if (start < nextAvailableIndex)
+                    continue;
+                acceptedStarts.push(start);
+                nextAvailableIndex = start + pattern.length;
+            }
+            if (acceptedStarts.length <
+                REPEATED_SEQUENCE_CONFIG.minimumOccurrencesPerCase) {
+                continue;
+            }
+            const evidenceEvents = uniqueOrderedEvents(acceptedStarts.flatMap((start) => journey
+                .slice(start, start + pattern.length)
+                .map((step) => step.event)));
+            const match = {
+                evidenceEvents,
+                occurrenceCount: acceptedStarts.length,
+            };
+            const existing = candidates.get(key);
+            if (existing === undefined) {
+                candidates.set(key, {
+                    sequence: [...pattern.sequence],
+                    matches: [match],
+                });
+            }
+            else {
+                existing.matches.push(match);
+            }
+        }
+    }
+    return [...candidates.entries()].map(([key, candidate]) => {
+        const evidenceEvents = candidate.matches.flatMap((match) => match.evidenceEvents);
+        return {
+            key,
+            sequence: candidate.sequence,
+            matches: candidate.matches,
+            sessions: new Set(evidenceEvents.map((event) => event.sessionId)),
+            occurrenceCount: candidate.matches.reduce((total, match) => total + match.occurrenceCount, 0),
+        };
+    });
+}
+function expectRepeatedSequenceIdentityLinkage(opportunity, events) {
+    const eventSetHash = sha256(events
+        .map((event) => event)
+        .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))));
+    if (opportunity.evidence.eventSetHash !== eventSetHash ||
+        opportunity.evidence.bundle.sha256 !== eventSetHash ||
+        events.some((event) => event.appId !== opportunity.appId ||
+            (event.product !== undefined &&
+                event.product.manifestHash !== opportunity.manifestHash))) {
+        fail("repeated-sequence evidence identity linkage is not exact");
+    }
+}
+function validateRepeatedSequence(opportunity, events) {
+    if (opportunity.signal.kind !== "repeated-sequence" ||
+        opportunity.signal.sequence === undefined) {
+        fail("signal kind or sequence does not match the repeated-sequence detector");
+    }
+    const expectedConfigHash = sha256(REPEATED_SEQUENCE_CONFIG);
+    if (opportunity.detector.configHash !== expectedConfigHash) {
+        fail("detector configHash does not match the repeated-sequence configuration");
+    }
+    expectRepeatedSequenceIdentityLinkage(opportunity, events);
+    const candidate = repeatedSequenceCandidates(events)
+        .filter((item) => item.matches.length >=
+        REPEATED_SEQUENCE_CONFIG.minimumAffectedCases &&
+        item.sessions.size >=
+            REPEATED_SEQUENCE_CONFIG.minimumIndependentSessions)
+        .sort((left, right) => right.matches.length - left.matches.length ||
+        right.sessions.size - left.sessions.size ||
+        right.occurrenceCount - left.occurrenceCount ||
+        right.sequence.length - left.sequence.length ||
+        left.key.localeCompare(right.key))[0];
+    if (candidate === undefined) {
+        fail("evidence does not contain a threshold-complete repeated sequence");
+    }
+    const expectedEvidenceEvents = uniqueOrderedEvents(candidate.matches.flatMap((match) => match.evidenceEvents));
+    const suppliedEvidenceEvents = uniqueOrderedEvents(events);
+    if (suppliedEvidenceEvents.length !== events.length ||
+        !sameStrings(suppliedEvidenceEvents.map((event) => event.eventId), expectedEvidenceEvents.map((event) => event.eventId))) {
+        fail("evidence is not the detector's exact minimized repeated-sequence set");
+    }
+    if (!sameStrings(opportunity.signal.sequence, candidate.sequence)) {
+        fail("signal sequence does not match the strongest evidence candidate");
+    }
+    const evidenceCaseCount = projectWorkflowCases(expectedEvidenceEvents).length;
+    if (evidenceCaseCount !== candidate.matches.length) {
+        fail("repeated-sequence evidence case count is inconsistent");
+    }
+    const affectedCaseRatio = affectedRatio(opportunity, candidate.matches.length);
+    expectMetrics(opportunity.signal.metrics, [
+        {
+            name: "affected_cases",
+            unit: "count",
+            observed: candidate.matches.length,
+            comparator: REPEATED_SEQUENCE_CONFIG.minimumAffectedCases,
+        },
+        {
+            name: "affected_sessions",
+            unit: "count",
+            observed: candidate.sessions.size,
+            comparator: REPEATED_SEQUENCE_CONFIG.minimumIndependentSessions,
+        },
+        {
+            name: "repeat_occurrences",
+            unit: "count",
+            observed: candidate.occurrenceCount,
+        },
+        {
+            name: "sequence_length",
+            unit: "count",
+            observed: candidate.sequence.length,
+        },
+        {
+            name: "affected_ratio",
+            unit: "ratio",
+            observed: affectedCaseRatio,
+        },
+    ]);
+    expectEvidenceCounts(opportunity, expectedEvidenceEvents, evidenceCaseCount, candidate.occurrenceCount);
+    expectSampleEventIds(opportunity, expectedEvidenceEvents.map((event) => event.eventId));
+    expectExactWindow(opportunity, expectedEvidenceEvents);
+    expectConfidence(opportunity, Math.min(0.9, 0.5 + affectedCaseRatio * 0.35), REPEATED_SEQUENCE_REASON_CODES);
+    expectOpportunityIdentity(opportunity);
+}
 /**
  * Recomputes the semantics of exact built-in detector versions before their
  * evidence can be sent to a model. Unknown detector/version pairs deliberately
@@ -263,6 +445,10 @@ export function validateBuiltInOpportunitySemantics(opportunity, events) {
         return;
     if (detector === "backtracking") {
         validateBacktracking(opportunity, events);
+        return;
+    }
+    if (detector === "repeated-sequence") {
+        validateRepeatedSequence(opportunity, events);
         return;
     }
     validateTechnicalFriction(opportunity, events, detector);

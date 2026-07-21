@@ -23,9 +23,14 @@ export {
   ROOT_RESULT_SCHEMA_VERSION,
   RootModeError,
   loadAutomaticEvolutionInput,
+  loadLiveHostState,
   runRootCommand,
   validateRuntimeBindings,
   type AutomaticEvolutionInput,
+  type LiveHostApplicationSummary,
+  type LiveHostInstallation,
+  type LiveHostInvalidInstallationReason,
+  type LiveHostState,
   type RootCommandOptions,
 } from "./root-mode.js";
 export {
@@ -48,8 +53,13 @@ export {
   type StatusArguments,
   type TerminalArguments,
   type TerminalDependencies,
+  type TerminalIntelligenceOptions,
+  type TerminalLifecycleEvent,
+  type TerminalLifecycleReporter,
+  type TerminalModelOperation,
   type TerminalProvider,
   type TerminalResult,
+  type TerminalRunOptions,
 } from "./terminal.js";
 export {
   CLI_PLAN_SCHEMA_VERSION,

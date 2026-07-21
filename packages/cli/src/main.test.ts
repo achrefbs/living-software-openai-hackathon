@@ -5,7 +5,16 @@ import path from "node:path";
 import test from "node:test";
 
 import { canonicalJson } from "./canonical.js";
-import { executeCommand, parseArguments, usage } from "./main.js";
+import {
+  createTerminalRunOptions,
+  executeCommand,
+  formatAnalyzeResult,
+  formatSourceEvolutionProgressLine,
+  formatTerminalLifecycleLine,
+  isHelpRequest,
+  parseArguments,
+  usage,
+} from "./main.js";
 import { planCommand } from "./planners.js";
 
 const LEGACY_FIXTURE = {
@@ -35,6 +44,7 @@ test("parses mutually exclusive legacy fixture and automatic root modes", () => 
     apply: true,
     synthetic: true,
     syntheticSpecified: true,
+    json: false,
   });
   assert.deepEqual(parseArguments(["analyze", "--root", "repo"]), {
     mode: "root",
@@ -43,6 +53,15 @@ test("parses mutually exclusive legacy fixture and automatic root modes", () => 
     apply: false,
     synthetic: false,
     syntheticSpecified: false,
+    json: false,
+  });  assert.deepEqual(parseArguments(["analyze", "--root", "repo", "--json"]), {
+    mode: "root",
+    command: "analyze",
+    rootPath: "repo",
+    apply: false,
+    synthetic: false,
+    syntheticSpecified: false,
+    json: true,
   });
   assert.deepEqual(parseArguments(["snapshot", "--root", "repo"]), {
     mode: "root",
@@ -51,6 +70,7 @@ test("parses mutually exclusive legacy fixture and automatic root modes", () => 
     apply: false,
     synthetic: false,
     syntheticSpecified: false,
+    json: false,
   });
 });
 
@@ -223,6 +243,13 @@ test("rejects ambiguous, duplicated, unknown, or mutating-invalid flags", () => 
   assert.throws(
     () => parseArguments(["snapshot", "--root", "repo", "--synthetic"]),
     /unavailable for snapshot/u,
+  );  assert.throws(
+    () => parseArguments(["snapshot", "--root", "repo", "--json"]),
+    /only analyze supports it/u,
+  );
+  assert.throws(
+    () => parseArguments(["map", "--fixture", "fixture.json", "--json"]),
+    /unavailable for --fixture/u,
   );
 });
 
@@ -322,6 +349,106 @@ test("usage exposes the exact hashes required for human approval", () => {
   assert.match(usage(), /--proof-hash <sha256>/u);
 });
 
+test("analyze formatting explains a display-name workflow without leaking hashed event names", () => {
+  const human = formatAnalyzeResult({
+    root: "C:\\demo\\crm",
+    manifest: { appId: "crm-demo" },
+    metricReport: { totals: { events: 79, cases: 3, sessions: 3 } },
+    detectorProgress: [],
+    opportunity: {
+      signal: { kind: "repeated-sequence" },
+      detector: { id: "detector.workflow-pattern.repeated-sequence", version: "1.0.0" },
+      evidence: { subjectCount: 3, sessionCount: 3, occurrenceCount: 6 },
+      confidence: { score: 0.85 },
+    },
+    opportunityEvidence: {
+      eventCount: 24,
+      explicitSignalEventCount: 0,
+      cohortExplicitSignalEventCount: 0,
+      steps: [
+        { displayName: "Lead link", name: "observed.action.a.click" },
+        { displayName: "/leads/:id", name: "observed.route.b.complete" },
+        { displayName: "Back to leads", name: "observed.action.c.click" },
+        { displayName: "/leads", name: "observed.route.d.complete" },
+      ],
+    },
+  });
+
+  assert.match(human, /Lead link → \/leads\/:id → Back to leads → \/leads/u);
+  assert.match(human, /3 cases · 3 sessions · 6 occurrences/u);
+  assert.match(human, /Detector: detector\.workflow-pattern\.repeated-sequence@1\.0\.0/u);
+  assert.match(human, /24 exact events · 0 explicit technical signals/u);
+  assert.match(human, /does not prove user intent, causality/u);
+  assert.match(human, /npm run living -- improve/u);
+  assert.doesNotMatch(human, /observed\.action\.a/u);
+});
+
+test("human lifecycle options emit safe stage lines while JSON mode stays silent", () => {
+  const lines: string[] = [];
+  const human = createTerminalRunOptions(
+    {
+      mode: "terminal",
+      command: "improve",
+      rootPath: "repo",
+      provider: "codex",
+      json: false,
+    },
+    (line) => lines.push(line),
+  );
+  human.lifecycleReporter?.({
+    type: "model.request.dispatched",
+    operation: "interpretation",
+    transport: "codex-cli",
+  });
+  human.evolutionProgressObserver?.({
+    stage: "apply.preimage-verified",
+    evolutionId: "evolution.source.v2.demo",
+    targetPath: "src/app/page.tsx",
+    preimageHash: ARTIFACT_HASH as `sha256:${string}`,
+  });
+  assert.deepEqual(lines, [
+    "→ GPT-5.6 interpretation requested via codex-cli",
+    "  [apply] Current source matches approved preimage",
+  ]);
+  assert.deepEqual(
+    createTerminalRunOptions(
+      {
+        mode: "terminal",
+        command: "improve",
+        rootPath: "repo",
+        provider: "codex",
+        json: true,
+      },
+      () => assert.fail("JSON must not report progress"),
+    ),
+    {},
+  );
+  assert.match(
+    formatTerminalLifecycleLine({
+      type: "model.request.dispatched",
+      operation: "source-patch",
+      transport: "responses-api",
+    }),
+    /GPT-5\.6 source-patch/u,
+  );
+  assert.match(
+    formatSourceEvolutionProgressLine({
+      stage: "rollback.hash-transition-completed",
+      evolutionId: "evolution.source.v2.demo",
+      targetPath: "src/app/page.tsx",
+      fromHash: ARTIFACT_HASH as `sha256:${string}`,
+      toHash: PROOF_HASH as `sha256:${string}`,
+    }),
+    /Original source hash verified/u,
+  );
+});
+
+test("top-level help requests are bounded and recognized", () => {
+  assert.equal(isHelpRequest(["--help"]), true);
+  assert.equal(isHelpRequest(["help"]), true);
+  assert.equal(isHelpRequest(["analyze", "--help"]), false);
+  assert.equal(isHelpRequest(["--help", "--json"]), false);
+});
 test("legacy fixture mode retains byte-for-byte canonical planner output", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "living-cli-legacy-"));
   t.after(async () => rm(root, { recursive: true, force: true }));

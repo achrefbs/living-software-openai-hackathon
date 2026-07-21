@@ -321,13 +321,16 @@ function validatePatchReferenceIntegrity(proposal, input, candidates) {
     }
     return proposal;
 }
-async function requestStructuredJson(transport, request, timeoutMs) {
+async function requestStructuredJson(transport, request, timeoutMs, lifecycleReporter) {
     const transportKind = transport.kind ?? "responses-api";
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response;
     try {
-        response = await transport.send(request, { signal: controller.signal });
+        response = await transport.send(request, {
+            signal: controller.signal,
+            ...(lifecycleReporter === undefined ? {} : { lifecycleReporter }),
+        });
     }
     catch (error) {
         if (controller.signal.aborted) {
@@ -373,6 +376,7 @@ export function createIntelligenceClient(transport = createFetchTransport(), opt
     const timeoutMs = options.timeoutMs ?? 30_000;
     const maxOutputTokens = options.maxOutputTokens ?? 2_400;
     const maxPatchOutputTokens = options.maxPatchOutputTokens ?? 8_000;
+    const lifecycleReporter = options.lifecycleReporter;
     if (!Number.isInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) {
         throw new Error("timeoutMs must be an integer between 1 and 120000");
     }
@@ -400,7 +404,7 @@ export function createIntelligenceClient(transport = createFetchTransport(), opt
             const sampleIdSet = new Set(opportunity.evidence.sampleEventIds);
             const sampleAliasEntries = buildEvidenceAliasEntries(events).filter((entry) => sampleIdSet.has(entry.eventId));
             const request = buildResponsesRequest(opportunity, context, maxOutputTokens);
-            const { value, envelope, transportKind } = await requestStructuredJson(transport, request, timeoutMs);
+            const { value, envelope, transportKind } = await requestStructuredJson(transport, request, timeoutMs, lifecycleReporter);
             const parsedBrief = modelEvolutionBriefSchema.safeParse(value);
             if (!parsedBrief.success) {
                 throw new IntelligenceResponseError("GPT-5.6 returned an invalid EvolutionBrief", "invalid_brief");
@@ -418,7 +422,7 @@ export function createIntelligenceClient(transport = createFetchTransport(), opt
             const brief = gpt56EvolutionBriefSchema.parse(input.brief);
             const candidates = validateSourceCandidates(input.candidates);
             const request = buildSourcePatchRequest({ brief, candidates }, maxPatchOutputTokens);
-            const { value, envelope, transportKind } = await requestStructuredJson(transport, request, timeoutMs);
+            const { value, envelope, transportKind } = await requestStructuredJson(transport, request, timeoutMs, lifecycleReporter);
             const parsed = modelSourcePatchSchema.safeParse(value);
             if (!parsed.success) {
                 throw new IntelligenceResponseError("GPT-5.6 returned an invalid source patch proposal", "invalid_patch");

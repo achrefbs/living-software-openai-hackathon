@@ -334,6 +334,8 @@ test("constructs a deterministic, governed GPT-5.6 request with bounded output",
   assert.equal(Object.hasOwn(first, "tools"), false);
   assert.match(first.input[0]!.content, /untrusted data/);
   assert.match(first.input[0]!.content, /Never approve or activate/);
+  assert.match(first.input[0]!.content, /Recurrence proves only that a supplied pattern repeated/u);
+  assert.match(first.input[0]!.content, /does not prove inefficiency, cause, user intent/u);
 });
 
 test("constructs an exact tool-less source-patch request from bounded untrusted source", () => {
@@ -477,15 +479,20 @@ test("rejects model patches that escape exact candidate and edit boundaries", as
     ));
 });
 
-test("outbound body is privacy-minimal and strips prompt-injection-bearing host text", () => {
+test("outbound body keeps bounded product labels but never serializes raw identity", () => {
   const { productManifest, events, detectedOpportunity } = fixture();
-  const request = buildResponsesRequest(detectedOpportunity, boundProductContext(productManifest, detectedOpportunity, events));
+  const context = boundProductContext(productManifest, detectedOpportunity, events);
+  const request = buildResponsesRequest(detectedOpportunity, context);
   const body = JSON.stringify(request);
   for (const forbidden of [INJECTION, "secret-release", "secret-session", "secret-actor", "secret-subject", "secret-trace", "secret-event-metadata", "src/routes.ts", "living://evidence"]) {
     assert.doesNotMatch(body, new RegExp(forbidden));
   }
+  assert.equal(context.included.nodes[0]!.displayName, "[label unavailable]");
+  assert.equal(context.included.nodes[1]!.displayName, "Product node 1");
+  assert.match(body, /Product node 1/u);
   assert.doesNotMatch(body, /event-001/);
   assert.match(body, /evidence-001/);
+  assert.match(body, /case-001/);
   assert.match(body, /record\.opened/);
   assert.match(body, /synthetic-only/);
   assert.match(
@@ -511,8 +518,119 @@ test("bounds and deterministically orders manifest and normalized event context"
   const context = boundProductContext(productManifest, detectedOpportunity, [...events].reverse());
   assert.equal(context.included.nodes.length, PRODUCT_CONTEXT_LIMITS.nodes);
   assert.equal(context.included.nodes[0]!.id, "node-000");
+  assert.equal(context.included.nodes[0]!.displayName, "[label unavailable]");
+  assert.equal(context.included.nodes[1]!.displayName, "Product node 1");
   assert.deepEqual(context.included.evidenceEvents.map((event) => event.citationAlias), ["evidence-001", "evidence-002"]);
+  assert.deepEqual(context.included.evidenceEvents.map((event) => event.caseAlias), ["case-001", "case-001"]);
+  assert.deepEqual(context.included.evidenceEvents.map((event) => event.caseStep), [1, 2]);
+  assert.deepEqual(context.included.evidenceEvents.map((event) => event.interaction), [null, null]);
   assert.ok(Buffer.byteLength(JSON.stringify(context), "utf8") <= PRODUCT_CONTEXT_LIMITS.bytes);
+});
+
+test("projects useful product labels through a bounded prompt-injection-safe boundary", () => {
+  const productManifest = manifest(4);
+  productManifest.nodes[1]!.displayName = "Deals pipeline";
+  productManifest.nodes[2]!.displayName = "\u0007Admin controls";
+  const longLabel = "L".repeat(160);
+  productManifest.nodes[3]!.displayName = longLabel;
+  const {
+    contentHash: _contentHash,
+    generatedAt: _generatedAt,
+    ...semanticContent
+  } = productManifest;
+  productManifest.contentHash = hashContent(semanticContent);
+  const events = evidenceEvents(productManifest);
+  const context = boundProductContext(
+    productManifest,
+    opportunity(events, productManifest),
+    events,
+  );
+  const labels = new Map(
+    context.included.nodes.map((node) => [node.id, node.displayName]),
+  );
+
+  assert.equal(labels.get("node-000"), "[label unavailable]");
+  assert.equal(labels.get("node-001"), "Deals pipeline");
+  assert.equal(labels.get("node-002"), "[label unavailable]");
+  assert.equal([...labels.get("node-003")!].length, 120);
+  assert.equal(labels.get("node-003")!.endsWith("…"), true);
+  const serialized = JSON.stringify(context);
+  assert.doesNotMatch(serialized, new RegExp(INJECTION));
+  assert.doesNotMatch(serialized, /Admin/u);
+  assert.doesNotMatch(serialized, new RegExp(longLabel));
+});
+
+test("normalizes stable privacy-safe cases, one-based steps, and allowlisted interactions", () => {
+  const { productManifest, events } = fixture();
+  const mixedEvents: WorkflowEvent[] = [
+    {
+      ...events[0]!,
+      sessionId: "private-session-a",
+      metadata: { interaction: "change" },
+    },
+    {
+      ...events[1]!,
+      sessionId: "private-session-b",
+      metadata: { interaction: "submit" },
+    },
+    {
+      ...events[0]!,
+      eventId: "event-003",
+      occurredAt: "2026-07-19T12:02:00.000Z",
+      sequence: 0,
+      name: "filter.changed",
+      sessionId: "private-session-z",
+      actor: undefined,
+      subject: undefined,
+      metadata: { interaction: "click" },
+    },
+    {
+      ...events[1]!,
+      eventId: "event-004",
+      occurredAt: "2026-07-19T12:03:00.000Z",
+      sequence: 1,
+      name: "filter.reopened",
+      sessionId: "private-session-z",
+      actor: undefined,
+      subject: undefined,
+      metadata: { interaction: "hover" },
+    },
+  ];
+  const detectedOpportunity = opportunity(mixedEvents, productManifest);
+  const context = boundProductContext(
+    productManifest,
+    detectedOpportunity,
+    [...mixedEvents].reverse(),
+  );
+
+  assert.deepEqual(
+    context.included.evidenceEvents.map((event) => ({
+      name: event.name,
+      caseAlias: event.caseAlias,
+      caseStep: event.caseStep,
+      interaction: event.interaction,
+    })),
+    [
+      { name: "record.opened", caseAlias: "case-002", caseStep: 1, interaction: "change" },
+      { name: "record.saved", caseAlias: "case-002", caseStep: 2, interaction: "submit" },
+      { name: "filter.changed", caseAlias: "case-001", caseStep: 1, interaction: "click" },
+      { name: "filter.reopened", caseAlias: "case-001", caseStep: 2, interaction: null },
+    ],
+  );
+  assert.deepEqual(
+    context,
+    boundProductContext(productManifest, detectedOpportunity, mixedEvents),
+  );
+  const serialized = JSON.stringify(context);
+  for (const rawIdentity of [
+    "private-session-a",
+    "private-session-b",
+    "private-session-z",
+    "secret-subject-id",
+    "secret-actor-id",
+  ]) {
+    assert.doesNotMatch(serialized, new RegExp(rawIdentity));
+  }
 });
 
 test("keeps evidence-linked nodes and direct neighbors ahead of lexical decoys", () => {

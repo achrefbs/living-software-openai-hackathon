@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   chmod,
   mkdtemp,
@@ -21,15 +22,18 @@ import type {
 
 import { hashBytes } from "./canonical.js";
 import {
+  SOURCE_EVOLUTION_TESTS,
   SourceEvolutionError,
   applySourceEvolution,
   approveSourceEvolution,
+  getEvolutionReceipts,
   getEvolutionStatus,
   listEvolutionStatuses,
   prepareSourceEvolution,
   rollbackSourceEvolution,
   type PrepareSourceEvolutionInput,
   type SourceEvolutionApplication,
+  type SourceEvolutionProgressEvent,
   type SourceEvolutionState,
   type SourcePatchModelProvenance,
   type SourcePatchProposal,
@@ -591,6 +595,10 @@ test("settled status and listing do not require a writable mutation-lock slot", 
     (await getEvolutionStatus(root, prepared.evolutionId)).evolutionId,
     prepared.evolutionId,
   );
+  assert.equal(
+    (await getEvolutionReceipts(root, prepared.evolutionId)).length,
+    prepared.receiptCount,
+  );
   assert.deepEqual(
     (await listEvolutionStatuses(root)).map((entry) => entry.evolutionId),
     [prepared.evolutionId],
@@ -850,5 +858,304 @@ test("concurrent direct-engine sibling approvals produce exactly one active evol
       { code: "ENOENT" },
     );
   }
+  await rm(root, { recursive: true, force: true });
+});
+
+test("progress observes only truthful ordered lifecycle boundaries", async () => {
+  const variant = "lead-navigation" as const;
+  const selected = VARIANTS[variant];
+  const root = await rootFixture(variant);
+  const target = path.join(root, ...selected.targetPath.split("/"));
+  const observed: Array<Readonly<{
+    event: SourceEvolutionProgressEvent;
+    source: string;
+    storedStatus?: string;
+    storedReceiptCount?: number;
+  }>> = [];
+  const progress = (event: SourceEvolutionProgressEvent): void => {
+    assert.equal(Object.isFrozen(event), true);
+    const persistenceStage =
+      event.stage === "prepare.persisted" ||
+      event.stage === "approve.receipts-persisted" ||
+      event.stage === "apply.receipt-state-persisted" ||
+      event.stage === "rollback.receipt-state-persisted";
+    if (persistenceStage) {
+      const directory = path.join(
+        root,
+        ".living",
+        "data",
+        "evolutions-v2",
+        event.evolutionId,
+      );
+      const stored = JSON.parse(
+        readFileSync(path.join(directory, "state.json"), "utf8"),
+      ) as { status: string };
+      const storedReceiptCount = readFileSync(
+        path.join(directory, "receipts.ndjson"),
+        "utf8",
+      ).trimEnd().split("\n").length;
+      observed.push({
+        event,
+        source: readFileSync(target, "utf8"),
+        storedStatus: stored.status,
+        storedReceiptCount,
+      });
+      return;
+    }
+    observed.push({ event, source: readFileSync(target, "utf8") });
+  };
+
+  const prepared = await prepareSourceEvolution({
+    ...prepareInput(root, variant),
+    progress,
+  });
+  assert.equal(await readFile(target, "utf8"), selected.preimage);
+  const approved = await approveSourceEvolution({
+    ...approveInput(root, prepared),
+    progress,
+  });
+  assert.equal(await readFile(target, "utf8"), selected.preimage);
+  const applied = await applySourceEvolution({
+    root,
+    evolutionId: approved.evolutionId,
+    expectedRevision: approved.receiptCount,
+    progress,
+  });
+  const rolledBack = await rollbackSourceEvolution({
+    root,
+    evolutionId: applied.evolutionId,
+    humanId: "reviewer-1",
+    expectedRevision: applied.receiptCount,
+    progress,
+  });
+
+  assert.deepEqual(
+    observed.map(({ event }) => event.stage),
+    [
+      "prepare.compilation-started",
+      "prepare.proof-started",
+      ...SOURCE_EVOLUTION_TESTS.map(
+        () => "prepare.proof-check-completed" as const,
+      ),
+      "prepare.persisted",
+      "approve.hashes-selected",
+      "approve.receipts-persisted",
+      "apply.artifact-selected",
+      "apply.preimage-verified",
+      "apply.postimage-written",
+      "apply.receipt-state-persisted",
+      "apply.hash-transition-completed",
+      "rollback.artifact-selected",
+      "rollback.postimage-verified",
+      "rollback.preimage-written",
+      "rollback.receipt-state-persisted",
+      "rollback.hash-transition-completed",
+    ],
+  );
+  assert.deepEqual(
+    observed.flatMap(({ event }) =>
+      event.stage === "prepare.proof-check-completed"
+        ? [event.checkId]
+        : [],
+    ),
+    SOURCE_EVOLUTION_TESTS,
+  );
+  assert.deepEqual(
+    observed
+      .filter(({ storedStatus }) => storedStatus !== undefined)
+      .map(({ event, storedStatus, storedReceiptCount }) => ({
+        stage: event.stage,
+        status: storedStatus,
+        receiptCount: storedReceiptCount,
+      })),
+    [
+      {
+        stage: "prepare.persisted",
+        status: "prepared",
+        receiptCount: 5,
+      },
+      {
+        stage: "approve.receipts-persisted",
+        status: "approved",
+        receiptCount: 7,
+      },
+      {
+        stage: "apply.receipt-state-persisted",
+        status: "applied",
+        receiptCount: 8,
+      },
+      {
+        stage: "rollback.receipt-state-persisted",
+        status: "rolled-back",
+        receiptCount: 9,
+      },
+    ],
+  );
+
+  for (const { event, source } of observed) {
+    if (
+      event.stage.startsWith("prepare.") ||
+      event.stage.startsWith("approve.") ||
+      event.stage === "apply.artifact-selected" ||
+      event.stage === "apply.preimage-verified"
+    ) {
+      assert.equal(source, selected.preimage, event.stage);
+    } else if (
+      event.stage === "apply.postimage-written" ||
+      event.stage === "apply.receipt-state-persisted" ||
+      event.stage === "apply.hash-transition-completed" ||
+      event.stage === "rollback.artifact-selected" ||
+      event.stage === "rollback.postimage-verified"
+    ) {
+      assert.equal(source, prepared.source.postimage, event.stage);
+    } else {
+      assert.equal(source, selected.preimage, event.stage);
+    }
+  }
+
+  const approvalSelection = observed.find(
+    ({ event }) => event.stage === "approve.hashes-selected",
+  )?.event;
+  assert.ok(
+    approvalSelection?.stage === "approve.hashes-selected",
+  );
+  assert.equal(approvalSelection.revision, 5);
+  assert.equal(approvalSelection.artifactHash, prepared.artifact.contentHash);
+  assert.equal(approvalSelection.proofHash, prepared.proof.proofHash);
+  const approvalPersistence = observed.find(
+    ({ event }) => event.stage === "approve.receipts-persisted",
+  )?.event;
+  assert.ok(
+    approvalPersistence?.stage === "approve.receipts-persisted",
+  );
+  assert.equal(approvalPersistence.revision, 7);
+  assert.equal(approvalPersistence.chainHead, approved.chainHead);
+  assert.equal(applied.receiptCount, 8);
+  assert.equal(rolledBack.receiptCount, 9);
+  assert.equal(await readFile(target, "utf8"), selected.preimage);
+  await rm(root, { recursive: true, force: true });
+});
+
+test("progress observer failures never gain lifecycle authority", async () => {
+  const variant = "priority-card" as const;
+  const selected = VARIANTS[variant];
+  const root = await rootFixture(variant);
+  let calls = 0;
+  const progress = (): unknown => {
+    calls += 1;
+    if (calls % 2 === 1) throw new Error("observer sync failure");
+    return Promise.reject(new Error("observer async failure"));
+  };
+
+  const prepared = await prepareSourceEvolution({
+    ...prepareInput(root, variant),
+    progress,
+  });
+  const approved = await approveSourceEvolution({
+    ...approveInput(root, prepared),
+    progress,
+  });
+  const applied = await applySourceEvolution({
+    root,
+    evolutionId: approved.evolutionId,
+    expectedRevision: approved.receiptCount,
+    progress,
+  });
+  const rolledBack = await rollbackSourceEvolution({
+    root,
+    evolutionId: applied.evolutionId,
+    humanId: "reviewer-1",
+    expectedRevision: applied.receiptCount,
+    progress,
+  });
+  await Promise.resolve();
+
+  assert.ok(calls > 0);
+  assert.equal(rolledBack.status, "rolled-back");
+  assert.equal(rolledBack.receiptCount, 9);
+  assert.equal(
+    await readFile(path.join(root, ...selected.targetPath.split("/")), "utf8"),
+    selected.preimage,
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("getEvolutionReceipts returns a validated read-only receipt chain", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await prepareSourceEvolution(
+    prepareInput(root, "lead-navigation"),
+  );
+  const loaded = await getEvolutionReceipts(root, prepared.evolutionId);
+  assert.equal(Object.isFrozen(loaded), true);
+  assert.equal(loaded.length, prepared.receiptCount);
+  assert.deepEqual(
+    loaded.map((receipt) => receipt.kind),
+    [
+      "opportunity.detected",
+      "hypothesis.created",
+      "artifact.generated",
+      "artifact.compiled",
+      "proof.completed",
+    ],
+  );
+
+  const receiptsPath = storageFile(root, prepared, "receipts.ndjson");
+  const lines = (await readFile(receiptsPath, "utf8")).trimEnd().split("\n");
+  const tampered = JSON.parse(lines[2]!) as {
+    payload: Record<string, unknown>;
+  };
+  tampered.payload.observerTamper = true;
+  lines[2] = JSON.stringify(tampered);
+  await writeFile(receiptsPath, `${lines.join("\n")}\n`, "utf8");
+  await expectCode(
+    getEvolutionReceipts(root, prepared.evolutionId),
+    "RECEIPT_CHAIN_INVALID",
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("getEvolutionReceipts uses locked recovery only for a pending transaction", async () => {
+  const root = await rootFixture("priority-card");
+  const prepared = await prepareSourceEvolution(
+    prepareInput(root, "priority-card"),
+  );
+  const approved = await approveSourceEvolution(approveInput(root, prepared));
+  let thrown = false;
+  setSourceEvolutionFaultInjectorForTests((point) => {
+    if (point === "after-receipts" && !thrown) {
+      thrown = true;
+      throw new Error("simulated crash after receipt persistence");
+    }
+  });
+  try {
+    await assert.rejects(
+      applySourceEvolution({
+        root,
+        evolutionId: approved.evolutionId,
+        expectedRevision: approved.receiptCount,
+      }),
+      /simulated crash/u,
+    );
+  } finally {
+    setSourceEvolutionFaultInjectorForTests();
+  }
+
+  const recoveredReceipts = await getEvolutionReceipts(
+    root,
+    approved.evolutionId,
+  );
+  assert.equal(recoveredReceipts.length, 8);
+  assert.equal(recoveredReceipts.at(-1)?.kind, "installation.activated");
+  assert.equal(
+    (await getEvolutionStatus(root, approved.evolutionId)).status,
+    "applied",
+  );
+  assert.equal(
+    await readFile(
+      path.join(root, ...VARIANTS["priority-card"].targetPath.split("/")),
+      "utf8",
+    ),
+    prepared.source.postimage,
+  );
   await rm(root, { recursive: true, force: true });
 });

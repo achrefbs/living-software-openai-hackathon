@@ -12,14 +12,57 @@ const OPERATION_LIMIT = 64;
 const EXTENSION_POINT_LIMIT = 64;
 const EVENT_LIMIT = 256;
 const BYTE_LIMIT = 256_000;
+const DISPLAY_NAME_LIMIT = 120;
+const REDACTED_DISPLAY_NAME = "[label unavailable]";
+const UNSAFE_DISPLAY_NAME_CHARACTER = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+const INSTRUCTION_LIKE_DISPLAY_NAME = [
+  /\b(?:ignore|disregard|override)\b.{0,48}\b(?:instructions?|prompts?|messages?|rules?)\b/iu,
+  /\b(?:system|developer|assistant)\s+(?:prompt|message|instructions?)\b/iu,
+  /\b(?:follow|execute)\b.{0,24}\b(?:instructions?|prompts?|commands?)\b/iu,
+] as const;
 
 function byKey<T>(key: (value: T) => string): (left: T, right: T) => number {
   return (left, right) => key(left).localeCompare(key(right), "en");
 }
 
+function safeDisplayName(displayName: string): string {
+  const trimmed = displayName.trim();
+  if (
+    trimmed.length === 0 ||
+    UNSAFE_DISPLAY_NAME_CHARACTER.test(displayName) ||
+    INSTRUCTION_LIKE_DISPLAY_NAME.some((pattern) => pattern.test(trimmed))
+  ) {
+    return REDACTED_DISPLAY_NAME;
+  }
+  const codePoints = [...trimmed];
+  return codePoints.length <= DISPLAY_NAME_LIMIT
+    ? trimmed
+    : `${codePoints.slice(0, DISPLAY_NAME_LIMIT - 1).join("")}…`;
+}
+
 function eventOrder(left: WorkflowEvent, right: WorkflowEvent): number {
   return Date.parse(left.occurredAt) - Date.parse(right.occurredAt) ||
     left.sequence - right.sequence || left.eventId.localeCompare(right.eventId, "en");
+}
+
+function evidenceCaseKey(event: WorkflowEvent): string {
+  return event.subject === undefined
+    ? JSON.stringify(["session", event.sessionId])
+    : JSON.stringify([
+      "subject",
+      event.subject.type,
+      event.subject.pseudonymousId,
+    ]);
+}
+
+function allowlistedInteraction(
+  event: WorkflowEvent,
+): NormalizedEvidenceEvent["interaction"] {
+  const interaction = event.metadata.interaction;
+  return interaction === "click" || interaction === "change" ||
+    interaction === "submit"
+    ? interaction
+    : null;
 }
 
 export function buildEvidenceAliasEntries(
@@ -49,6 +92,20 @@ function normalizedEvents(
 ): NormalizedEvidenceEvent[] {
   const ordered = [...events].sort(eventOrder);
   const aliasById = new Map(buildEvidenceAliasEntries(events).map((entry) => [entry.eventId, entry.alias]));
+  const caseKeys = [...new Set(ordered.map(evidenceCaseKey))]
+    .sort((left, right) => left.localeCompare(right, "en"));
+  const caseAliasByKey = new Map(caseKeys.map((key, index) => [
+    key,
+    `case-${String(index + 1).padStart(3, "0")}`,
+  ]));
+  const caseStepByEvent = new Map<WorkflowEvent, number>();
+  const lastStepByCaseKey = new Map<string, number>();
+  for (const event of ordered) {
+    const key = evidenceCaseKey(event);
+    const step = (lastStepByCaseKey.get(key) ?? 0) + 1;
+    lastStepByCaseKey.set(key, step);
+    caseStepByEvent.set(event, step);
+  }
   const samples = new Set(sampleIds);
   const selected = [
     ...ordered.filter((event) => samples.has(event.eventId)),
@@ -58,6 +115,8 @@ function normalizedEvents(
   return selected.map((event, ordinal) => ({
     ordinal,
     citationAlias: aliasById.get(event.eventId)!,
+    caseAlias: caseAliasByKey.get(evidenceCaseKey(event))!,
+    caseStep: caseStepByEvent.get(event)!,
     name: event.name,
     kind: event.kind,
     status: event.status,
@@ -66,6 +125,7 @@ function normalizedEvents(
     productNodeId: event.product?.nodeId ?? null,
     surfaceId: event.product?.surfaceId ?? null,
     durationMs: event.durationMs ?? null,
+    interaction: allowlistedInteraction(event),
     source: event.provenance.source,
     synthetic: event.provenance.synthetic,
   }));
@@ -127,7 +187,11 @@ export function boundProductContext(
   const makeContext = (): BoundedProductContext => {
     const nodes: BoundedProductNode[] = selectedNodeIds
       .map((id) => nodeById.get(id)!)
-      .map((node) => ({ id: node.id, kind: node.kind }))
+      .map((node) => ({
+        id: node.id,
+        kind: node.kind,
+        displayName: safeDisplayName(node.displayName),
+      }))
       .sort(byKey((node) => node.id));
     const nodeIds = new Set(nodes.map((node) => node.id));
     const edges = [...manifest.edges]

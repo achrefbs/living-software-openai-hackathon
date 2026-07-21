@@ -5,6 +5,7 @@ import type {
   TransportResponse,
 } from "./types.js";
 import { assertIntelligenceRequestContract } from "./request-contract.js";
+import { reportIntelligenceLifecycle } from "./lifecycle.js";
 
 export class MissingApiKeyError extends Error {
   constructor() {
@@ -35,7 +36,7 @@ export function createFetchTransport(
         throw new MissingApiKeyError();
       }
 
-      const response = await fetchImpl(`${baseUrl}/v1/responses`, {
+      const pendingResponse = fetchImpl(`${baseUrl}/v1/responses`, {
         method: "POST",
         headers: {
           authorization: `Bearer ${apiKey}`,
@@ -44,6 +45,12 @@ export function createFetchTransport(
         body: JSON.stringify(request),
         ...(sendOptions?.signal === undefined ? {} : { signal: sendOptions.signal }),
       });
+      reportIntelligenceLifecycle(sendOptions?.lifecycleReporter, {
+        type: "request.dispatched",
+        schemaName: request.text.format.name,
+        transport: "responses-api",
+      });
+      const response = await pendingResponse;
       const raw = await response.text();
       let body: unknown = raw;
       if (raw !== "") {
