@@ -36,7 +36,7 @@ Say:
 Run:
 
 ```powershell
-npm run living -- install --root ../Living-Manual-Test-Fixed/crm-workflow-lab --synthetic
+npm run living -- install --root ../Living-Software-Demo/crm --synthetic
 ```
 
 Show the real app ID, mapped-node count, relationship count, and `observation is ready` result. Do not state fixed counts if the checked-out CRM produces different ones.
@@ -51,7 +51,7 @@ select a lead -> lead detail -> existing return-to-leads control -> leads list
 
 Close the tab after the list renders so its final beacon flushes. Repeat the same two workflows in a second brand-new tab, then close it. Do not duplicate tabs because that can clone session state.
 
-Run `npm run living -- analyze --root ../Living-Manual-Test-Fixed/crm-workflow-lab` and show that two independent sessions are still below the promotion threshold.
+Run `npm run living -- analyze --root ../Living-Software-Demo/crm` and show that two independent sessions are still below the promotion threshold.
 
 Say:
 
@@ -75,7 +75,7 @@ Say:
 Run:
 
 ```powershell
-npm run living -- analyze --root ../Living-Manual-Test-Fixed/crm-workflow-lab
+npm run living -- analyze --root ../Living-Software-Demo/crm
 ```
 
 The compact human output should show the actual captured total, detector and version, case/session/occurrence support, readable sequence, exact supporting-event count, and explicit-signal count. For the preserved lead-detail proof, the detector found three cases, three sessions, six occurrences, a four-step sequence, 24 supporting events, and zero explicit technical signals. A fresh run's **total captured event count may differ**.
@@ -89,7 +89,7 @@ Say:
 Run:
 
 ```powershell
-npm run living -- improve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --provider codex
+npm run living -- improve --root ../Living-Software-Demo/crm --provider codex
 ```
 
 Keep the terminal visible when the command starts. It reports real awaited milestones: evidence validation, both GPT-5.6 requests, Codex run IDs, bounded source selection, patch compilation, each deterministic proof check, and ledger persistence. These lines expose lifecycle state, not private model reasoning. Cut or accelerate the idle wait, then resume on the actual returned output with `wait removed` visible briefly.
@@ -105,7 +105,7 @@ When the command finishes, show the proposal it **actually** produced: interpret
 For a clean review screen, run:
 
 ```powershell
-npm run living -- status --root ../Living-Manual-Test-Fixed/crm-workflow-lab
+npm run living -- status --root ../Living-Software-Demo/crm
 ```
 
 Say:
@@ -115,7 +115,7 @@ Say:
 Copy and run the exact `Next:` command printed by Living. It contains the current evolution ID and hashes:
 
 ```powershell
-npm run living -- approve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <printed-id> --actor hackathon-demo --artifact-hash <printed-artifact-hash> --proof-hash <printed-proof-hash> --apply
+npm run living -- approve --root ../Living-Software-Demo/crm --evolution <printed-id> --actor hackathon-demo --artifact-hash <printed-artifact-hash> --proof-hash <printed-proof-hash> --apply
 ```
 
 Show the approval receipt, preimage check, source write, postimage verification, and apply receipt. Reload the CRM and show the actual visible change.
@@ -135,7 +135,7 @@ Say:
 Copy the exact rollback command printed after application, or run:
 
 ```powershell
-npm run living -- rollback --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <printed-id> --actor hackathon-demo
+npm run living -- rollback --root ../Living-Software-Demo/crm --evolution <printed-id> --actor hackathon-demo
 ```
 
 Show the postimage check, original-preimage restoration, hash verification, and rollback receipt. Reload the CRM and show the proposed UI is gone.
