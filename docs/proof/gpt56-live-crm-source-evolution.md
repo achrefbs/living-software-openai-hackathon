@@ -58,3 +58,36 @@ patch compilation passed.
   implemented, so this is not proof that the metric improved.
 - The run occurred from the corrected working tree before the final
   documentation commit; exact-final-commit reproduction remains open.
+
+## AI-first run — July 22, 2026
+
+This follow-up run used the authenticated Codex CLI after AI-first discovery
+was enabled. GPT received the bounded privacy-safe behavior matrix and one
+manifest-linked CRM source candidate. No fixed detector selected or gated the
+feature.
+
+- Evidence supplied: 5 workflow cases and 171 privacy-safe occurrences
+- Brief run: `019f86ec-2fe6-7b81-a08f-aa4fd9fd2136`
+- Source-patch run: `019f86ec-8ff0-72b3-9086-97da4c629335`
+- GPT-selected problem: make the lead-stage control larger and clearer
+- GPT-selected change: show the current stage explicitly and use a full-width selector
+- GPT-selected target: `src/app/leads/[id]/page.tsx`
+- Evolution: `evolution.source.v2.c5265c292044b9411e30d9b2`
+- Artifact: `sha256:697a8ccd9b344366442d0fc5d17d3d0091a457ba83687a3bb55b4251ca1c1660`
+- Proof: `sha256:4e9fe80b73f867e38995e2c9859bae7a43fd65a77b31f0e52c748c163b2823d2`
+- Deterministic proof: 13/13 checks passed
+- Lifecycle result: exact hashes approved, then the sealed postimage applied
+- CRM verification: 112/112 tests passed and the production build passed
+- Runtime verification: `/leads/lead-04` visibly rendered the new `Current stage`
+  presentation and full-width selector; no new browser runtime errors appeared
+
+An earlier GPT proposal, `evolution.source.v2.dcfead31da1387a928dd4a6e`,
+contained NUL padding and incomplete TSX. It was never applied. Commit
+`060a979` added compiler syntax validation, control/padding rejection,
+revalidation before approval/application, stale-proposal regeneration, and a
+terminal `HISTORICAL / INVALID` state. The preserved artifact remains readable
+for audit but cannot be reused, approved, or applied.
+
+This proves an AI-chosen, AI-authored, governed source change can complete the
+full loop on the CRM. It does not prove that the UI change improves real-user
+outcomes; post-change evidence and comparison are still required for that.
