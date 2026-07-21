@@ -32,17 +32,18 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Independent supported-host installation, runtime capture, privacy, and byte-preserving removal proof completed.
 - [x] Neutral sample data is explicitly synthetic.
 - [x] Studio distinguishes neutral/unmatched read-only views from an exactly bound captured-host connection; its loopback-only development broker and the CLI use the same governed lifecycle, and Current vs Proposed remains display-only.
-- [x] Connected Live Run uses a server-supplied canonical root, strict durable events, replay/SSE reconnect, safe active-release evidence tailing, shared detector progress, real model/proof milestones, serialized exact lifecycle commands, and separate source/runtime facts.
+- [x] Connected Live Run uses a server-supplied canonical root, strict durable events, replay/SSE reconnect, safe active-release evidence tailing, behavior-matrix and diagnostic progress, real model/proof milestones, serialized exact lifecycle commands, and separate source/runtime facts.
 - [x] The generic preview generator copies a bounded stable Git-tracked snapshot into new paths, verifies the exact target preimage, seals before/proposed identity endpoints, and never edits the connected host.
 - [x] Strict proof validation, mismatch handling, privacy-minimized proof projection, and non-rendering of raw event IDs and evidence aliases are tested.
 - [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
 - [x] The fixed CRM navigation adapter is removed from the active engine; offline tests accept materially different GPT-authored proposals and source targets.
 - [x] Product-context truncation is evidence-first, retains direct graph neighbors before lexical fill, and rejects model-cited affected nodes outside that relevant set.
-- [x] Corrections and dead/rage clicks have threshold-based `rework-loop` and `failure-cluster` promotion; backtracking v1.2 requires per-case signal/error corroboration and has a successful-navigation negative control.
+- [x] Legacy repeated-sequence, correction, dead/rage-click, and corroborated-backtracking diagnostics retain threshold and negative-control regression coverage, but do not gate AI-first discovery.
+- [ ] Final exact-commit verification confirms `analyze` builds the full privacy-safe event/metric matrix and `improve` passes all verified events plus all current metrics to GPT-5.6 without a fixed detector gate.
 - [x] A live generic GPT-authored proposal was exact-hash approved, applied, CRM-tested/built, and browser-verified.
-- [x] A live adversarial run rejected below-threshold evidence and exercised current correction and interaction-failure detectors through two different GPT-authored targets, CRM tests/builds, browser verification, and exact rollback.
+- [x] Historical adversarial detector-era runs exercised correction and interaction-failure evidence through two different GPT-authored targets, CRM tests/builds, browser verification, and exact rollback; they are labeled historical.
 - [ ] The live generic path is reproduced or preserved from the exact final submission commit.
-- [ ] Final acceptance walkthrough uses one Living terminal plus the CRM: install/map, three independent sessions, analyze, a real variable GPT proposal, the printed exact-hash approve/apply command, visible CRM inspection, the printed rollback, and visible restoration.
+- [ ] Final acceptance walkthrough uses one Living terminal plus the CRM: install/map, representative unscripted behavior, matrix-ready `analyze`, a real variable GPT proposal, the printed exact-hash approve/apply command, visible CRM inspection, the printed rollback, and visible restoration.
 - [x] Exact rollback restored the target byte-for-byte to its sealed preimage; `rolled-back` state, nine-receipt chain, and healthy CRM integration were verified.
 - [x] Connected Evolution Review explains the automatic/manual trigger boundary and hides unrelated neutral proof during the active decision flow.
 - [ ] Every final claim tied to the submission commit.
@@ -51,7 +52,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 
 - [x] Codex collaboration is documented chronologically.
 - [x] Both GPT-5.6 runtime roles use strict structured outputs and offline transport/validation tests.
-- [x] Deterministic detector evidence is wired into explicit Codex CLI and Responses API providers with local reference validation and no automatic fallback.
+- [ ] The full verified event/metric matrix is wired into explicit Codex CLI and Responses API providers with local identity/reference validation and no automatic fallback.
 - [x] An authenticated GPT-5.6 Terra interpretation run is preserved as historical transport evidence; it is not claimed as proof of the current generic patch/apply path.
 - [ ] Real `/feedback` Session ID from the task containing the majority of core functionality recorded.
 - [ ] Key entrant product, engineering, and design decisions finalized.
@@ -68,7 +69,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 ## Demo video
 
 - [ ] Public YouTube video is under three minutes.
-- [ ] Video shows the terminal lifecycle and CRM: install/map, three independent sessions, `analyze`, a real variable GPT proposal in `prepared`, the printed exact-hash approve/apply command, the applied UI, the printed rollback, and the restored original UI without implying automatic measurement.
+- [ ] Video shows the terminal lifecycle and CRM: install/map, representative unscripted behavior, matrix-ready `analyze`, a real variable GPT proposal in `prepared`, the printed exact-hash approve/apply command, the applied UI, the printed rollback, and the restored original UI without implying automatic measurement.
 - [ ] Audio explains what was built and how Codex and GPT-5.6 were used.
 - [ ] No unlicensed media, private data, or unsupported product claims appear.
 - [ ] Link works without login.

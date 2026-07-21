@@ -17,6 +17,7 @@ const VARIANT_ID = `variant:${"c".repeat(64)}`;
 function snapshot(
   withOpportunity = true,
   signalKind: OpportunitySignalKind = "backtracking",
+  metricUnit: "count" | "milliseconds" | "pixels" | "ratio" = "count",
 ): StudioSnapshot {
   const candidate = {
     schemaVersion: "living.studio-snapshot/v1",
@@ -142,7 +143,7 @@ function snapshot(
             },
             signal: {
               kind: signalKind,
-              metrics: [{ name: "affected_cases", unit: "count", observed: 1 }],
+              metrics: [{ name: "affected_cases", unit: metricUnit, observed: 1 }],
             },
             evidence: {
               bundle: {
@@ -208,6 +209,23 @@ test("preserves non-backtracking signals without relabeling revisits", () => {
 
   assert.equal(dataset.opportunities[0]?.signalKind, "failure-cluster");
   assert.equal(dataset.workflows.variants[0]?.tone, "healthy");
+});
+
+test("labels AI behavior discovery and formats pixel evidence", () => {
+  const dataset = studioDatasetFromSnapshot(
+    snapshot(true, "model-discovery", "pixels"),
+  );
+
+  assert.equal(dataset.opportunities[0]?.signalKind, "model-discovery");
+  assert.equal(dataset.opportunities[0]?.title, "AI behavior discovery");
+  assert.match(
+    dataset.opportunities[0]?.summary ?? "",
+    /GPT-5\.6-discovered behavior pattern/u,
+  );
+  assert.deepEqual(dataset.opportunities[0]?.signals, [{
+    label: "Affected cases",
+    value: "1 px",
+  }]);
 });
 
 test("keeps the neutral fixture available as the fallback dataset", () => {

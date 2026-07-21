@@ -5,7 +5,7 @@ export {
 } from "./client.js";
 export type { IntelligenceClient } from "./client.js";
 export type { IntelligenceClientOptions } from "./client.js";
-export { boundProductContext, buildEvidenceAliasEntries, PRODUCT_CONTEXT_LIMITS } from "./context.js";
+export { boundProductContext, buildBehaviorMetricEntries, buildEvidenceAliasEntries, PRODUCT_CONTEXT_LIMITS } from "./context.js";
 export { buildResponsesRequest, GOVERNANCE_INSTRUCTION } from "./prompt.js";
 export {
   EVOLUTION_BRIEF_JSON_SCHEMA,
@@ -40,6 +40,7 @@ export type {
   Gpt56TransportModel,
   IntelligenceTokenUsage,
   IntelligenceProvenance,
+  NormalizedBehaviorMetric,
   IntelligenceSchemaName,
   NormalizedEvidenceEvent,
   ResponsesRequest,

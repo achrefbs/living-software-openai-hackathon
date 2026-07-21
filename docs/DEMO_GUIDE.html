@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Living Software — AI-First Demo Guide</title>
+  <style>
+    :root { --ink:#122033; --muted:#566477; --blue:#2857d8; --green:#087a55; --paper:#fff; --line:#dbe3ee; --soft:#f3f7fc; --warn:#fff5e8; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--soft); font:17px/1.55 Inter,Segoe UI,sans-serif; }
+    main { width:min(980px,calc(100% - 28px)); margin:24px auto 60px; }
+    header { padding:32px; color:#fff; background:linear-gradient(135deg,#132343,#2857d8); border-radius:24px; }
+    h1 { margin:4px 0 8px; font-size:clamp(36px,6vw,58px); line-height:1; }
+    header p { margin:0; max-width:760px; color:#e8eeff; font-size:20px; }
+    .truth { margin:18px 0; padding:17px 20px; border:1px solid #b9dfcf; border-radius:16px; background:#eaf8f2; color:#075c42; font-weight:800; }
+    .step { margin-top:16px; padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--paper); box-shadow:0 8px 24px rgba(30,48,80,.06); }
+    .head { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+    .num { display:grid; place-items:center; width:44px; height:44px; border-radius:13px; color:#fff; background:var(--blue); font-weight:900; font-size:21px; }
+    h2 { margin:0; font-size:25px; }
+    h3 { margin:0 0 5px; font-size:13px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; }
+    p { margin:7px 0; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .box { padding:15px; border:1px solid var(--line); border-radius:13px; background:#fbfcff; }
+    .say { border-color:#b9dfcf; background:#eaf8f2; color:#075c42; font-weight:700; }
+    .note { background:var(--warn); border-color:#f0d0a7; }
+    .command { position:relative; margin-top:12px; }
+    pre { margin:0; padding:17px 88px 17px 17px; border-radius:13px; overflow:auto; color:#eff5ff; background:#111827; white-space:pre-wrap; word-break:break-word; font:15px/1.5 Cascadia Code,Consolas,monospace; }
+    button { position:absolute; right:9px; top:9px; padding:8px 11px; border:0; border-radius:8px; color:#173b9a; background:#e9efff; font-weight:800; cursor:pointer; }
+    .expected { color:var(--green); font-weight:800; }
+    ol { margin:8px 0 0; padding-left:23px; }
+    li { margin:7px 0; }
+    code { font-family:Cascadia Code,Consolas,monospace; }
+    @media(max-width:700px){ .grid{grid-template-columns:1fr} header,.step{padding:19px} }
+    @media print { body{background:#fff;font-size:14px} main{width:100%;margin:0} .step{box-shadow:none;break-inside:avoid} button{display:none} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>OPENAI BUILD WEEK • TERMINAL + CRM</div>
+    <h1>Living Software</h1>
+    <p>Use this exact short workflow. The behavior matrix is measured by Living Software; GPT-5.6 independently chooses the pattern, feature, source file, and patch.</p>
+  </header>
+
+  <div class="truth">The four old detector rules do not gate this demo. <code>analyze</code> only builds evidence. <code>improve</code> is where GPT-5.6 decides what matters.</div>
+
+  <section class="step">
+    <div class="head"><div class="num">0</div><h2>Open only two things</h2></div>
+    <div class="grid">
+      <div class="box"><h3>CRM</h3><p><strong>http://127.0.0.1:3000/leads</strong></p></div>
+      <div class="box"><h3>PowerShell</h3><p>Use one terminal in the Living Software repository.</p></div>
+    </div>
+    <div class="command"><pre id="c0">Set-Location 'C:\Users\acera\Desktop\Hackathon\living-software-openai-hackathon'</pre><button onclick="copyText('c0',this)">Copy</button></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">1</div><h2>Show that Living is installed</h2></div>
+    <div class="command"><pre id="c1">npm run living -- status --root ..\Living-Software-Demo\crm</pre><button onclick="copyText('c1',this)">Copy</button></div>
+    <div class="box say"><h3>Say</h3><p>“Living Software is installed inside this CRM. It mapped the product and captures privacy-safe routes, actions, outcomes, timing, performance, and layout measurements.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">2</div><h2>Use the CRM naturally</h2></div>
+    <div class="box">
+      <ol>
+        <li>Open a lead.</li>
+        <li>Change a stage or inspect its tasks.</li>
+        <li>Return to the leads list and use another normal CRM feature.</li>
+      </ol>
+    </div>
+    <div class="box note"><strong>No required script and no required repetition count.</strong> The ready demo already has 165 synthetic events across five sessions. New natural activity is optional.</div>
+    <div class="box say"><h3>Say</h3><p>“I am just using the software. I am not telling Living what problem or feature to find.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">3</div><h2>Build the behavior matrix</h2></div>
+    <div class="command"><pre id="c3">npm run living -- analyze --root ..\Living-Software-Demo\crm</pre><button onclick="copyText('c3',this)">Copy</button></div>
+    <p class="expected">Ready evidence: 165 events • 5 workflows • 5 sessions • 62 privacy-safe measurements.</p>
+    <div class="box say"><h3>Say</h3><p>“Analyze did not choose a feature. It built a behavior matrix from sequences, frequency, timing, failures, visibility, target size, distance, scrolling, and web performance.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">4</div><h2>Let GPT-5.6 make the decision</h2></div>
+    <div class="command"><pre id="c4">npm run living -- improve --root ..\Living-Software-Demo\crm --provider codex</pre><button onclick="copyText('c4',this)">Copy</button></div>
+    <div class="box say"><h3>Say before Enter</h3><p>“Now GPT-5.6 receives the full verified behavior matrix and product map. There is no predefined detector category and no promised feature. GPT chooses the pattern and improvement.”</p></div>
+    <div class="box note">The command performs two real AI calls: first GPT chooses an evidence-backed improvement; then GPT selects bounded source and authors the patch. Edit the waiting time out and label the cut.</div>
+    <div class="box say"><h3>Say when it ends</h3><p>“GPT chose this feature and wrote this patch. Living proved it, but the CRM source is still unchanged because the proposal is only prepared.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">5</div><h2>Review the exact proposal</h2></div>
+    <div class="command"><pre id="c5">npm run living -- status --root ..\Living-Software-Demo\crm</pre><button onclick="copyText('c5',this)">Copy</button></div>
+    <p>Point to the actual title, reason, target file, patch preview, proof checks, artifact hash, and proof hash.</p>
+    <div class="box say"><h3>Say</h3><p>“The proposal is evidence-bound and hash-bound. GPT cannot approve it, apply it, or change the approved bytes.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">6</div><h2>Approve and apply</h2></div>
+    <div class="box note"><strong>Copy the complete <code>Next:</code> command printed by status.</strong> Paste it exactly. Do not type sample hashes.</div>
+    <div class="box say"><h3>Say</h3><p>“I am approving this exact patch and proof—not giving the AI general write access.”</p></div>
+    <p class="expected">Expected: approval receipt, exact source transition, and application receipt.</p>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">7</div><h2>Show the real change</h2></div>
+    <p>Use the proposal’s target page to know where to look. Reload that CRM page and show the new feature.</p>
+    <div class="box say"><h3>Say</h3><p>“This is the GPT-created feature running in the real CRM. It proves governed source evolution; it does not yet prove the feature improved user outcomes.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">8</div><h2>Roll back exactly</h2></div>
+    <div class="box note">Copy the exact rollback command printed after apply, run it, then reload the same CRM page.</div>
+    <div class="box say"><h3>Close with this</h3><p>“Living Software lets AI understand behavior and invent an improvement, while people keep approval and rollback authority. Software that can learn—without losing control.”</p></div>
+  </section>
+
+  <section class="step">
+    <div class="head"><div class="num">✓</div><h2>Final video truth check</h2></div>
+    <ul>
+      <li>Keep the final video under 2:59 and narrate in English.</li>
+      <li>Say the CRM evidence is synthetic.</li>
+      <li>Do not claim a fixed detector chose the feature.</li>
+      <li>Do not claim measured improvement; show proposal, proof, approval, application, and rollback.</li>
+      <li>Do not show Studio.</li>
+    </ul>
+  </section>
+</main>
+<script>
+async function copyText(id,button){await navigator.clipboard.writeText(document.getElementById(id).innerText);const old=button.textContent;button.textContent="Copied";setTimeout(()=>button.textContent=old,1000);}
+</script>
+</body>
+</html>

@@ -2,8 +2,9 @@ const NODE_LIMIT = 120;
 const EDGE_LIMIT = 240;
 const OPERATION_LIMIT = 64;
 const EXTENSION_POINT_LIMIT = 64;
-const EVENT_LIMIT = 256;
-const BYTE_LIMIT = 256_000;
+const EVENT_LIMIT = 2_048;
+const METRIC_LIMIT = 10_000;
+const BYTE_LIMIT = 4_000_000;
 const DISPLAY_NAME_LIMIT = 120;
 const REDACTED_DISPLAY_NAME = "[label unavailable]";
 const UNSAFE_DISPLAY_NAME_CHARACTER = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
@@ -66,6 +67,9 @@ function evidenceScope(origin) {
 }
 function normalizedEvents(events, sampleIds) {
     const ordered = [...events].sort(eventOrder);
+    if (events.length > EVENT_LIMIT) {
+        throw new Error(`Behavior matrix exceeds the hard ${EVENT_LIMIT}-event window limit`);
+    }
     const aliasById = new Map(buildEvidenceAliasEntries(events).map((entry) => [entry.eventId, entry.alias]));
     const caseKeys = [...new Set(ordered.map(evidenceCaseKey))]
         .sort((left, right) => left.localeCompare(right, "en"));
@@ -85,7 +89,7 @@ function normalizedEvents(events, sampleIds) {
     const selected = [
         ...ordered.filter((event) => samples.has(event.eventId)),
         ...ordered.filter((event) => !samples.has(event.eventId)),
-    ].slice(0, EVENT_LIMIT).sort(eventOrder);
+    ].sort(eventOrder);
     return selected.map((event, ordinal) => ({
         ordinal,
         citationAlias: aliasById.get(event.eventId),
@@ -104,7 +108,24 @@ function normalizedEvents(events, sampleIds) {
         synthetic: event.provenance.synthetic,
     }));
 }
-export function boundProductContext(manifest, opportunity, events) {
+export function buildBehaviorMetricEntries(report) {
+    if (report === undefined)
+        return Object.freeze([]);
+    if (report.values.length > METRIC_LIMIT) {
+        throw new Error(`Behavior matrix exceeds the hard ${METRIC_LIMIT}-metric limit`);
+    }
+    return Object.freeze(report.values.map((metric, index) => Object.freeze({
+        citationName: `matrix.metric.${String(index + 1).padStart(3, "0")}`,
+        id: metric.id,
+        unit: metric.unit,
+        value: metric.value,
+        samples: metric.samples,
+        productNodeId: metric.productNodeId ?? null,
+        routeNodeId: metric.routeNodeId ?? null,
+        viewportClass: metric.viewportClass ?? null,
+    })));
+}
+export function boundProductContext(manifest, opportunity, events, metricReport) {
     const nodeById = new Map(manifest.nodes.map((node) => [node.id, node]));
     const evidenceNodeIds = [...new Set(events.flatMap((event) => event.product === undefined ? [] : [event.product.nodeId]))].sort((left, right) => left.localeCompare(right, "en"));
     const missingEvidenceNodeId = evidenceNodeIds.find((id) => !nodeById.has(id));
@@ -145,6 +166,12 @@ export function boundProductContext(manifest, opportunity, events) {
         .slice(0, EXTENSION_POINT_LIMIT)
         .map(({ id, surfaceNodeId, presentation }) => ({ id, surfaceNodeId, presentation }));
     const evidenceEvents = normalizedEvents(events, opportunity.evidence.sampleEventIds);
+    if (metricReport !== undefined &&
+        (metricReport.appId !== manifest.appId ||
+            metricReport.manifestHash !== manifest.contentHash)) {
+        throw new Error("Behavior matrix identity does not match the product manifest");
+    }
+    const behaviorMetrics = buildBehaviorMetricEntries(metricReport);
     const aliasById = new Map(buildEvidenceAliasEntries(events).map((entry) => [entry.eventId, entry.alias]));
     const sampleEvidenceAliases = opportunity.evidence.sampleEventIds.map((eventId) => {
         const alias = aliasById.get(eventId);
@@ -167,10 +194,10 @@ export function boundProductContext(manifest, opportunity, events) {
             .sort(byKey((edge) => `${edge.from}:${edge.relation}:${edge.to}`))
             .slice(0, EDGE_LIMIT)
             .map(({ from, to, relation }) => ({ from, to, relation }));
-        const includedCount = nodes.length + edges.length + operations.length + extensionPoints.length + evidenceEvents.length;
+        const includedCount = nodes.length + edges.length + operations.length + extensionPoints.length + evidenceEvents.length + behaviorMetrics.length;
         const totalCount = manifest.nodes.length + manifest.edges.length + events.length +
             (manifest.hostInterface?.operations.length ?? 0) +
-            (manifest.hostInterface?.extensionPoints.length ?? 0);
+            (manifest.hostInterface?.extensionPoints.length ?? 0) + behaviorMetrics.length;
         return {
             schemaVersion: "living.intelligence-context/v1",
             appId: manifest.appId,
@@ -181,8 +208,9 @@ export function boundProductContext(manifest, opportunity, events) {
                 operations: manifest.hostInterface?.operations.length ?? 0,
                 extensionPoints: manifest.hostInterface?.extensionPoints.length ?? 0,
                 evidenceEvents: events.length,
+                behaviorMetrics: behaviorMetrics.length,
             },
-            included: { nodes: [...nodes], edges, operations, extensionPoints, evidenceEvents },
+            included: { nodes: [...nodes], edges, operations, extensionPoints, evidenceEvents, behaviorMetrics },
             truncated: includedCount < totalCount,
             relevantProductNodeIds: selectedNodeIds
                 .filter((id) => relevantNodeIdSet.has(id))
@@ -208,6 +236,7 @@ export const PRODUCT_CONTEXT_LIMITS = Object.freeze({
     operations: OPERATION_LIMIT,
     extensionPoints: EXTENSION_POINT_LIMIT,
     evidenceEvents: EVENT_LIMIT,
+    behaviorMetrics: METRIC_LIMIT,
     bytes: BYTE_LIMIT,
 });
 //# sourceMappingURL=context.js.map

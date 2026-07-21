@@ -1,5 +1,6 @@
 import type {
   Gpt56EvolutionBrief,
+  MetricReport,
   Opportunity,
   ProductManifest,
   WorkflowEvent,
@@ -29,6 +30,18 @@ export type NormalizedEvidenceEvent = Readonly<{
   synthetic: boolean;
 }>;
 
+export type NormalizedBehaviorMetric = Readonly<{
+  citationName: string;
+  id: string;
+  unit: MetricReport["values"][number]["unit"];
+  value: number;
+  samples: number;
+  productNodeId: string | null;
+  routeNodeId: string | null;
+  viewportClass: "small" | "medium" | "large" | null;
+}>;
+
+
 export type BoundedProductContext = Readonly<{
   schemaVersion: "living.intelligence-context/v1";
   appId: string;
@@ -39,6 +52,7 @@ export type BoundedProductContext = Readonly<{
     operations: number;
     extensionPoints: number;
     evidenceEvents: number;
+    behaviorMetrics: number;
   }>;
   included: Readonly<{
     nodes: readonly BoundedProductNode[];
@@ -54,6 +68,7 @@ export type BoundedProductContext = Readonly<{
       presentation: string;
     }>[];
     evidenceEvents: readonly NormalizedEvidenceEvent[];
+    behaviorMetrics: readonly NormalizedBehaviorMetric[];
   }>;
   truncated: boolean;
   /**
@@ -76,6 +91,7 @@ export type DraftEvolutionBriefInput = Readonly<{
   opportunity: Opportunity;
   manifest: ProductManifest;
   evidenceEvents: readonly WorkflowEvent[];
+  metricReport?: MetricReport;
 }>;
 
 export type SourceCandidate = Readonly<{

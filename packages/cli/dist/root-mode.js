@@ -2,7 +2,7 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 import { buildAutomaticInstallBundle, } from "@living-software/automatic";
 import { LEGACY_EVIDENCE_RELATIVE_PATH, analyzeEvidenceRecords, collectorDefinitionFromObservationRuntimeMap, evidenceRelativePathForManifestHash, generateNextCollectorFiles, parseCompatibleLegacyEvidenceNdjson, parseEvidenceNdjson, } from "@living-software/collector";
-import { metricCatalogSchema, parseDiscoveryResult, parseInstallRecord, parseLivingConfig, parseObservationRuntimeMap, parseProductManifest, parseStudioSnapshot, STUDIO_SNAPSHOT_SCHEMA_VERSION, } from "@living-software/contracts";
+import { metricCatalogSchema, parseDiscoveryResult, parseInstallRecord, parseLivingConfig, parseObservationRuntimeMap, parseOpportunity, parseProductManifest, parseStudioSnapshot, STUDIO_SNAPSHOT_SCHEMA_VERSION, } from "@living-software/contracts";
 import { discoverNextApp } from "@living-software/discovery";
 import { INSTALL_RECORD_PATH, applyCreateOnlyInstall, applySafeUninstall, planCreateOnlyInstall, planSafeUninstall, readInstallRecord, } from "@living-software/installer";
 import { canonicalJson, sha256 } from "./canonical.js";
@@ -569,6 +569,70 @@ async function runUninstall(options) {
             }),
     };
 }
+const MODEL_DISCOVERY_DETECTOR = Object.freeze({
+    id: "detector.model-guided-discovery",
+    version: "1.0.0",
+    evidencePolicy: "full-verified-evidence",
+    metricPolicy: "all-metric-report-values",
+});
+function compareDiscoveryEvents(left, right) {
+    return Date.parse(left.occurredAt) - Date.parse(right.occurredAt) ||
+        left.sequence - right.sequence ||
+        left.eventId.localeCompare(right.eventId, "en");
+}
+function discoveryOpportunity(loaded) {
+    const events = [...loaded.analysis.events];
+    const orderedEvents = [...events].sort(compareDiscoveryEvents);
+    const eventSetHash = sha256(events.sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))));
+    const configHash = sha256(MODEL_DISCOVERY_DETECTOR);
+    const identityHash = sha256({
+        appId: loaded.installed.manifest.appId,
+        configHash,
+        eventSetHash,
+        manifestHash: loaded.installed.manifest.contentHash,
+    });
+    const metricReport = loaded.analysis.metricReport;
+    return parseOpportunity({
+        schemaVersion: "living.opportunity/v1",
+        opportunityId: `opportunity.model-discovery.${identityHash.slice(7, 19)}`,
+        appId: loaded.installed.manifest.appId,
+        manifestHash: loaded.installed.manifest.contentHash,
+        detectedAt: metricReport.generatedAt,
+        detector: {
+            id: MODEL_DISCOVERY_DETECTOR.id,
+            version: MODEL_DISCOVERY_DETECTOR.version,
+            configHash,
+        },
+        window: metricReport.window,
+        signal: {
+            kind: "model-discovery",
+            metrics: metricReport.values.map((metric, index) => ({
+                name: `matrix.metric.${String(index + 1).padStart(3, "0")}`,
+                unit: metric.unit,
+                observed: metric.value,
+            })),
+        },
+        evidence: {
+            bundle: {
+                uri: `living://evidence/${loaded.analysis.chainHead.slice(7)}`,
+                mediaType: "application/x-ndjson",
+                sha256: eventSetHash,
+            },
+            eventSetHash,
+            sampleEventIds: orderedEvents
+                .slice(0, 256)
+                .map((event) => event.eventId),
+            subjectCount: metricReport.totals.cases,
+            sessionCount: metricReport.totals.sessions,
+            occurrenceCount: metricReport.totals.events,
+            dataOrigin: metricReport.dataOrigin,
+        },
+        confidence: {
+            score: 0.5,
+            reasonCodes: ["full-evidence-window", "model-review-required"],
+        },
+    });
+}
 async function loadEvidenceAnalysis(rootInput) {
     const root = await realpath(rootInput);
     const installed = await installedArtifacts(root);
@@ -604,13 +668,7 @@ async function loadEvidenceAnalysis(rootInput) {
 }
 export async function loadAutomaticEvolutionInput(rootInput) {
     const loaded = await loadEvidenceAnalysis(rootInput);
-    const opportunity = loaded.analysis.opportunity;
-    if (opportunity === null) {
-        throw new RootModeError("OPPORTUNITY_MISSING", "No deterministic opportunity crossed its threshold for the active evidence set.");
-    }
-    if (loaded.analysis.opportunityEvidenceEvents.length === 0) {
-        throw new RootModeError("OPPORTUNITY_EVIDENCE_MISSING", "The detector emitted an Opportunity without its exact evidence set.");
-    }
+    const opportunity = discoveryOpportunity(loaded);
     return Object.freeze({
         root: loaded.root,
         snapshotHash: sha256(snapshotFromLoadedAnalysis(loaded)),
@@ -620,13 +678,12 @@ export async function loadAutomaticEvolutionInput(rootInput) {
             environment: loaded.installed.runtimeMap.application.environment,
             releaseRevision: loaded.installed.manifest.release.revision,
             manifestHash: loaded.installed.manifest.contentHash,
-            dataOrigin: opportunity.evidence.dataOrigin,
+            dataOrigin: loaded.analysis.metricReport.dataOrigin,
         }),
         manifest: loaded.installed.manifest,
+        metricReport: loaded.analysis.metricReport,
         opportunity,
-        evidenceEvents: Object.freeze([
-            ...loaded.analysis.opportunityEvidenceEvents,
-        ]),
+        evidenceEvents: Object.freeze([...loaded.analysis.events]),
     });
 }
 function evidenceSummary(loaded) {

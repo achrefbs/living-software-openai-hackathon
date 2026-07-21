@@ -41,36 +41,36 @@ npm run living -- install --root ../Living-Software-Demo/crm --synthetic
 
 Show the real app ID, mapped-node count, relationship count, and `observation is ready` result. Do not state fixed counts if the checked-out CRM produces different ones.
 
-### 2. Capture two sessions and show restraint
+### 2. Create representative behavior
 
-Open `/leads` in a fresh browser tab. Complete this visible workflow twice in that tab:
+Open `/leads` in a fresh browser tab and use the CRM naturally for 20–40 seconds. A simple take can include:
 
 ```text
-select a lead -> lead detail -> existing return-to-leads control -> leads list
+open two or three leads -> return to the list -> optionally change a stage or schedule a follow-up -> visit another CRM page
 ```
 
-Close the tab after the list renders so its final beacon flushes. Repeat the same two workflows in a second brand-new tab, then close it. Do not duplicate tabs because that can clone session state.
+Use one or more fresh tabs if useful, and wait for each page to render before the next action. Do not perform a prescribed loop for the detector: there is no fixed workflow or feature the system is trying to force.
 
-Run `npm run living -- analyze --root ../Living-Software-Demo/crm` and show that two independent sessions are still below the promotion threshold.
+There is no below-threshold checkpoint. The active AI-first path can review the verified behavior window without three sessions, six occurrences, a countdown, or an injected friction signal.
 
 Say:
 
-> Living has seen the sequence repeat, but two independent sessions are not enough. It has not promoted a proposal trigger.
+> I am creating ordinary product behavior. Living records mapped actions, routes, timing, and layout facts—not the text or customer data on the screen.
 
-This negative control proves the terminal is reporting actual threshold state rather than a scripted feature.
+The proposal may vary because GPT-5.6 will choose the pattern from the evidence actually captured.
 
-Then continue the same recording run.
+Finish on a rendered page before returning to the terminal.
 
-### 3. Complete the evidence cohort
+### 3. Flush the evidence
 
-Open one third brand-new tab, perform the same workflow twice, wait for the list to render, and close it. The final cohort now has three independent sessions and six occurrences. There is no countdown, required pace, scenario label, or injected friction signal.
+Close the final activity tab after its last page renders, or navigate once more and wait briefly, so the observer can flush its final same-origin batch. Keep the main CRM tab open for the later before/after view.
 
 Say:
 
 > Living sees mapped actions and route completions, not the lead names or page text. It excludes form values, DOM, screenshots, secrets, and persistent identity.
 
 
-### 4. Show what the terminal discovered
+### 4. Build the privacy-safe behavior matrix
 
 Run:
 
@@ -78,11 +78,11 @@ Run:
 npm run living -- analyze --root ../Living-Software-Demo/crm
 ```
 
-The compact human output should show the actual captured total, detector and version, case/session/occurrence support, readable sequence, exact supporting-event count, and explicit-signal count. For the preserved lead-detail proof, the detector found three cases, three sessions, six occurrences, a four-step sequence, 24 supporting events, and zero explicit technical signals. A fresh run's **total captured event count may differ**.
+The compact human output should show the actual event, workflow, and session totals and confirm that privacy-safe behavior measurements are ready for GPT-5.6. It should also state that `analyze` does not choose or gate a feature. Legacy detector diagnostics may remain in `--json`, but they are not part of the active decision.
 
 Say:
 
-> The same validated evidence produces the same deterministic detection. Deterministic does not mean the workflow or fix was hardcoded. Recurrence makes this workflow reviewable; it does not prove frustration, causality, or improvement.
+> Analyze built the evidence matrix; it did not choose a feature. GPT-5.6 will inspect all verified event sequences and all current metrics, then choose one pattern and improvement hypothesis itself.
 
 ### 5. Let GPT-5.6 invent a bounded proposal
 
@@ -96,7 +96,7 @@ Keep the terminal visible when the command starts. It reports real awaited miles
 
 Say:
 
-> GPT-5.6 first interprets the minimized evidence. A second request sees at most three source-linked UI candidates and authors one bounded patch. GPT has no browser, terminal, source-write, approval, or rollback authority.
+> GPT-5.6 first examines the complete privacy-safe event and metric matrix and chooses the pattern and improvement. A second request sees at most three source-linked UI candidates and authors one bounded patch. GPT has no browser, terminal, source-write, approval, or rollback authority.
 
 When the command finishes, show the proposal it **actually** produced: interpretation, target file, exact minus/plus edits, run IDs, artifact hash, proof hash, and evolution ID. Do not promise a particular file, feature, wording, or number of edits before the call. Point out `prepared`: host source is still unchanged.
 
@@ -142,12 +142,12 @@ Show the postimage check, original-preimage restoration, hash verification, and 
 
 Close with:
 
-> Codex helped build, test, and document Living Software. GPT-5.6 interpreted captured synthetic evidence and authored the proposal. Today Living governs one-file UI evolution with explicit approval and exact rollback. Automatic post-change measurement is the next step.
+> Codex helped build, test, and document Living Software. GPT-5.6 chose a pattern from the captured synthetic behavior matrix and authored the proposal. Today Living governs one-file UI evolution with explicit approval and exact rollback. Automatic post-change measurement is the next step.
 
 ## Recording truth checks
 
-- Show only the detector result and GPT proposal produced by the recorded run.
-- Do not call recurrence friction, intent, causality, or measured improvement.
+- Show only the matrix summary and GPT proposal produced by the recorded run.
+- Do not claim GPT's selected pattern proves friction, intent, causality, or measured improvement.
 - Do not describe a source write as runtime proof until the changed CRM UI is visibly inspected.
 - Keep synthetic data labeled synthetic.
 - Keep model reasoning private; show structured interpretation and lifecycle milestones only.

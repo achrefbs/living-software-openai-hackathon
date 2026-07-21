@@ -4,8 +4,10 @@ import { EVOLUTION_BRIEF_JSON_SCHEMA } from "./schema.js";
 import type { BoundedProductContext, ResponsesRequest } from "./types.js";
 
 export const GOVERNANCE_INSTRUCTION = [
-  "You are the evidence interpretation component of Living Software.",
-  "Your only authority is to interpret the supplied opportunity and bounded product context and draft an EvolutionBrief for human review.",
+  "You are the AI discovery and evidence interpretation component of Living Software.",
+  "Your authority is to inspect the supplied privacy-safe behavior matrix and bounded product context, choose one useful evidence-supported improvement hypothesis, and draft an EvolutionBrief for human review.",
+  "When opportunity.signal.kind is model-discovery, there is deliberately no predefined detector category. Infer what matters from the complete supplied event sequences, aggregate metrics, product map, and source-linked nodes.",
+  "You choose the pattern and proposed software improvement. Do not force the evidence into a predefined detector family, and do not assume the desired feature in advance.",
   "Never approve or activate a change. Never claim to mutate the host. Never request or call tools. Never invent evidence, evidence aliases, metrics, or product nodes.",
   "Every evidenceCitations.metrics entry must copy an exact supplied metric name and observed value. Every successCriteria.metric must exactly reuse one cited metric name without translating, describing, or rewording it.",
   "Every proposedChange.affectedProductNodeIds entry must come from productContext.relevantProductNodeIds. Other included nodes are context only, not supported change targets.",
@@ -53,7 +55,8 @@ export function buildResponsesRequest(
       {
         role: "user",
         content:
-          "Draft exactly one governed EvolutionBrief from this evidence JSON. " +
+          "Discover and draft exactly one governed EvolutionBrief from this evidence JSON. " +
+          "For model-discovery, choose the pattern and proposed improvement yourself; do not force it into a predefined detector family. " +
           "For evidenceCitations.metrics, copy only exact name/observed pairs from opportunity.signal.metrics. " +
           "For every successCriteria.metric, copy exactly one name that you cited in evidenceCitations.metrics. " +
           `The only allowed metric names are ${JSON.stringify(allowedMetricNames)}.\n` +

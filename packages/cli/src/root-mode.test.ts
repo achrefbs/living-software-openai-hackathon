@@ -348,9 +348,24 @@ test("analyze verifies the evidence chain and produces deterministic workflow ev
   assert.deepEqual(firstSnapshot.workflows.cases[0]?.journeyNodeIds, [binding.nodeId]);
   assert.match(firstSnapshot.workflows.cases[0]?.caseId ?? "", /^case:[a-f0-9]{64}$/u);
   assert.equal(firstSnapshot.opportunity, undefined);
-  await assert.rejects(
-    loadAutomaticEvolutionInput(root),
-    /No deterministic opportunity crossed its threshold/u,
+  const discoveryInput = await loadAutomaticEvolutionInput(root);
+  assert.deepEqual(discoveryInput.metricReport, first.metricReport);
+  assert.equal(discoveryInput.opportunity.signal.kind, "model-discovery");
+  assert.equal(
+    discoveryInput.opportunity.detector.id,
+    "detector.model-guided-discovery",
+  );
+  assert.deepEqual(discoveryInput.evidenceEvents, [event]);
+  const reportMetrics = (first.metricReport as {
+    values: readonly { unit: string; value: number }[];
+  }).values;
+  assert.deepEqual(
+    discoveryInput.opportunity.signal.metrics,
+    reportMetrics.map((metric, index) => ({
+      name: `matrix.metric.${String(index + 1).padStart(3, "0")}`,
+      unit: metric.unit,
+      observed: metric.value,
+    })),
   );
   const serializedSnapshot = JSON.stringify(firstSnapshot);
   assert.equal(serializedSnapshot.includes(root), false);
@@ -546,11 +561,16 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
   const evolutionInput = await loadAutomaticEvolutionInput(root);
   assert.equal(evolutionInput.snapshotHash, sha256(snapshot));
   assert.equal(allEvents.length, 20);
-  assert.equal(evolutionInput.evidenceEvents.length, 18);
+  assert.equal(evolutionInput.evidenceEvents.length, 20);
   assert.ok(
-    evolutionInput.evidenceEvents.every(
-      (candidate) => candidate.sessionId !== controlSessionId,
+    evolutionInput.evidenceEvents.some(
+      (candidate) => candidate.sessionId === controlSessionId,
     ),
+  );
+  assert.equal(evolutionInput.opportunity.signal.kind, "model-discovery");
+  assert.equal(
+    evolutionInput.opportunity.signal.metrics.length,
+    (analyzed.metricReport as { values: readonly unknown[] }).values.length,
   );
   assert.equal(
     new Set(evolutionInput.evidenceEvents.map((candidate) => candidate.sessionId)).size,
@@ -570,7 +590,8 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
     intelligence.draftEvolutionBrief({
       opportunity: evolutionInput.opportunity,
       manifest: evolutionInput.manifest,
-      evidenceEvents: allEvents,
+      evidenceEvents: allEvents.slice(0, -1),
+      metricReport: evolutionInput.metricReport,
     }),
     /eventSetHash/u,
   );
@@ -586,6 +607,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
       opportunity: wrongSessionCount,
       manifest: evolutionInput.manifest,
       evidenceEvents: evolutionInput.evidenceEvents,
+      metricReport: evolutionInput.metricReport,
     }),
     /sessionCount/u,
   );
@@ -601,6 +623,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
       opportunity: wrongSubjectCount,
       manifest: evolutionInput.manifest,
       evidenceEvents: evolutionInput.evidenceEvents,
+      metricReport: evolutionInput.metricReport,
     }),
     /subjectCount/u,
   );
@@ -610,6 +633,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
       opportunity: evolutionInput.opportunity,
       manifest: evolutionInput.manifest,
       evidenceEvents: evolutionInput.evidenceEvents,
+      metricReport: evolutionInput.metricReport,
     }),
     (error: unknown) =>
       error instanceof IntelligenceResponseError && error.code === "http_error",
@@ -659,15 +683,19 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
   );
 
   const driftedInput = await loadAutomaticEvolutionInput(root);
-  assert.equal(
+  assert.notEqual(
     driftedInput.opportunity.opportunityId,
     evolutionInput.opportunity.opportunityId,
   );
-  assert.equal(
+  assert.notEqual(
     driftedInput.opportunity.evidence.eventSetHash,
     evolutionInput.opportunity.evidence.eventSetHash,
   );
-  assert.deepEqual(driftedInput.evidenceEvents, evolutionInput.evidenceEvents);
+  assert.equal(
+    driftedInput.evidenceEvents.length,
+    evolutionInput.evidenceEvents.length + lateControlEvents.length,
+  );
+  assert.notDeepEqual(driftedInput.evidenceEvents, evolutionInput.evidenceEvents);
   assert.notEqual(driftedInput.snapshotHash, evolutionInput.snapshotHash);
   assert.notDeepEqual(
     driftedInput.opportunity,

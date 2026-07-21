@@ -7,7 +7,7 @@ Living Software is an installable developer tool that helps an existing applicat
 The goal is not uncontrolled self-modifying software. The goal is a trustworthy loop:
 
 ```text
-map -> observe -> detect -> propose -> prove -> approve -> apply -> measure
+map -> observe -> analyze -> AI discover -> propose -> prove -> approve -> apply -> measure
 ```
 
 The current MVP implements the loop through apply and rollback. Capturing a fresh post-change cohort and comparing its metrics is still an explicit operator step.
@@ -16,14 +16,14 @@ The current MVP implements the loop through apply and rollback. Capturing a fres
 
 1. **Map.** A static scanner reads a supported Next.js repository without executing its code. It creates a source-linked map of routes, surfaces, controls, operations, and relationships.
 2. **Observe.** Living installs create-only browser observation and a same-origin local collector. Normal use produces hash-linked events for mapped routes/actions, performance, layout facts, and technical signals such as corrections, dead clicks, and rage clicks.
-3. **Detect.** Deterministic detectors group events into privacy-safe workflow cases. The generic detector mines repeated route/action/outcome subsequences without knowing CRM concepts or requiring explicit friction signals; a candidate must recur at least twice in each of three cases across three independent sessions. Other detectors cover corroborated navigation backtracking, repeated corrections, and interaction-failure clusters. Deterministic here means the same validated evidence produces the same result, not that the workflow is hardcoded.
-4. **Interpret.** GPT-5.6 receives the exact minimized evidence and a bounded product-map projection. It returns a strict `EvolutionBrief` citing supplied evidence and metrics.
+3. **Analyze.** Living verifies the complete active-release evidence chain, groups routes/actions/outcomes into privacy-safe workflow cases, and computes the current workflow, performance, friction, viewport, visibility, geometry, movement, and timing metrics. `analyze` reports that matrix; it does not select a feature.
+4. **Discover.** GPT-5.6 receives all verified privacy-safe event sequences, all current metric values, and a bounded product-map projection. It chooses one evidence-supported pattern and improvement hypothesis, then returns a strict `EvolutionBrief`. No fixed detector family, threshold, CRM workflow, or desired feature is supplied.
 5. **Invent.** A separate GPT-5.6 request sees the brief and at most three source files linked to affected product nodes. It may propose one to eight exact edits in one existing UI file.
 6. **Prove.** Living treats the model output as untrusted. It verifies paths, source hashes, exact anchors, edit overlap, output size, prohibited authority, evidence/model bindings, and TypeScript/TSX syntax before storing a `prepared` proposal. Host source is still unchanged.
 7. **Decide.** A human reviews the target, diff, artifact hash, proof hash, and evidence. Apply requires explicit approval of those exact hashes.
 8. **Apply or roll back.** Living writes only the sealed postimage if the source still matches its preimage. Every transition gets a hash-linked receipt. Rollback restores the exact preimage only if the target still matches the applied postimage.
 
-GPT can invent the change, but it cannot browse the repository, run tools, approve itself, write source, or bypass Living's guards.
+GPT can invent the change, but it cannot browse the repository, run tools, approve itself, write source, or bypass Living's guards. Deterministic code validates evidence and identities, bounds source selection, proves the patch, and owns exact-hash approval, apply, receipts, recovery, and rollback. The accepted boundary is recorded in [ADR-001](ADR-001-AI-FIRST-DISCOVERY.md).
 
 ## Basic terminal flow
 
@@ -36,7 +36,7 @@ npm run build:cli
 # Install observation into a supported app
 npm run living -- install --root <next-app> --synthetic
 
-# Use the app, then inspect deterministic analysis
+# Use the app, then inspect the privacy-safe event/metric matrix
 npm run living -- analyze --root <next-app>
 
 # Ask GPT-5.6 to prepare a bounded change; source remains unchanged
@@ -60,8 +60,8 @@ npm run living -- rollback --root <next-app> --evolution <id> --actor <label>
 | --- | --- |
 | static mapping and source provenance | install or uninstall Living |
 | browser capture after installation | exercise or simulate the host workflow |
-| workflow projection, metrics, and threshold detection | trigger analysis/proposal in this MVP |
-| bounded GPT interpretation and patch authorship | review and approve exact hashes |
+| verified workflow projection and event/metric matrix | trigger analysis/proposal in this MVP |
+| GPT pattern selection, improvement hypothesis, and bounded patch authorship | review and approve exact hashes |
 | static proof, preimage checks, and receipt creation | apply, verify the running host, or roll back |
 
 ## Safety and privacy boundary
@@ -72,13 +72,13 @@ npm run living -- rollback --root <next-app> --evolution <id> --actor <label>
 - Patch scope is one existing UI source file; no dependencies, configuration, backend authority, new files, or arbitrary repository agent access.
 - Passing static proof does not prove the idea is useful. The host must still build, render, and be evaluated with a new evidence cohort.
 
-## What the current proof establishes
+## What the historical proof establishes
 
-In the [clean generic-discovery proof](proof/generic-recurring-workflow-discovery.md), Living started from a fresh separate CRM install with 144 mapped nodes and 180 edges. Its first 22 evidence records contained 79 synthetic events across three independent sessions. From ordinary route/action events—and zero `metadata.signal` events—it learned the four-step lead-link → detail-route → back-link → list-route sequence, found six non-overlapping occurrences, and bound exactly 24 evidence events.
+Before the AI-first decision, the [clean generic-discovery proof](proof/generic-recurring-workflow-discovery.md) validated the then-current detector-gated path. Living started from a fresh separate CRM install with 144 mapped nodes and 180 edges. Its first 22 evidence records contained 79 synthetic events across three independent sessions. From ordinary route/action events—and zero `metadata.signal` events—the historical detector learned the four-step lead-link → detail-route → back-link → list-route sequence, found six non-overlapping occurrences, and bound exactly 24 evidence events.
 
 Two live Codex GPT-5.6 calls prepared evolution `evolution.source.v2.bd05a314a3b6e29d4971bc8e`. GPT proposed one exact edit in `src/app/leads/[id]/page.tsx`, changing `Leads` to `Back to leads`. Living passed 13 deterministic checks, required exact human approval, applied the sealed postimage, passed 112/112 CRM tests, rendered the label in the browser, and rolled back exactly to preimage `sha256:6f39fc74f30bc132cf3ba9b2975961a911be5e7197ba536ad4f7b69b907526e5`.
 
-A later rapid-sort experiment emitted three explicit rage signals, so `failure-cluster` won deterministic arbitration. That is a useful secondary detector test, not the generic-discovery proof.
+A later rapid-sort experiment emitted three explicit rage signals, so the then-current `failure-cluster` diagnostic won deterministic arbitration. These remain useful regression records, but neither detector gates the current AI-first `improve` path.
 
 This proves a governed evidence-to-source-change pipeline. It does **not** yet prove production generalization, business-value improvement, pixel-perfect autonomous redesign, or automatic post-change metric improvement.
 
@@ -90,7 +90,7 @@ The CLI remains a complete authority surface. Connected Studio starts with a ser
 npm run studio:live -- --root <next-app> --host-url http://127.0.0.1:3000 --port 3001
 ```
 
-Start it before installation to see the read-only map and not-installed state. The monitor then validates the public install record, tails only the active release evidence chain, runs the same deterministic evaluator used by analysis, and reconstructs evolution/receipt/source state after refresh or restart. A strict durable event log provides replay and an SSE stream provides new events; there is no lifecycle timer polling, and neither transport grants mutation authority.
+Start it before installation to see the read-only map and not-installed state. The monitor then validates the public install record, tails only the active release evidence chain, projects the same matrix and legacy diagnostics used by analysis, and reconstructs evolution/receipt/source state after refresh or restart. Diagnostic cards do not create or block the AI request. A strict durable event log provides replay and an SSE stream provides new events; there is no lifecycle timer polling, and neither transport grants mutation authority.
 
 Model milestones correspond to the two actual awaited calls and deterministic proof. Reused proposals are labeled as reuse. Approve, apply, and rollback controls invoke the existing engine with exact identity, hash, and revision bindings. Application is shown as a source-hash transition; a responding host frame is a separate invitation to inspect, not runtime proof.
 

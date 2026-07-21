@@ -656,6 +656,23 @@ test("Opportunity windows and evidence identifiers are falsifiable", () => {
   assert.throws(() => opportunitySchema.parse(duplicateEvidence));
 });
 
+test("model discovery Opportunities carry a complete pixel-aware metric matrix", () => {
+  const metrics = Array.from({ length: 33 }, (_, index) => ({
+    name: `matrix.metric.${String(index + 1).padStart(3, "0")}`,
+    unit: index === 32 ? "pixels" : "count",
+    observed: index,
+  }));
+  assert.doesNotThrow(() => opportunitySchema.parse({
+    ...validOpportunity,
+    detector: {
+      id: "detector.model-guided-discovery",
+      version: "1.0.0",
+      configHash: HASH_B,
+    },
+    signal: { kind: "model-discovery", metrics },
+  }));
+});
+
 test("Capability artifacts are declarative and remain inside exact grants", () => {
   const artifact = capabilityArtifactSchema.parse(validArtifact);
   const contract = capabilityContractSchema.parse(validContract);

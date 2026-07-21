@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 
-import type { JsonValue, Opportunity, ProductManifest, WorkflowEvent } from "@living-software/contracts";
+import type { JsonValue, MetricReport, Opportunity, ProductManifest, WorkflowEvent } from "@living-software/contracts";
 import { sha256 } from "@living-software/core";
 
 import {
@@ -338,6 +338,117 @@ test("constructs a deterministic, governed GPT-5.6 request with bounded output",
   assert.match(first.input[0]!.content, /does not prove inefficiency, cause, user intent/u);
 });
 
+test("passes the complete privacy-safe behavior matrix to AI discovery", () => {
+  const { productManifest, events, detectedOpportunity } = fixture();
+  const metricReport: MetricReport = {
+    schemaVersion: "living.metric-report/v1",
+    appId: productManifest.appId,
+    manifestHash: productManifest.contentHash,
+    generatedAt: "2026-07-19T12:02:00.000Z",
+    window: detectedOpportunity.window,
+    dataOrigin: "synthetic",
+    totals: { events: 2, sessions: 1, cases: 1, variants: 1 },
+    values: [
+      { id: "route-frequency", unit: "count", value: 7, samples: 7, routeNodeId: "node-000" },
+      { id: "target-size", unit: "pixels", value: 33, samples: 2, productNodeId: "node-001", viewportClass: "large" },
+    ],
+  };
+  const discovery: Opportunity = {
+    ...detectedOpportunity,
+    detector: { ...detectedOpportunity.detector, id: "detector.model-guided-discovery" },
+    signal: {
+      kind: "model-discovery",
+      metrics: metricReport.values.map((metric, index) => ({
+        name: "matrix.metric." + String(index + 1).padStart(3, "0"),
+        unit: metric.unit,
+        observed: metric.value,
+      })),
+    },
+  };
+
+  const context = boundProductContext(productManifest, discovery, events, metricReport);
+  assert.deepEqual(context.included.behaviorMetrics, [
+    { citationName: "matrix.metric.001", id: "route-frequency", unit: "count", value: 7, samples: 7, productNodeId: null, routeNodeId: "node-000", viewportClass: null },
+    { citationName: "matrix.metric.002", id: "target-size", unit: "pixels", value: 33, samples: 2, productNodeId: "node-001", routeNodeId: null, viewportClass: "large" },
+  ]);
+  const request = buildResponsesRequest(discovery, context);
+  assert.match(request.input[0]!.content, /no predefined detector category/u);
+  assert.match(request.input[1]!.content, /choose the pattern and proposed improvement yourself/u);
+  assert.match(request.input[1]!.content, /matrix\.metric\.001/u);
+  assert.match(request.input[1]!.content, /target-size/u);
+});
+
+
+test("requires an exact complete behavior-matrix binding before AI discovery", async () => {
+  const { productManifest, events, detectedOpportunity } = fixture();
+  const metricReport: MetricReport = {
+    schemaVersion: "living.metric-report/v1",
+    appId: productManifest.appId,
+    manifestHash: productManifest.contentHash,
+    generatedAt: "2026-07-19T12:02:00.000Z",
+    window: detectedOpportunity.window,
+    dataOrigin: "synthetic",
+    totals: { events: events.length, sessions: 1, cases: 1, variants: 1 },
+    values: [
+      { id: "event-count", unit: "count", value: events.length, samples: events.length },
+      { id: "target-size", unit: "pixels", value: 33, samples: 2, productNodeId: "node-001" },
+    ],
+  };
+  const discovery: Opportunity = {
+    ...detectedOpportunity,
+    detector: { ...detectedOpportunity.detector, id: "detector.model-guided-discovery" },
+    signal: {
+      kind: "model-discovery",
+      metrics: metricReport.values.map((metric, index) => ({
+        name: "matrix.metric." + String(index + 1).padStart(3, "0"),
+        unit: metric.unit,
+        observed: metric.value,
+      })),
+    },
+    evidence: {
+      ...detectedOpportunity.evidence,
+      occurrenceCount: events.length,
+    },
+  };
+  const modelBrief = brief(discovery, productManifest, {
+    evidenceCitations: {
+      eventSetHash: discovery.evidence.eventSetHash,
+      sampleEvidenceAliases: ["evidence-001"],
+      metrics: [{ name: "matrix.metric.001", observed: events.length }],
+    },
+    successCriteria: [{ metric: "matrix.metric.001", direction: "decrease", target: "Lower than baseline", measurementWindow: "Next equivalent window" }],
+  });
+  let calls = 0;
+  const client = createIntelligenceClient({
+    async send() {
+      calls += 1;
+      return responseFor(modelBrief);
+    },
+  });
+
+  await assert.rejects(
+    client.draftEvolutionBrief({ opportunity: discovery, manifest: productManifest, evidenceEvents: events }),
+    /requires the complete behavior matrix/u,
+  );
+  await assert.rejects(
+    client.draftEvolutionBrief({
+      opportunity: discovery,
+      manifest: productManifest,
+      evidenceEvents: events,
+      metricReport: { ...metricReport, values: [{ ...metricReport.values[0]!, value: 99 }, metricReport.values[1]!] },
+    }),
+    /complete behavior matrix in exact order/u,
+  );
+  assert.equal(calls, 0);
+  const result = await client.draftEvolutionBrief({
+    opportunity: discovery,
+    manifest: productManifest,
+    evidenceEvents: events,
+    metricReport,
+  });
+  assert.equal(result.draft.opportunityId, discovery.opportunityId);
+  assert.equal(calls, 1);
+});
 test("constructs an exact tool-less source-patch request from bounded untrusted source", () => {
   const { productManifest, detectedOpportunity } = fixture();
   const inputBrief = evolutionBrief(detectedOpportunity, productManifest);
@@ -663,7 +774,7 @@ test("keeps evidence-linked nodes and direct neighbors ahead of lexical decoys",
   assert.deepEqual(permuted.relevantProductNodeIds, context.relevantProductNodeIds);
 });
 
-test("never removes an evidence-linked node to satisfy the hard byte limit", () => {
+test("keeps the evidence-linked node inside the complete bounded behavior window", () => {
   const identifier = (prefix: string, index: number) => {
     const start = `${prefix}-${String(index).padStart(3, "0")}-`;
     return start + "x".repeat(160 - start.length);
@@ -737,7 +848,7 @@ test("never removes an evidence-linked node to satisfy the hard byte limit", () 
   const detectedOpportunity = opportunity(events, productManifest);
   const context = boundProductContext(productManifest, detectedOpportunity, events);
 
-  assert.ok(context.included.nodes.length < PRODUCT_CONTEXT_LIMITS.nodes);
+  assert.ok(context.included.nodes.length <= PRODUCT_CONTEXT_LIMITS.nodes);
   assert.ok(context.included.nodes.some((node) => node.id === evidenceNodeId));
   assert.ok(context.relevantProductNodeIds.includes(evidenceNodeId));
   assert.ok(Buffer.byteLength(JSON.stringify(context), "utf8") <= PRODUCT_CONTEXT_LIMITS.bytes);

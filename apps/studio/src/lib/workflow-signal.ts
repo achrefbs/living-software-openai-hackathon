@@ -50,6 +50,13 @@ const SIGNAL_COPY: Record<OpportunitySignalKind, WorkflowSignalCopy> = {
       "A captured transition between workflow stages took longer than its threshold.",
     recordedSignal: "handoff delay",
   },
+  "model-discovery": {
+    term: "AI behavior discovery",
+    badge: "AI behavior discovery",
+    definition:
+      "A behavior pattern discovered by GPT-5.6 from captured workflow evidence.",
+    recordedSignal: "AI behavior discovery",
+  },
 };
 
 const GENERIC_COPY: WorkflowSignalCopy = {

@@ -34,6 +34,7 @@ const liveOpportunityViewSchema = z
       "failure-cluster",
       "backtracking",
       "repeated-sequence",
+      "model-discovery",
     ]),
     affectedCases: safeCount,
     occurrenceCount: safeCount,
@@ -44,14 +45,14 @@ const liveOpportunityViewSchema = z
         z
           .object({
             name: identifierSchema,
-            unit: z.enum(["count", "milliseconds", "ratio"]),
+            unit: z.enum(["count", "milliseconds", "pixels", "ratio"]),
             observed: z.number().finite(),
             comparator: z.number().finite().optional(),
           })
           .strict(),
       )
       .min(1)
-      .max(32),
+      .max(10_000),
   })
   .strict();
 

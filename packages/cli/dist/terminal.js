@@ -351,6 +351,7 @@ async function improve(args, dependencies, options) {
         manifest: input.manifest,
         opportunity: input.opportunity,
         evidenceEvents: input.evidenceEvents,
+        metricReport: input.metricReport,
     });
     reportTerminalLifecycle(options.lifecycleReporter, {
         type: "model.result.validated",

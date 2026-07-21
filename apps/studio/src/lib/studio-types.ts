@@ -7,7 +7,8 @@ export type OpportunitySignalKind =
   | "abandonment"
   | "failure-cluster"
   | "repeated-sequence"
-  | "handoff-delay";
+  | "handoff-delay"
+  | "model-discovery";
 
 export type StudioSource = {
   kind: "fixture" | "captured_snapshot";

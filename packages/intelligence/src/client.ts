@@ -2,10 +2,12 @@ import { createHash } from "node:crypto";
 
 import {
   gpt56EvolutionBriefSchema,
+  parseMetricReport,
   parseOpportunity,
   parseProductManifest,
   parseWorkflowEvent,
   type JsonValue,
+  type MetricReport,
   type Opportunity,
   type ProductManifest,
   type WorkflowEvent,
@@ -260,6 +262,54 @@ function validateEvidence(
     throw new Error("Opportunity subjectCount does not match its projected evidence cases");
   }
   return events;
+}
+
+
+function validateMetricReportBinding(
+  report: MetricReport | undefined,
+  opportunity: Opportunity,
+  manifest: ProductManifest,
+  events: readonly WorkflowEvent[],
+): void {
+  if (report === undefined) {
+    if (opportunity.signal.kind === "model-discovery") {
+      throw new Error("Model discovery requires the complete behavior matrix");
+    }
+    return;
+  }
+  const identityMatches =
+    report.appId === manifest.appId &&
+    report.manifestHash === manifest.contentHash &&
+    report.window.from === opportunity.window.from &&
+    report.window.to === opportunity.window.to &&
+    report.dataOrigin === opportunity.evidence.dataOrigin &&
+    report.totals.events === opportunity.evidence.occurrenceCount &&
+    report.totals.sessions === opportunity.evidence.sessionCount &&
+    report.totals.cases === opportunity.evidence.subjectCount &&
+    report.totals.events === events.length &&
+    report.totals.sessions === new Set(events.map((event) => event.sessionId)).size &&
+    report.totals.cases === projectWorkflowCases([...events]).length;
+  if (!identityMatches) {
+    throw new Error("Behavior matrix does not match the exact evidence window");
+  }
+  if (opportunity.signal.kind !== "model-discovery") return;
+  if (opportunity.signal.sequence !== undefined) {
+    throw new Error("Model discovery must not preselect an event sequence");
+  }
+  const metrics = opportunity.signal.metrics;
+  const metricsMatch = metrics.length === report.values.length && report.values.every(
+    (metric, index) => {
+      const bound = metrics[index];
+      return bound !== undefined &&
+        bound.name === "matrix.metric." + String(index + 1).padStart(3, "0") &&
+        bound.unit === metric.unit &&
+        bound.observed === metric.value &&
+        bound.comparator === undefined;
+    },
+  );
+  if (!metricsMatch) {
+    throw new Error("Model discovery metrics must bind the complete behavior matrix in exact order");
+  }
 }
 
 function validateReferenceIntegrity(
@@ -547,7 +597,11 @@ export function createIntelligenceClient(
       }
       const events = validateEvidence(opportunity, manifest, input.evidenceEvents);
       validateBuiltInOpportunitySemantics(opportunity, events);
-      const context = boundProductContext(manifest, opportunity, events);
+      const metricReport = input.metricReport === undefined
+        ? undefined
+        : parseMetricReport(input.metricReport);
+      validateMetricReportBinding(metricReport, opportunity, manifest, events);
+      const context = boundProductContext(manifest, opportunity, events, metricReport);
       const sampleIdSet = new Set(opportunity.evidence.sampleEventIds);
       const sampleAliasEntries = buildEvidenceAliasEntries(events).filter((entry) => sampleIdSet.has(entry.eventId));
       const request = buildResponsesRequest(opportunity, context, maxOutputTokens);

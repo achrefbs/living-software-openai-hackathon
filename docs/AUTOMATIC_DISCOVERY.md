@@ -19,12 +19,12 @@ living install
 
 ordinary UI activity
   -> privacy-minimized, hash-linked local evidence
-  -> deterministic workflow + metric analysis
-  -> threshold-based generic recurrence, correction, interaction-failure, or corroborated-backtracking opportunity
+  -> deterministic workflow projection + privacy-safe event/metric matrix
+  -> legacy detector diagnostics remain available but do not gate AI
 
 living improve --provider codex|api
-  -> GPT-5.6 evidence interpretation
-  -> evidence-first bounded product context
+  -> all verified events + all current metrics + bounded product context
+  -> GPT-5.6 chooses the pattern and improvement hypothesis
   -> at most 3 source candidates from cited relevant nodes / 96 KB
   -> second tool-less GPT-5.6 call authors 1-8 edits to 1 existing UI file
   -> deterministic compilation + static proof
@@ -39,7 +39,7 @@ explicit studio:sync
   -> Studio map, workflows, opportunity, proposal, proof and receipts
 ```
 
-The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing, detecting an opportunity, or prompting GPT. Simulator output is compared only after a run. Product-context budgeting retains evidence-linked manifest nodes and their direct graph neighbors ahead of deterministic lexical fill; GPT may cite affected nodes only from that relevant set. `studio:sync` exports a verified, privacy-minimized snapshot through an explicit local file boundary; Studio is not continuous live ingestion. For an exactly bound captured host, Evolution Review can use its loopback-only development broker to invoke the explicitly selected GPT-5.6 provider and the same governed lifecycle ledger as the CLI. Neutral, disconnected, and identity-mismatched views remain read-only.
+The separate Surus CRM simulator drives the public UI. Living does not import its traces, scenario labels, desired feature, or expected result while observing, building the matrix, or prompting GPT. Simulator output is compared only after a run. Product-context budgeting retains evidence-linked manifest nodes and their direct graph neighbors ahead of deterministic lexical fill; GPT may cite affected nodes only from that relevant set. `studio:sync` exports a verified, privacy-minimized snapshot through an explicit local file boundary; Studio is not continuous live ingestion. For an exactly bound captured host, Evolution Review can use its loopback-only development broker to invoke the explicitly selected GPT-5.6 provider and the same governed lifecycle ledger as the CLI. Neutral, disconnected, and identity-mismatched views remain read-only.
 
 ## CLI surface
 
@@ -55,7 +55,7 @@ npm run living -- approve --root <next-app> --evolution <id> --actor <operator> 
 npm run living -- rollback --root <next-app> --evolution <id> --actor <operator>
 ```
 
-`install` performs supported discovery and applies only the declared create-only observation files. `improve` analyzes current evidence, invokes the explicitly selected provider, and prepares a proposal without writing host source. Approval requires the exact artifact and proof hashes shown during review; omit `--apply` to keep approval and application as separate commands. `--provider api` is an explicit alternative requiring `OPENAI_API_KEY`; no provider fallback occurs.
+`install` performs supported discovery and applies only the declared create-only observation files. `improve` verifies the active evidence chain, builds the full privacy-safe event/metric matrix, lets the explicitly selected GPT-5.6 provider choose a pattern and improvement, and prepares a proposal without writing host source. It does not wait for a deterministic detector threshold. Approval requires the exact artifact and proof hashes shown during review; omit `--apply` to keep approval and application as separate commands. `--provider api` is an explicit alternative requiring `OPENAI_API_KEY`; no provider fallback occurs.
 
 The lower-level compatibility commands remain available for preview-first installation, inspection, snapshotting, and removal:
 
@@ -70,7 +70,7 @@ npm run living -- uninstall --root <next-app>
 npm run living -- uninstall --root <next-app> --apply
 ```
 
-`map`, `analyze`, and `snapshot` are read-only. `init` and `uninstall` are dry-run by default; only `--apply` changes the supported host. `--synthetic` labels test observation provenance and is not accepted by `map`, `analyze`, `snapshot`, or `uninstall`. `snapshot` exports a strict minimized view of the current analysis; `studio:sync` additionally refuses observed or mixed evidence. The older `--fixture` CLI remains a deterministic, read-only neutral test path.
+`map`, `analyze`, and `snapshot` are read-only. `analyze` reports captured totals and matrix readiness; detector details that remain in canonical JSON are diagnostics, not feature-selection gates. `init` and `uninstall` are dry-run by default; only `--apply` changes the supported host. `--synthetic` labels test observation provenance and is not accepted by `map`, `analyze`, `snapshot`, or `uninstall`. `snapshot` exports a strict minimized view of the current analysis; `studio:sync` additionally refuses observed or mixed evidence. The older `--fixture` CLI remains a deterministic, read-only neutral test path.
 
 ## Static discovery
 
@@ -146,27 +146,33 @@ The initial metric catalog covers:
 
 These are technical observations. Automatic browser telemetry does not know whether a business goal succeeded. Without a declared business outcome, case outcome remains unknown.
 
-A layout hypothesis requires repeated workflow friction plus a spatial or performance burden within one viewport class. No model or detector may recommend moving an element solely because of its coordinates.
+Geometry is evidence, not a command. GPT may form a layout hypothesis only by citing the supplied behavior and metric matrix; coordinates alone do not prove user intent, friction, or that moving an element will help.
 
-### Current opportunity rules
+### AI-first matrix and legacy diagnostics
 
-- `repeated-sequence` v1.0 mines contiguous normalized route/action/outcome subsequences without product-specific names. A sequence must occur at least twice without overlap in each of three cases and span three independent sessions. Candidates are ranked deterministically by affected cases, sessions, occurrences, sequence length, and stable identity. Recurrence is not itself a friction or causality claim.
-- Three or more cases containing explicit `correction` signals can produce a `rework-loop` opportunity.
-- Three or more cases containing explicit `dead-click` or `rage-click` signals can produce one `failure-cluster` opportunity.
-- Backtracking detector v1.2 requires at least three affected cases, at least two revisits per case, and at least one explicit technical signal or failed/abandoned event in every affected case. Repeated successful navigation without that corroboration is a negative control, not an opportunity.
-- Only the exact minimized sequence, signal, or corroborated journey evidence crosses the detector boundary. When multiple rules pass, deterministic arbitration selects one opportunity by affected ratio, affected cases, signal specificity, occurrence count, and stable identifier order.
+The active `improve` path sends GPT-5.6 all verified privacy-safe event sequences and all current metric values. GPT chooses one evidence-supported pattern and proposed improvement. No predefined detector kind, sequence count, session count, friction label, or CRM feature is required.
 
-These rules identify reviewable technical hypotheses. They do not infer user intent, business success, or post-change improvement.
+Deterministic code validates the app/manifest/event-set/metric identities, keeps model citations inside supplied evidence and product nodes, bounds source selection, proves the patch, and owns exact-hash approval, apply, receipts, recovery, and rollback.
+
+The following rules remain as legacy diagnostics in canonical JSON and regression tests only:
+
+- `repeated-sequence` v1.0 mines contiguous normalized route/action/outcome subsequences without product-specific names.
+- `rework-loop` summarizes repeated correction signals.
+- `failure-cluster` summarizes dead-click and rage-click signals.
+- Backtracking v1.2 summarizes corroborated revisits and retains its successful-navigation negative control.
+- Their historical threshold/arbitration behavior remains testable, but none creates, blocks, or chooses the current GPT request.
+
+Neither the matrix nor GPT's chosen hypothesis establishes user intent, business success, causality, or post-change improvement.
 
 ## Independent Surus CRM proof
 
-This validation completed the supported installation, runtime capture, privacy-audit, and byte-preserving removal sequence. The steps below record the proof flow.
+The following sections preserve historical validation completed before the AI-first decision on July 21, 2026. They prove installation, capture, privacy, governed patching, and byte-preserving removal; their detector thresholds are not the current product gate.
 
 1. Scan the untouched CRM and verify its six routes, normalized dynamic lead route, mapped controls, source references, entities, and absence of a fabricated host broker.
 2. Preview and apply the installation without editing the CRM layout, Zustand store, simulator, or existing tests.
 3. Build the CRM and start it locally.
 4. Run Claude's real-browser simulator while Living captures its own independent events.
-5. Analyze Living evidence into workflow variants and technical metrics; report a friction opportunity only if its configured threshold passes.
+5. Analyze Living evidence into workflow variants and technical metrics; in those historical runs, record a detector opportunity only if its then-configured threshold passes.
 6. Compare Living's ordered node sequences with the simulator trace only after capture.
 7. Search Living evidence for the simulator's form corpus, contact identifiers, emails, messages, and notes; require zero matches.
 8. Uninstall Living and verify every pre-existing CRM file remains byte-identical and Claude's uncommitted work is preserved.
@@ -175,7 +181,7 @@ This validation completed the supported installation, runtime capture, privacy-a
 
 The first run produced a 170-node manifest. Visual Studio review exposed 26 orphan nodes sourced from the CRM simulator, seed script, and tests. Those files never affected the 180 application relationships, but they did pollute product provenance and the source digest. That release and its 58-record evidence chain remain preserved as historical diagnostic evidence; the 170-node map is not the final product claim.
 
-### Corrected clean CRM proof - July 20, 2026
+### Historical corrected clean CRM proof - July 20, 2026
 
 - The CRM stayed in its separate repository and filesystem path. No CRM source or simulator trace was copied into this repository or used as Living analysis input.
 - Discovery scanned 34 supported application files and produced 144 nodes, 180 edges, 92 runtime locators, and 212 metric definitions. The source digest is `sha256:609342b5a2d495b7bc99824a33ef2070ebb374fbef5cbdca21dbee94642ced2d`; the manifest is `sha256:63d3da3f26c4eaca269f7063e75ea3db0657e7aa7d735df69ab5e6050091e265`. Provenance contains zero paths from `sim`, `scripts`, `tests`, `e2e`, `.living`, or generated integration files.
@@ -188,7 +194,7 @@ The first run produced a 170-node manifest. Visual Studio review exposed 26 orph
 - Product Map, Workflows, Opportunities, Evolutions, and Receipts were browser-verified against the corrected snapshot. Studio labels it as a validated synthetic static export, not live telemetry; GPT-5.6 was not called for that snapshot. The separately recorded neutral proof can be inspected in Evolution Review, while captured-snapshot interpretation and receipts remain explicitly unconnected.
 - Simulator traces remained a post-run oracle only. They were never input to discovery, workflow projection, metrics, the detector, or Studio.
 
-### Generic recurring-workflow proof - July 21, 2026
+### Historical generic recurring-workflow proof - July 21, 2026
 
 A fresh checkout of the separate synthetic CRM established the generic path without importing simulator traces or hardcoding a CRM workflow. The complete record is [generic-recurring-workflow-discovery.md](proof/generic-recurring-workflow-discovery.md).
 
@@ -199,7 +205,7 @@ A fresh checkout of the separate synthetic CRM established the generic path with
 - GPT selected `src/app/leads/[id]/page.tsx` and authored one exact replacement, `Leads` → `Back to leads`; Living passed all 13 deterministic proof checks.
 - Exact human approval and apply produced the visible browser change; the CRM passed 112/112 tests. Explicit rollback restored the byte-identical preimage `sha256:6f39fc74f30bc132cf3ba9b2975961a911be5e7197ba536ad4f7b69b907526e5`.
 
-A later rapid-sort stress attempt added three explicit rage-click signals, so `failure-cluster` won arbitration. That later evidence is a secondary technical diagnostic, not evidence that the generic sequence miner discovered the sort behavior and not evidence of measured improvement.
+A later rapid-sort stress attempt added three explicit rage-click signals, so the then-current `failure-cluster` diagnostic won arbitration. That evidence is a historical technical diagnostic, not an active AI gate and not evidence of measured improvement.
 
 ## Growth path
 

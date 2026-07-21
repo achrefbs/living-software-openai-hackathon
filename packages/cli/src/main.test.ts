@@ -349,11 +349,17 @@ test("usage exposes the exact hashes required for human approval", () => {
   assert.match(usage(), /--proof-hash <sha256>/u);
 });
 
-test("analyze formatting explains a display-name workflow without leaking hashed event names", () => {
+test("analyze formatting explains the AI-first behavior matrix without exposing legacy detector gates", () => {
   const human = formatAnalyzeResult({
     root: "C:\\demo\\crm",
     manifest: { appId: "crm-demo" },
-    metricReport: { totals: { events: 79, cases: 3, sessions: 3 } },
+    metricReport: {
+      totals: { events: 79, cases: 3, sessions: 3 },
+      values: [
+        { id: "event-count", value: 79 },
+        { id: "route-frequency", value: 12 },
+      ],
+    },
     detectorProgress: [],
     opportunity: {
       signal: { kind: "repeated-sequence" },
@@ -374,12 +380,13 @@ test("analyze formatting explains a display-name workflow without leaking hashed
     },
   });
 
-  assert.match(human, /Lead link → \/leads\/:id → Back to leads → \/leads/u);
-  assert.match(human, /3 cases · 3 sessions · 6 occurrences/u);
-  assert.match(human, /Detector: detector\.workflow-pattern\.repeated-sequence@1\.0\.0/u);
-  assert.match(human, /24 exact events · 0 explicit technical signals/u);
-  assert.match(human, /does not prove user intent, causality/u);
+  assert.match(human, /Captured: 79 events · 3 workflows · 3 sessions/u);
+  assert.match(human, /Matrix: 2 privacy-safe behavior measurements are ready for AI discovery/u);
+  assert.match(human, /analyze builds the behavior matrix; it does not choose or gate a feature/u);
+  assert.match(human, /visibility, target size, distance, scrolling, LCP, INP, and CLS/u);
+  assert.match(human, /GPT-5\.6 examines the full matrix, chooses the pattern that matters, and proposes the software change/u);
   assert.match(human, /npm run living -- improve/u);
+  assert.doesNotMatch(human, /Detector progress|Detector:|Detected:|Recurring workflow|occurrences|Observed sequence/u);
   assert.doesNotMatch(human, /observed\.action\.a/u);
 });
 

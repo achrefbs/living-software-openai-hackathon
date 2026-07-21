@@ -270,78 +270,20 @@ function count(value) {
         ? value
         : 0;
 }
-function signalLabel(value) {
-    switch (value) {
-        case "repeated-sequence":
-            return "Recurring workflow";
-        case "rework-loop":
-            return "Repeated rework";
-        case "failure-cluster":
-            return "Interaction failures";
-        case "backtracking":
-            return "Navigation backtracking";
-        default:
-            return String(value ?? "Unknown pattern");
-    }
-}
 /** Human-first projection of the canonical analyze result. */
 export function formatAnalyzeResult(output) {
     const manifest = record(output.manifest);
     const metricReport = record(output.metricReport);
     const totals = record(metricReport?.totals);
-    const opportunity = record(output.opportunity);
-    const opportunitySignal = record(opportunity?.signal);
-    const opportunityEvidence = record(output.opportunityEvidence);
-    const evidence = record(opportunity?.evidence);
-    const confidence = record(opportunity?.confidence);
-    const detector = record(opportunity?.detector);
     const lines = [
         "",
         "Living Software analysis",
         `App: ${String(manifest?.appId ?? "unknown")}`,
         `Captured: ${count(totals?.events)} events · ${count(totals?.cases)} workflows · ${count(totals?.sessions)} sessions`,
     ];
-    if (opportunity === null) {
-        lines.push("Result: No improvement suggestion has enough evidence yet.");
-        const progress = Array.isArray(output.detectorProgress)
-            ? output.detectorProgress
-            : [];
-        if (progress.length > 0) {
-            lines.push("Detector progress:");
-            for (const candidate of progress) {
-                const item = record(candidate);
-                if (item === null)
-                    continue;
-                const caseProgress = `${count(item.affectedCases)}/${count(item.minimumAffectedCases)} cases`;
-                const sessionProgress = item.affectedSessions === undefined
-                    ? ""
-                    : ` · ${count(item.affectedSessions)}/${count(item.minimumIndependentSessions)} sessions`;
-                lines.push(`  ${signalLabel(item.signalKind)}: ${caseProgress}${sessionProgress} · ${count(item.occurrenceCount)} occurrences`);
-            }
-        }
-    }
-    else {
-        lines.push(`Detected: ${signalLabel(opportunitySignal?.kind)} · ${Math.round(Number(confidence?.score ?? 0) * 100)}% confidence`, `Detector: ${String(detector?.id ?? "unknown")}@${String(detector?.version ?? "unknown")}`, `Support: ${count(evidence?.subjectCount)} cases · ${count(evidence?.sessionCount)} sessions · ${count(evidence?.occurrenceCount)} occurrences`);
-        const steps = Array.isArray(opportunityEvidence?.steps)
-            ? opportunityEvidence.steps
-            : [];
-        const stepLabels = steps.flatMap((candidate) => {
-            const step = record(candidate);
-            if (step === null)
-                return [];
-            const displayName = String(step.displayName ?? "").trim();
-            return displayName.length > 0 ? [displayName] : [String(step.name ?? "unknown step")];
-        });
-        if (stepLabels.length > 0) {
-            lines.push("Observed sequence:", `  ${stepLabels.join(" → ")}`);
-        }
-        else {
-            lines.push("Observed sequence: no ordered sequence is asserted by this detector.");
-        }
-        lines.push(`Supporting events: ${count(opportunityEvidence?.eventCount)} exact events · ${count(opportunityEvidence?.explicitSignalEventCount)} explicit technical signals`, `Full captured cohort: ${count(opportunityEvidence?.cohortExplicitSignalEventCount)} explicit technical signals`);
-    }
-    lines.push("Caveat: recurrence shows what happened repeatedly; it does not prove user intent, causality, or that a proposed change will improve outcomes.");
-    if (opportunity !== null && typeof output.root === "string") {
+    const metricValues = Array.isArray(metricReport?.values) ? metricReport.values : [];
+    lines.push(`Matrix: ${metricValues.length} privacy-safe behavior measurements are ready for AI discovery.`, "Analysis: analyze builds the behavior matrix; it does not choose or gate a feature.", "Clues: route/action/outcome sequences, frequency, timing, failures, visibility, target size, distance, scrolling, LCP, INP, and CLS.", "AI decision: during improve, GPT-5.6 examines the full matrix, chooses the pattern that matters, and proposes the software change.");
+    if (typeof output.root === "string") {
         lines.push("", "Next:", `  npm run living -- improve --root ${JSON.stringify(output.root)} --provider codex`);
     }
     return `${lines.join("\n")}\n`;

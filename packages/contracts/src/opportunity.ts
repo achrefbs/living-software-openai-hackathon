@@ -37,6 +37,7 @@ export const opportunitySchema = z
           "failure-cluster",
           "repeated-sequence",
           "handoff-delay",
+          "model-discovery",
         ]),
         sequence: z.array(eventNameSchema).min(2).max(64).optional(),
         metrics: z
@@ -44,14 +45,14 @@ export const opportunitySchema = z
             z
               .object({
                 name: identifierSchema,
-                unit: z.enum(["count", "milliseconds", "ratio"]),
+                unit: z.enum(["count", "milliseconds", "pixels", "ratio"]),
                 observed: z.number().finite(),
                 comparator: z.number().finite().optional(),
               })
               .strict(),
           )
           .min(1)
-          .max(32),
+          .max(10_000),
       })
       .strict(),
     evidence: z

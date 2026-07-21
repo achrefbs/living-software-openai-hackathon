@@ -71,6 +71,10 @@ function titleCase(value: string): string {
     .replace(/^./u, (character) => character.toUpperCase());
 }
 
+function opportunityLabel(kind: string): string {
+  return kind === "model-discovery" ? "AI behavior discovery" : titleCase(kind);
+}
+
 function displayKind(kind: string): string {
   return kind === "extension-point" ? "extension point" : kind;
 }
@@ -121,11 +125,12 @@ function hasRevisit(nodes: readonly string[]): boolean {
 function metricValue(metric: {
   observed: number;
   comparator?: number;
-  unit: "count" | "milliseconds" | "ratio";
+  unit: "count" | "milliseconds" | "pixels" | "ratio";
 }): string {
   const format = (value: number) => {
     if (metric.unit === "ratio") return `${Math.round(value * 100)}%`;
     if (metric.unit === "milliseconds") return `${Math.round(value)} ms`;
+    if (metric.unit === "pixels") return `${Math.round(value)} px`;
     return String(Math.round(value * 100) / 100);
   };
   const observed = format(metric.observed);
@@ -293,10 +298,14 @@ export function studioDatasetFromSnapshot(snapshot: StudioSnapshot): StudioDatas
     ? []
     : [{
         id: snapshot.opportunity.opportunityId,
-        title: `${titleCase(snapshot.opportunity.signal.kind)} pattern detected`,
-        summary:
-          `${snapshot.opportunity.evidence.subjectCount} captured cases crossed the ` +
-          `${snapshot.opportunity.detector.id} threshold. This is deterministic evidence, not a causal explanation.`,
+        title: snapshot.opportunity.signal.kind === "model-discovery"
+          ? opportunityLabel(snapshot.opportunity.signal.kind)
+          : `${opportunityLabel(snapshot.opportunity.signal.kind)} pattern detected`,
+        summary: snapshot.opportunity.signal.kind === "model-discovery"
+          ? `${snapshot.opportunity.evidence.subjectCount} captured cases support a GPT-5.6-discovered behavior pattern. ` +
+            "This is model interpretation grounded in the cited evidence, not a causal conclusion."
+          : `${snapshot.opportunity.evidence.subjectCount} captured cases crossed the ` +
+            `${snapshot.opportunity.detector.id} threshold. This is deterministic evidence, not a causal explanation.`,
         status: "detected",
         signalKind: snapshot.opportunity.signal.kind,
         detector: snapshot.opportunity.detector.id,
@@ -312,7 +321,9 @@ export function studioDatasetFromSnapshot(snapshot: StudioSnapshot): StudioDatas
           label: titleCase(metric.name),
           value: metricValue(metric),
         })),
-        nextStep: "Request a bounded GPT-5.6 interpretation of this evidence package.",
+        nextStep: snapshot.opportunity.signal.kind === "model-discovery"
+          ? "Review the AI behavior discovery and its cited evidence before proposing a bounded change."
+          : "Request a bounded GPT-5.6 interpretation of this evidence package.",
       }];
   const sourceLabelValue = snapshot.application.dataOrigin === "synthetic"
     ? "Synthetic capture"

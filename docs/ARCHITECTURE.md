@@ -14,12 +14,12 @@ living install
 
 ordinary UI activity
   -> privacy-minimized, hash-linked local evidence
-  -> deterministic workflows + metrics
-  -> generic repeated-sequence, corroborated-backtracking, correction-rework and dead/rage-click candidates
-  -> deterministic single-opportunity arbitration
+  -> deterministic workflow projection + privacy-safe event/metric matrix
+  -> optional legacy detector diagnostics; never an AI gate
 
 living improve --provider codex|api
-  -> GPT-5.6 evidence interpretation
+  -> all verified events + all current metrics + bounded product context
+  -> GPT-5.6 chooses the pattern and improvement hypothesis
   -> up to 3 manifest-bound UI candidates / 96 KB
   -> second tool-less GPT-5.6 call authors 1-8 edits to 1 existing file
   -> deterministic compilation + static proof
@@ -32,7 +32,7 @@ human exact-hash approval
 
 studio:live --root <host> --host-url <loopback>
   -> server-canonicalized read-only map before installation
-  -> bounded active-release tailer + shared deterministic evaluator
+  -> bounded active-release tailer + behavior matrix + diagnostic evaluator
   -> durable strict event hash chain + replay + SSE Last-Event-ID resume
   -> the same model, proof, approval, apply and rollback functions
   -> source verification separate from host-frame inspection
@@ -52,24 +52,28 @@ explicit studio:sync
 | Discovery | Source-linked nodes, edges, routes and runtime locators for supported `src/app` repositories | Arbitrary Node/framework support; host execution; business-goal inference |
 | Installer | Create-only atomic writes, journaled hashes, idempotency and exact-hash removal | Existing-file overwrite, dependency editing, evidence deletion |
 | Observer/collector | Route/action/performance/friction events and bounded CSS-pixel geometry in manifest-scoped hash chains | Content, DOM, screenshots, persistent identity, production telemetry |
-| Analyzer | Deterministic workflow cases, variants, metrics, generic repeated subsequence mining, exact-evidence candidates for corroborated backtracking, repeated corrections and dead/rage-click failures, plus input-order-independent arbitration | Product-specific workflow rules, causality or automatic knowledge of success |
-| Intelligence | Explicit Codex CLI and Responses API transports; evidence brief plus source-patch Structured Outputs; provenance and local validation | Tools, filesystem authority, approval or application authority |
+| Analyzer | Verified workflow cases, variants, and a privacy-safe event/metric matrix; legacy repeated-sequence, corroborated-backtracking, correction, and dead/rage-click diagnostics remain in JSON/tests | Feature selection, causality, business goals, or a detector gate on AI review |
+| Intelligence | Explicit Codex CLI and Responses API transports; AI-first pattern/improvement selection from the full matrix; evidence brief plus source-patch Structured Outputs; provenance and local validation | Tools, filesystem authority, approval or application authority |
 | Candidate selector | Source provenance from affected manifest nodes; at most 3 files, 64 KB each and 96 KB total | Repository-wide context, API/tests/configuration, symlinks, binary or changed-during-read files |
 | Evolution engine | One existing UI file, 1-8 exact edits, static guards, exact hashes, proof, receipts, approval, apply, recovery and rollback | New/multiple files, dependencies, Git, server/network/process/secret/dynamic-code authority |
 | CLI | Human-readable `install`, `improve`, `status`, `approve`, `apply`, `rollback`; canonical `--json` | Background or automatic approval/application |
-| Studio | Server-started loopback Live Run; durable strict events; active-release evidence tailing; shared detector progress; real model/proof/lifecycle milestones; exact governed commands; optional isolated comparison; separate explicit offline capture | Remote production control plane, arbitrary browser-selected roots, model reasoning, automatic runtime proof or post-change measurement |
+| Studio | Server-started loopback Live Run; durable strict events; active-release evidence tailing; matrix and diagnostic progress; real model/proof/lifecycle milestones; exact governed commands; optional isolated comparison; separate explicit offline capture | Remote production control plane, arbitrary browser-selected roots, model reasoning, automatic runtime proof or post-change measurement |
 
-## Generic recurring-workflow discovery
+## AI-first behavior discovery
 
-The generic detector operates on normalized journey-step tuples of event kind, manifest node ID, and event name. Within each workflow case it enumerates contiguous subsequences from 2 to 64 steps, counts only non-overlapping occurrences, and retains a candidate only when it occurs at least twice per case in at least three cases spanning three independent sessions.
+`analyze` verifies the active-release hash chain, projects privacy-safe route/action/outcome cases, and computes the current workflow, performance, friction, viewport, visibility, target-size, movement, and timing metrics. The result is a behavior matrix covering all verified events and all current metric values. Raw event IDs, raw metadata, absolute timestamps, and user/session/subject identifiers stay outside the model boundary.
 
-Candidates are ordered by affected cases, independent sessions, total occurrences, sequence length, and stable tuple identity. The algorithm contains no lead, CRM, route-name, or feature-specific pattern. It also requires no `metadata.signal`; deterministic means identical validated evidence yields identical mining and selection.
+`improve` binds that matrix to the app, manifest, evidence-set hash, evidence window, metric report, and explicit data origin. GPT-5.6 receives the complete privacy-safe event sequences, every current metric, and the bounded source-linked product context. It chooses one pattern worth reviewing and proposes the improvement hypothesis; there is no required detector family, hardcoded CRM pattern, minimum session threshold, or predetermined feature.
 
-The result is a `repeated-sequence` hypothesis with an exact minimized event set. Recurrence alone does not establish friction, user intent, or causality. The [clean generic proof](proof/generic-recurring-workflow-discovery.md) learned a four-step workflow from zero explicit signal events before GPT interpreted its possible meaning.
+Deterministic code still validates event identity and evidence integrity, constrains which source candidates may be shown, compiles and proves the returned patch, enforces exact-hash human approval, and owns apply/rollback. It does not choose the product problem or feature on GPT's behalf.
+
+The four earlier detector families remain available as diagnostics in canonical JSON and regression tests. They do not gate or select the AI request. The [generic recurring-workflow proof](proof/generic-recurring-workflow-discovery.md) is preserved as explicitly historical detector-era evidence.
+
+This decision is recorded in [ADR-001](ADR-001-AI-FIRST-DISCOVERY.md).
 
 ## Two model calls, one authority boundary
 
-Before the first GPT-5.6 call, Living revalidates the exact minimized evidence and recomputes the semantics of known built-in detector versions. Product context is evidence-first: evidence-linked nodes are retained, included one-edge neighbors follow, and lexical fill is context only. The returned `EvolutionBrief` may name affected nodes only from the evidence-linked/neighbor set.
+Before the first GPT-5.6 call, Living revalidates the complete verified event window, the event-set identity, and every current metric value. Product context is evidence-first: evidence-linked nodes are retained, included one-edge neighbors follow, and lexical fill is context only. GPT chooses the pattern and improvement, but the returned `EvolutionBrief` may name affected nodes only from the evidence-linked/neighbor set.
 
 Living then resolves those affected nodes to eligible UI source provenance. It reads at most three exact candidates, capped at 96 KB total. The second GPT-5.6 call receives only the validated brief and those candidates. It selects one file and authors one to eight exact anchor/replacement edits.
 
@@ -124,7 +128,7 @@ Select `--provider api` explicitly when using the Responses API. The CLI is suff
 
 ## Live Studio event boundary
 
-`studio:live` maps and canonicalizes the supported host before launching Next.js on loopback. Server-only environment values bind the root, session, mapped app, and host URL; no API accepts a root. The monitor reconstructs state from validated installation artifacts, the exact active-release evidence chain, deterministic analysis, evolution state, receipts, and the current sealed target hash.
+`studio:live` maps and canonicalizes the supported host before launching Next.js on loopback. Server-only environment values bind the root, session, mapped app, and host URL; no API accepts a root. The monitor reconstructs state from validated installation artifacts, the exact active-release evidence chain, the behavior matrix and diagnostic analysis, evolution state, receipts, and the current sealed target hash.
 
 Each `living.live-event/v1` event is strict, bounded, sequence-numbered, and hash-linked on disk under the server-owned live session. Duplicate semantic event IDs are idempotent; conflicting reuse fails. SSE uses the sequence as its event ID, replays only validated history after `Last-Event-ID`, and registers new delivery behind the same append barrier. The browser uses no lifecycle timer polling; an event triggers a fresh strict state read. A disconnected browser changes only presentation state.
 
@@ -140,16 +144,16 @@ The optional before copy receives the exact sealed preimage; the proposed copy r
 
 ## Reference CRM boundary
 
-The separate CRM exposes an ordinary product surface and has no dependency on Living core or Studio. Its simulator drives synthetic browser behavior but does not tell Living what to detect or what patch to create. Living independently derives the map, evidence, opportunity and model context.
+The separate CRM exposes an ordinary product surface and has no dependency on Living core or Studio. Its simulator drives synthetic browser behavior but does not tell Living what to detect or what patch to create. Living independently derives the map, verified behavior matrix, and model context.
 
 The engine contains no CRM-specific Previous/Next transform. GPT may propose any change that fits the one-file UI envelope and passes the static policy.
-The clean July 21 proof started from 144 discovered nodes and 180 edges, then learned the lead-link → detail-route → back-link → list-route sequence from generic manifest identities. The resulting `Back to leads` edit was GPT-authored; neither that workflow nor that replacement exists as an engine rule.
+The historical July 21 detector-era proof started from 144 discovered nodes and 180 edges, then learned the lead-link → detail-route → back-link → list-route sequence from generic manifest identities. The resulting `Back to leads` edit was GPT-authored; neither that workflow nor that replacement exists as an engine rule. Current AI-first discovery is not gated by that sequence or threshold.
 
 ## Current non-claims
 
 - Universal or zero-configuration support for arbitrary codebases.
 - Automatic knowledge of business goals, outcomes or causality.
-- A claim that recurrence alone means friction or that the mined sequence caused the generated change to improve outcomes.
+- A claim that GPT's selected pattern proves user intent, causality, business value, or measured improvement.
 - Semantic proof that a generated patch is correct, accessible or buildable.
 - Automatic source application without human approval.
 - Runtime success merely because source was written.
