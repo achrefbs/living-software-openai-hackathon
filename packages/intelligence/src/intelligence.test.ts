@@ -10,12 +10,14 @@ import {
   IntelligenceResponseError,
   MissingApiKeyError,
   PRODUCT_CONTEXT_LIMITS,
+  SOURCE_PATCH_JSON_SCHEMA,
   boundProductContext,
   buildResponsesRequest,
   buildSourcePatchRequest,
   createCodexCliTransport,
   createFetchTransport,
   createIntelligenceClient,
+  modelSourcePatchSchema,
   type EvolutionBrief,
   type IntelligenceTransport,
   type ResponsesRequest,
@@ -470,8 +472,72 @@ test("constructs an exact tool-less source-patch request from bounded untrusted 
   assert.equal(Object.hasOwn(first, "tools"), false);
   assert.match(first.input[0]!.content, /source comment\/string.*untrusted data/u);
   assert.match(first.input[0]!.content, /Never approve, apply, execute/u);
+  assert.match(first.input[0]!.content, /complete, syntactically valid final source fragment/u);
+  assert.match(first.input[0]!.content, /Do not pad anchors or replacements/u);
+  assert.match(first.input[1]!.content, /complete and syntactically valid, with no truncation or padding/u);
   assert.match(first.input[1]!.content, /src\/app\/leads\/\[id\]\/page\.tsx/u);
   assert.match(first.input[1]!.content, /data-testid/u);
+});
+
+test("rejects control and Unicode padding in structured source patches", async () => {
+  const { productManifest, detectedOpportunity } = fixture();
+  const inputBrief = evolutionBrief(detectedOpportunity, productManifest);
+  const candidate = sourceCandidate();
+  const anchor = '  return <h1 data-testid="lead-title">Lead</h1>;';
+  const pattern =
+    SOURCE_PATCH_JSON_SCHEMA.properties.edits.items.properties.replacement
+      .pattern;
+  const structuredOutputPattern = new RegExp(pattern, "u");
+
+  assert.equal(
+    structuredOutputPattern.test("first line\n\tsecond line\r\n"),
+    true,
+    "ordinary source formatting must remain available",
+  );
+
+  const forbiddenCharacters = [
+    ["NUL", "\u0000"],
+    ["C0 control", "\u0001"],
+    ["vertical tab", "\u000B"],
+    ["DEL", "\u007F"],
+    ["C1 control", "\u0085"],
+    ["non-breaking space", "\u00A0"],
+    ["Unicode padding", "\u2007"],
+    ["BOM", "\uFEFF"],
+  ] as const;
+
+  for (const [label, character] of forbiddenCharacters) {
+    const replacement =
+      "const safe = 1;" + character + "const padded = 2;";
+    assert.equal(
+      structuredOutputPattern.test(replacement),
+      false,
+      label + " must be rejected by the Structured Output schema",
+    );
+    const proposal = sourcePatch(inputBrief, candidate, {
+      edits: [{ anchor, replacement }],
+    });
+    assert.equal(
+      modelSourcePatchSchema.safeParse(proposal).success,
+      false,
+      label + " must be rejected by local schema validation",
+    );
+
+    const client = createIntelligenceClient(
+      mockTransport(responseFor(proposal)),
+    );
+    await assert.rejects(
+      client.draftSourcePatch({
+        brief: inputBrief,
+        candidates: [candidate],
+      }),
+      (error: unknown) =>
+        error instanceof IntelligenceResponseError &&
+        error.code === "invalid_patch" &&
+        /invalid source patch proposal/u.test(error.message),
+      label + " must not cross the client boundary",
+    );
+  }
 });
 
 test("returns a hash-bound model-authored source patch without model authority", async () => {

@@ -3,6 +3,7 @@ import {
   sha256Schema,
   type Sha256,
 } from "@living-software/contracts";
+import ts from "typescript";
 import { z } from "zod";
 
 import { hashBytes } from "./canonical.js";
@@ -13,6 +14,11 @@ const MAX_ANCHOR_BYTES = 8_192;
 const MAX_REPLACEMENT_BYTES = 16_384;
 const MAX_DIFF_BYTES = 128 * 1024;
 const MAX_DIFF_LINES = 2_000;
+const UNSAFE_CONTROL_CHARACTER = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u;
+const UNSAFE_FORMAT_CHARACTER = /\p{Cf}/u;
+const UNSAFE_UNICODE_PADDING = /[\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]/u;
+const EXCESSIVE_HORIZONTAL_PADDING = /[ \t]{1025,}/u;
+const EXCESSIVE_VERTICAL_PADDING = /(?:\r?\n){129,}/u;
 
 const ALLOWED_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".css"]);
 
@@ -329,6 +335,61 @@ function assertReplacementSafe(replacement: string): void {
   }
 }
 
+function assertSourceCharactersSafe(value: string): void {
+  const unsafeControl = UNSAFE_CONTROL_CHARACTER.exec(value)?.[0];
+  const withoutInitialBom = value.startsWith("\uFEFF") ? value.slice(1) : value;
+  const unsafeFormat = UNSAFE_FORMAT_CHARACTER.exec(withoutInitialBom)?.[0];
+  const unsafePadding = UNSAFE_UNICODE_PADDING.exec(value)?.[0];
+  const unsafeCharacter = unsafeControl ?? unsafeFormat ?? unsafePadding;
+  if (unsafeCharacter !== undefined) {
+    const codePoint = unsafeCharacter.codePointAt(0)!;
+    throw new SourceEvolutionError(
+      "UNSUPPORTED_ADAPTER_INPUT",
+      `Model patch postimage contains unsafe control, format, or Unicode padding character U+${codePoint.toString(16).toUpperCase().padStart(4, "0")}`,
+    );
+  }
+  if (
+    EXCESSIVE_HORIZONTAL_PADDING.test(value) ||
+    EXCESSIVE_VERTICAL_PADDING.test(value)
+  ) {
+    throw new SourceEvolutionError(
+      "UNSUPPORTED_ADAPTER_INPUT",
+      "Model patch postimage contains excessive whitespace padding",
+    );
+  }
+}
+
+function assertScriptPostimageParses(targetPath: string, postimage: string): void {
+  if (extension(targetPath) === ".css") return;
+  const result = ts.transpileModule(postimage, {
+    fileName: targetPath,
+    reportDiagnostics: true,
+    compilerOptions: {
+      allowJs: true,
+      checkJs: false,
+      isolatedModules: true,
+      jsx: ts.JsxEmit.Preserve,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      target: ts.ScriptTarget.ES2022,
+    },
+  });
+  const diagnostic = result.diagnostics?.find(
+    (candidate) => candidate.category === ts.DiagnosticCategory.Error,
+  );
+  if (diagnostic !== undefined) {
+    throw new SourceEvolutionError(
+      "UNSUPPORTED_ADAPTER_INPUT",
+      `Model patch postimage is not syntactically valid (${diagnostic.code}): ${ts.flattenDiagnosticMessageText(diagnostic.messageText, " ")}`,
+    );
+  }
+}
+
+function assertExecutablePostimage(targetPath: string, postimage: string): void {
+  assertSourceCharactersSafe(postimage);
+  assertScriptPostimageParses(targetPath, postimage);
+}
+
 function locateEdits(
   preimage: string,
   edits: SourcePatchProposal["edits"],
@@ -385,9 +446,10 @@ function applyLocatedEdits(preimage: string, edits: readonly LocatedEdit[]): str
   return postimage;
 }
 
-export function compileModelPatch(
+function compileModelPatchInternal(
   proposalInput: unknown,
   preimage: string,
+  validateExecutableSource: boolean,
 ): CompiledModelPatch {
   const parsed = sourcePatchProposalSchema.safeParse(proposalInput);
   if (!parsed.success) {
@@ -445,6 +507,10 @@ export function compileModelPatch(
     );
   }
 
+  if (validateExecutableSource) {
+    assertExecutablePostimage(proposal.target.path, postimage);
+  }
+
   const checks: readonly ModelPatchProofCheck[] = Object.freeze([
     {
       id: "proposal.schema",
@@ -484,7 +550,9 @@ export function compileModelPatch(
     {
       id: "postimage.changed",
       status: "passed",
-      detail: "The deterministic substitutions produce one nonempty changed postimage.",
+      detail: validateExecutableSource
+        ? "The deterministic substitutions produce one nonempty changed postimage that passes control-character, padding, and compiler syntax validation."
+        : "The deterministic substitutions reproduce the stored nonempty changed postimage for legacy integrity inspection.",
     },
     {
       id: "diff.bounded",
@@ -506,4 +574,18 @@ export function compileModelPatch(
     }),
     checks,
   });
+}
+
+export function compileModelPatch(
+  proposalInput: unknown,
+  preimage: string,
+): CompiledModelPatch {
+  return compileModelPatchInternal(proposalInput, preimage, true);
+}
+
+export function compileStoredModelPatchForIntegrity(
+  proposalInput: unknown,
+  preimage: string,
+): CompiledModelPatch {
+  return compileModelPatchInternal(proposalInput, preimage, false);
 }

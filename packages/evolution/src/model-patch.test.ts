@@ -5,6 +5,7 @@ import { hashBytes } from "./canonical.js";
 import { SourceEvolutionError } from "./errors.js";
 import {
   compileModelPatch,
+  compileStoredModelPatchForIntegrity,
   MODEL_PATCH_PROOF_CHECK_IDS,
   type SourcePatchProposal,
 } from "./model-patch.js";
@@ -173,21 +174,54 @@ test("permits only bounded client source targets", () => {
     );
   }
 
-  for (const path of [
-    "src/app/leads/page.tsx",
-    "src/components/card.ts",
-    "src/components/card.js",
-    "src/components/card.jsx",
-    "src/app/styles/page.css",
-  ]) {
+  const allowedTargets = [
+    {
+      path: "src/app/leads/page.tsx",
+      preimage: PREIMAGE,
+      anchor: 'const label = "Old label";',
+      replacement: 'const label = "Review lead";',
+    },
+    {
+      path: "src/components/card.ts",
+      preimage: 'export const label: string = "Old";\n',
+      anchor: '"Old"',
+      replacement: '"Review"',
+    },
+    {
+      path: "src/components/card.js",
+      preimage: 'export const label = "Old";\n',
+      anchor: '"Old"',
+      replacement: '"Review"',
+    },
+    {
+      path: "src/components/card.jsx",
+      preimage: 'export const Card = () => <button>Old</button>;\n',
+      anchor: "Old",
+      replacement: "Review",
+    },
+    {
+      path: "src/app/styles/page.css",
+      preimage: ".card { color: red; }\n",
+      anchor: "red",
+      replacement: "blue",
+    },
+  ];
+  for (const candidate of allowedTargets) {
     assert.equal(
       compileModelPatch(
-        proposal(PREIMAGE, {
-          target: { path, preimageHash: hashBytes(PREIMAGE) },
+        proposal(candidate.preimage, {
+          target: {
+            path: candidate.path,
+            preimageHash: hashBytes(candidate.preimage),
+          },
+          edits: [{
+            anchor: candidate.anchor,
+            replacement: candidate.replacement,
+          }],
         }),
-        PREIMAGE,
+        candidate.preimage,
       ).proposal.target.path,
-      path,
+      candidate.path,
     );
   }
 });
@@ -345,6 +379,108 @@ test("rejects browser authority and common computed or obfuscated bypasses", () 
   }
 });
 
+test("rejects literal control bytes in model replacements", () => {
+  expectCode("UNSUPPORTED_ADAPTER_INPUT", () =>
+    compileModelPatch(
+      proposal(PREIMAGE, {
+        edits: [{
+          anchor: 'const label = "Old label";',
+          replacement: 'const label = "Broken";\u0000',
+        }],
+      }),
+      PREIMAGE,
+    ),
+  );
+});
+
+test("keeps legacy invalid prepared artifacts readable but non-executable", () => {
+  for (const replacement of [
+    'const label = "Broken";\u0000',
+    "const label = <section><span>Broken</section>;",
+  ]) {
+    const input = proposal(PREIMAGE, {
+      edits: [{ anchor: 'const label = "Old label";', replacement }],
+    });
+    assert.doesNotThrow(() =>
+      compileStoredModelPatchForIntegrity(input, PREIMAGE),
+    );
+    expectCode("UNSUPPORTED_ADAPTER_INPUT", () =>
+      compileModelPatch(input, PREIMAGE),
+    );
+  }
+});
+
+test("rejects invisible format characters and excessive whitespace padding", () => {
+  for (const replacement of [
+    'const label = "zero\u200Bwidth";',
+    `const label = "Review";${" ".repeat(1_025)}`,
+    `const label = "Review";${"\n".repeat(129)}`,
+  ]) {
+    expectCode("UNSUPPORTED_ADAPTER_INPUT", () =>
+      compileModelPatch(
+        proposal(PREIMAGE, {
+          edits: [{ anchor: 'const label = "Old label";', replacement }],
+        }),
+        PREIMAGE,
+      ),
+    );
+  }
+});
+
+test("rejects explicit Unicode padding characters", () => {
+  const paddingCodePoints = [
+    0x00a0,
+    0x1680,
+    ...Array.from({ length: 11 }, (_, index) => 0x2000 + index),
+    0x2028,
+    0x2029,
+    0x202f,
+    0x205f,
+    0x3000,
+  ];
+  for (const codePoint of paddingCodePoints) {
+    expectCode("UNSUPPORTED_ADAPTER_INPUT", () =>
+      compileModelPatch(
+        proposal(PREIMAGE, {
+          edits: [{
+            anchor: 'const label = "Old label";',
+            replacement: `const label = "Review";${String.fromCodePoint(codePoint)}`,
+          }],
+        }),
+        PREIMAGE,
+      ),
+    );
+  }
+});
+
+test("preserves an existing initial BOM and ordinary source whitespace", () => {
+  const preimage = `\uFEFF${PREIMAGE}`;
+  const compiled = compileModelPatch(
+    proposal(preimage, {
+      edits: [{
+        anchor: 'const label = "Old label";',
+        replacement: 'const label = "Review lead";\n\t',
+      }],
+    }),
+    preimage,
+  );
+
+  assert.ok(compiled.postimage.startsWith("\uFEFF"));
+  assert.match(compiled.postimage, /Review lead/u);
+});
+test("rejects syntactically incomplete TSX postimages", () => {
+  expectCode("UNSUPPORTED_ADAPTER_INPUT", () =>
+    compileModelPatch(
+      proposal(PREIMAGE, {
+        edits: [{
+          anchor: 'const label = "Old label";',
+          replacement: "const label = <section><span>Broken</section>;",
+        }],
+      }),
+      PREIMAGE,
+    ),
+  );
+});
 test("keeps ordinary prose and local declarative UI references in bounds", () => {
   const allowed = [
     'const offset = 12; const copy = "The internet guide is available.";',

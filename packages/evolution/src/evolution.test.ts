@@ -38,7 +38,10 @@ import {
   type SourcePatchModelProvenance,
   type SourcePatchProposal,
 } from "./index.js";
-import { setSourceEvolutionFaultInjectorForTests } from "./lifecycle.js";
+import {
+  setSourceEvolutionFaultInjectorForTests,
+  setUnsafeExecutablePatchCompilerForTests,
+} from "./lifecycle.js";
 
 const MANIFEST_HASH = `sha256:${"a".repeat(64)}` as const;
 const EVENT_HASH = `sha256:${"b".repeat(64)}` as const;
@@ -363,6 +366,32 @@ async function expectCode(
   );
 }
 
+async function withLegacyExecutableValidation<T>(
+  run: () => Promise<T>,
+): Promise<T> {
+  setUnsafeExecutablePatchCompilerForTests(true);
+  try {
+    return await run();
+  } finally {
+    setUnsafeExecutablePatchCompilerForTests(false);
+  }
+}
+
+function unsafePrepareInput(
+  root: string,
+  variant: Variant,
+  replacement: string,
+): PrepareSourceEvolutionInput {
+  const input = prepareInput(root, variant);
+  return {
+    ...input,
+    patchProposal: {
+      ...input.patchProposal,
+      edits: [{ anchor: VARIANTS[variant].anchor, replacement }],
+    },
+  };
+}
+
 function storageFile(
   root: string,
   state: SourceEvolutionState,
@@ -486,6 +515,61 @@ test("preparation is preview-only and exact human hashes are required", async ()
       expectedArtifactHash: `sha256:${"f".repeat(64)}`,
     }),
     "APPROVAL_HASH_MISMATCH",
+  );
+  assert.equal(
+    await readFile(
+      path.join(root, ...VARIANTS["lead-navigation"].targetPath.split("/")),
+      "utf8",
+    ),
+    VARIANTS["lead-navigation"].preimage,
+  );
+  await rm(root, { recursive: true, force: true });
+});
+
+test("legacy invalid prepared state remains readable but cannot be approved", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await withLegacyExecutableValidation(() =>
+    prepareSourceEvolution(
+      unsafePrepareInput(
+        root,
+        "lead-navigation",
+        "<section><span>Broken</section>",
+      ),
+    ),
+  );
+
+  assert.equal((await getEvolutionStatus(root, prepared.evolutionId)).status, "prepared");
+  assert.equal((await listEvolutionStatuses(root))[0]?.status, "prepared");
+  await expectCode(
+    approveSourceEvolution(approveInput(root, prepared)),
+    "UNSUPPORTED_ADAPTER_INPUT",
+  );
+  assert.equal((await getEvolutionStatus(root, prepared.evolutionId)).status, "prepared");
+  await rm(root, { recursive: true, force: true });
+});
+
+test("legacy invalid approved state remains readable but cannot be applied", async () => {
+  const root = await rootFixture("lead-navigation");
+  const approved = await withLegacyExecutableValidation(async () => {
+    const prepared = await prepareSourceEvolution(
+      unsafePrepareInput(
+        root,
+        "lead-navigation",
+        '<nav aria-label="Broken">\u0000</nav>',
+      ),
+    );
+    return approveSourceEvolution(approveInput(root, prepared));
+  });
+
+  assert.equal((await getEvolutionStatus(root, approved.evolutionId)).status, "approved");
+  assert.equal((await listEvolutionStatuses(root))[0]?.status, "approved");
+  await expectCode(
+    applySourceEvolution({
+      root,
+      evolutionId: approved.evolutionId,
+      expectedRevision: approved.receiptCount,
+    }),
+    "UNSUPPORTED_ADAPTER_INPUT",
   );
   assert.equal(
     await readFile(

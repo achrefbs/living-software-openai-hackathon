@@ -5,7 +5,7 @@ import { evolutionReceiptSchema, gpt56EvolutionBriefSchema, identifierSchema, in
 import { canonicalJson, hashBytes, hashJson } from "./canonical.js";
 import { SOURCE_EVOLUTION_POLICY, SOURCE_EVOLUTION_PROHIBITIONS, SOURCE_EVOLUTION_TESTS, parseSourceEvolutionState, sourceEvolutionApplicationSchema, sourceEvolutionArtifactSchema, sourceEvolutionContractSchema, sourcePatchModelProvenanceSchema, sourceEvolutionProofSchema, sourceEvolutionSummarySchema, } from "./contracts.js";
 import { SourceEvolutionError } from "./errors.js";
-import { compileModelPatch, sourcePatchProposalSchema, } from "./model-patch.js";
+import { compileModelPatch, compileStoredModelPatchForIntegrity, sourcePatchProposalSchema, } from "./model-patch.js";
 import { buildEvolutionReceipt, parseEvolutionReceiptStream, serializeEvolutionReceipt, } from "./receipts.js";
 const EVOLUTION_ID = /^evolution\.source\.v2\.[a-f0-9]{24}$/u;
 const STORAGE_ROOT = ".living/data/evolutions-v2";
@@ -14,6 +14,12 @@ const ENGINE_ACTOR = {
     component: "source-evolution-engine",
     version: "0.1.0",
 };
+let executablePatchCompiler = compileModelPatch;
+export function setUnsafeExecutablePatchCompilerForTests(enabled = false) {
+    executablePatchCompiler = enabled
+        ? compileStoredModelPatchForIntegrity
+        : compileModelPatch;
+}
 function observeProgress(observer, event) {
     if (observer === undefined)
         return;
@@ -602,7 +608,7 @@ function validateStoredState(state) {
     }
     let compiled;
     try {
-        compiled = compileModelPatch(state.inputs.patchProposal, state.source.preimage);
+        compiled = compileStoredModelPatchForIntegrity(state.inputs.patchProposal, state.source.preimage);
     }
     catch (error) {
         throw new SourceEvolutionError("STATE_TAMPERED", "Stored model proposal no longer compiles against its exact preimage", { cause: error });
@@ -610,6 +616,13 @@ function validateStoredState(state) {
     if (compiled.postimage !== state.source.postimage ||
         compiled.postimageHash !== state.artifact.target.postimageHash) {
         throw new SourceEvolutionError("STATE_TAMPERED", "Stored postimage is not the deterministic result of its model proposal");
+    }
+}
+function assertStateExecutablePatch(state) {
+    const compiled = executablePatchCompiler(state.inputs.patchProposal, state.source.preimage);
+    if (compiled.postimage !== state.source.postimage ||
+        compiled.postimageHash !== state.artifact.target.postimageHash) {
+        throw new SourceEvolutionError("STATE_TAMPERED", "The executable patch validation result does not match the stored postimage");
     }
 }
 const SOURCE_LIFECYCLE_RECEIPT_KINDS = new Set([
@@ -731,7 +744,7 @@ function validatePreparationReceiptBindings(state, receipts) {
             applicationAuthority: false,
         },
     });
-    const compiled = compileModelPatch(state.inputs.patchProposal, state.source.preimage);
+    const compiled = compileStoredModelPatchForIntegrity(state.inputs.patchProposal, state.source.preimage);
     assertExactLifecycleReceipt(receipts[3], {
         kind: "artifact.compiled",
         actor: ENGINE_ACTOR,
@@ -1012,6 +1025,14 @@ function parsePendingTransaction(input) {
         (operation === "apply" && nextState.status !== "applied") ||
         (operation === "rollback" && nextState.status !== "rolled-back")) {
         throw new SourceEvolutionError("TRANSACTION_RECOVERY_FAILED", "Pending transaction next state contradicts its operation");
+    }
+    if (operation === "approve" || operation === "apply") {
+        try {
+            assertStateExecutablePatch(nextState);
+        }
+        catch (error) {
+            throw new SourceEvolutionError("TRANSACTION_RECOVERY_FAILED", "Pending approval or application failed current executable-source validation", { cause: error });
+        }
     }
     let target = null;
     if (record.target !== null) {
@@ -1295,7 +1316,7 @@ export async function prepareSourceEvolution(input) {
         targetPath: input.target.path,
         preimageHash,
     });
-    const compiled = compileModelPatch(patchProposal, input.target.preimage);
+    const compiled = executablePatchCompiler(patchProposal, input.target.preimage);
     const postimage = compiled.postimage;
     const postimageHash = compiled.postimageHash;
     const appHash = hashJson(app);
@@ -1565,6 +1586,7 @@ async function approveSourceEvolutionUnlocked(input) {
         input.expectedProofHash !== state.proof.proofHash) {
         throw new SourceEvolutionError("APPROVAL_HASH_MISMATCH", "Human approval hashes do not match the exact prepared artifact and proof");
     }
+    assertStateExecutablePatch(state);
     observeProgress(input.progress, {
         stage: "approve.hashes-selected",
         evolutionId: state.evolutionId,
@@ -1659,6 +1681,7 @@ async function applySourceEvolutionUnlocked(input) {
         state.approval.proofHash !== state.proof.proofHash) {
         throw new SourceEvolutionError("APPROVAL_HASH_MISMATCH", "Stored human approval is not sealed to this exact evolution");
     }
+    assertStateExecutablePatch(state);
     // Approval is bound to the installed application identity as well as the
     // exact source bytes. Re-check at the mutation boundary so a copied ledger
     // or an uninstall/reinstall drift cannot authorize another host.

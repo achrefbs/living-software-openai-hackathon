@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
-import type { SourceEvolutionState } from "@living-software/evolution";
+import {
+  compileModelPatch,
+  type SourceEvolutionState,
+} from "@living-software/evolution";
 import type {
   DraftEvolutionBriefResult,
   DraftSourcePatchResult,
@@ -229,6 +233,39 @@ const automaticInput = {
   },
   evidenceEvents: [],
 } as unknown as AutomaticEvolutionInput;
+
+function exactPreparedState(): SourceEvolutionState {
+  const preimage = "<section>Lead</section>";
+  const proposal = {
+    ...patchProposal,
+    target: {
+      ...patchProposal.target,
+      preimageHash: `sha256:${createHash("sha256").update(preimage).digest("hex")}`,
+    },
+  } as const;
+  const compiled = compileModelPatch(proposal, preimage);
+  const base = state("prepared");
+  return {
+    ...base,
+    inputs: {
+      ...base.inputs,
+      opportunity: automaticInput.opportunity,
+      patchProposal: proposal,
+    },
+    artifact: {
+      ...base.artifact,
+      target: {
+        ...base.artifact.target,
+        preimageHash: compiled.preimageHash,
+        postimageHash: compiled.postimageHash,
+      },
+    },
+    source: {
+      preimage,
+      postimage: compiled.postimage,
+    },
+  } as SourceEvolutionState;
+}
 
 test("install is an explicit apply alias and keeps synthetic provenance", async () => {
   let invocation: unknown;
@@ -558,13 +595,7 @@ test("improve reports ordered safe milestones only after each awaited result val
 });
 
 test("improve reuses only an exact full Opportunity contract", async () => {
-  const exact = {
-    ...state("prepared"),
-    inputs: {
-      ...state("prepared").inputs,
-      opportunity: automaticInput.opportunity,
-    },
-  } as SourceEvolutionState;
+  const exact = exactPreparedState();
   let modelRequested = false;
   const reuseEvents: TerminalLifecycleEvent[] = [];
   const reused = await runTerminalCommand(
@@ -647,6 +678,66 @@ test("improve reuses only an exact full Opportunity contract", async () => {
     /model-requested-after-opportunity-drift/u,
   );
   assert.equal(modelRequested, true);
+});
+
+test("improve preserves but does not reuse prepared artifacts that fail current proof", async () => {
+  const exact = exactPreparedState();
+  const invalidProposal = {
+    ...exact,
+    inputs: {
+      ...exact.inputs,
+      patchProposal: {
+        ...exact.inputs.patchProposal,
+        edits: [
+          {
+            anchor: "<section>Lead</section>",
+            replacement: "\0return <main>",
+          },
+        ],
+      },
+    },
+  } as SourceEvolutionState;
+  const mismatchedPostimage = {
+    ...exact,
+    source: {
+      ...exact.source,
+      postimage: `${exact.source.postimage}\n// stale`,
+    },
+  } as SourceEvolutionState;
+
+  for (const stale of [invalidProposal, mismatchedPostimage]) {
+    const before = structuredClone(stale);
+    let modelRequested = false;
+    await assert.rejects(
+      runTerminalCommand(
+        {
+          mode: "terminal",
+          command: "improve",
+          rootPath: automaticInput.root,
+          provider: "codex",
+          json: false,
+        },
+        {
+          async loadEvolutionInput() {
+            return automaticInput;
+          },
+          async listEvolutions() {
+            return [summary(stale)];
+          },
+          async getEvolution() {
+            return stale;
+          },
+          createIntelligence() {
+            modelRequested = true;
+            throw new Error("fresh-model-requested-after-stale-proof");
+          },
+        },
+      ),
+      /fresh-model-requested-after-stale-proof/u,
+    );
+    assert.equal(modelRequested, true);
+    assert.deepEqual(stale, before);
+  }
 });
 
 test("approve --apply preserves separate approval and application transitions", async () => {
@@ -825,7 +916,7 @@ test("apply refuses a second approved or applied evolution for the same app and 
 });
 
 test("status retains the stored GPT proposal, exact patch preview, and code-run provenance", async () => {
-  const prepared = state("prepared");
+  const prepared = exactPreparedState();
   const output = await runTerminalCommand(
     {
       mode: "terminal",
@@ -875,4 +966,66 @@ test("status retains the stored GPT proposal, exact patch preview, and code-run 
     String(output.nextCommand),
     /^npm run living -- approve --root .* --artifact-hash sha256:[a-f0-9]{64} --proof-hash sha256:[a-f0-9]{64} --apply$/u,
   );
+});
+
+test("status blocks activation commands for a prepared artifact invalid under current proof", async () => {
+  const current = exactPreparedState();
+  const historical = {
+    ...current,
+    inputs: {
+      ...current.inputs,
+      patchProposal: {
+        ...current.inputs.patchProposal,
+        edits: [
+          {
+            anchor: "<section>Lead</section>",
+            replacement: "\0return <main>",
+          },
+        ],
+      },
+    },
+  } as SourceEvolutionState;
+  const before = structuredClone(historical);
+  const output = await runTerminalCommand(
+    {
+      mode: "terminal",
+      command: "status",
+      rootPath: "C:\\demo\\crm",
+      json: false,
+    },
+    {
+      async runRoot() {
+        return {
+          root: "C:\\demo\\crm",
+          diagnostics: [
+            {
+              code: "INSTALL_HEALTHY",
+              severity: "info",
+              message: "Healthy",
+            },
+          ],
+        };
+      },
+      async listEvolutions() {
+        return [summary(historical)];
+      },
+      async getEvolution() {
+        return historical;
+      },
+    },
+  );
+
+  const human = formatTerminalResult(output);
+  assert.match(output.message, /historical and invalid under the current proof policy/u);
+  assert.deepEqual(output.proofPolicy, {
+    status: "historical-invalid",
+    activationAllowed: false,
+    detail: "The preserved proposal fails the current proof policy. Approval and application are blocked.",
+  });
+  assert.match(String(output.nextCommand), /living -- improve/u);
+  assert.doesNotMatch(String(output.nextCommand), /living -- (?:approve|apply)\b/u);
+  assert.match(human, /Proof policy: HISTORICAL \/ INVALID/u);
+  assert.match(human, /approval and application are blocked/u);
+  assert.doesNotMatch(human, /living -- (?:approve|apply)\b/u);
+  assert.deepEqual(historical, before);
 });

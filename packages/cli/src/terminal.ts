@@ -1,10 +1,12 @@
 import {
   applySourceEvolution,
   approveSourceEvolution,
+  compileModelPatch,
   getEvolutionStatus,
   listEvolutionStatuses,
   prepareSourceEvolution,
   rollbackSourceEvolution,
+  SourceEvolutionError,
   type PrepareSourceEvolutionInput,
   type SourceEvolutionProgressObserver,
   type SourceEvolutionState,
@@ -510,6 +512,26 @@ function storedProviderProjection(
   };
 }
 
+function preparedEvolutionPassesCurrentProof(
+  state: SourceEvolutionState,
+): boolean {
+  if (state.status !== "prepared") return true;
+  try {
+    const compiled = compileModelPatch(
+      state.inputs.patchProposal,
+      state.source.preimage,
+    );
+    return (
+      compiled.preimageHash === state.artifact.target.preimageHash &&
+      compiled.postimage === state.source.postimage &&
+      compiled.postimageHash === state.artifact.target.postimageHash
+    );
+  } catch (error) {
+    if (error instanceof SourceEvolutionError) return false;
+    throw error;
+  }
+}
+
 async function exactExistingEvolution(
   root: string,
   input: AutomaticEvolutionInput,
@@ -519,14 +541,14 @@ async function exactExistingEvolution(
   for (const summary of summaries) {
     if (summary.appId !== input.application.appId) continue;
     const state = await dependencies.getEvolution(root, summary.evolutionId);
-    if (
+    const evidenceMatches =
       state.app.appId === input.application.appId &&
       state.bindings.manifestHash === input.application.manifestHash &&
       state.bindings.opportunityId === input.opportunity.opportunityId &&
-      isDeepStrictEqual(state.inputs.opportunity, input.opportunity)
-    ) {
-      return state;
-    }
+      isDeepStrictEqual(state.inputs.opportunity, input.opportunity);
+    if (!evidenceMatches) continue;
+    if (!preparedEvolutionPassesCurrentProof(state)) continue;
+    return state;
   }
   return null;
 }
@@ -888,13 +910,18 @@ async function status(
   const storedProvider = newestState === null
     ? null
     : storedProviderProjection(newestState);
+  const stalePrepared = newestState?.status === "prepared" &&
+    !preparedEvolutionPassesCurrentProof(newestState);
+
   return result(
     "status",
     installed ? "ready" : "attention-required",
     installed
       ? evolutions.length === 0
         ? "Living Software is installed. No improvement has been prepared yet."
-        : `Living Software is installed. Latest improvement is ${newest!.status}.`
+        : stalePrepared
+          ? "Living Software is installed. Latest improvement is historical and invalid under the current proof policy."
+          : `Living Software is installed. Latest improvement is ${newest!.status}.`
       : "Living Software needs attention before it can improve this application.",
     {
       root: doctor.root ?? args.rootPath,
@@ -903,15 +930,28 @@ async function status(
       evolutions,
       ...(storedProposal === null ? {} : { proposal: storedProposal }),
       ...(storedProvider === null ? {} : { provider: storedProvider }),
+      ...(stalePrepared
+        ? {
+            proofPolicy: {
+              status: "historical-invalid",
+              activationAllowed: false,
+              detail: "The preserved proposal fails the current proof policy. Approval and application are blocked.",
+            },
+          }
+        : {}),
       ...(newest === undefined
         ? {
             nextCommand: installed
               ? `npm run living -- improve --root ${quote(args.rootPath)} --provider codex`
               : `npm run living -- install --root ${quote(args.rootPath)}`,
           }
-        : {
-            nextCommand: nextCommand(args.rootPath, newest),
-          }),
+        : stalePrepared
+          ? {
+              nextCommand: `npm run living -- improve --root ${quote(args.rootPath)} --provider codex`,
+            }
+          : {
+              nextCommand: nextCommand(args.rootPath, newest),
+            }),
     },
   );
 }
@@ -1080,6 +1120,12 @@ export function formatTerminalResult(output: TerminalResult): string {
   if (provider !== null) {
     lines.push(
       `Model: ${String(provider.requested)} · brief run ${String(provider.briefRunId)} · code run ${String(provider.patchRunId)}`,
+    );
+  }
+  const proofPolicy = record(output.proofPolicy);
+  if (proofPolicy?.status === "historical-invalid") {
+    lines.push(
+      "Proof policy: HISTORICAL / INVALID — approval and application are blocked.",
     );
   }
   const evolution = record(output.evolution);

@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 const IDENTIFIER_JSON_PATTERN = "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$";
+// Source fragments need ordinary tab/newline formatting. Every other C0/C1
+// control plus Unicode spacing/BOM padding is forbidden at structured output.
+const PATCH_TEXT_JSON_PATTERN =
+  "^[^\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF]*$";
+const PATCH_TEXT_ZOD_PATTERN =
+  /^[^\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]*$/u;
+const PATCH_TEXT_ERROR = "Patch text contains a forbidden control or Unicode padding character";
 const modelIdentifierSchema = z
   .string()
   .min(1)
@@ -200,27 +207,27 @@ export const SOURCE_PATCH_JSON_SCHEMA = {
       type: "string",
       pattern: "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,159}$",
     },
-    appId: { type: "string", minLength: 1, maxLength: 160 },
-    opportunityId: { type: "string", minLength: 1, maxLength: 160 },
+    appId: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
+    opportunityId: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
     manifestHash: {
       type: "string",
       pattern: "^sha256:[a-f0-9]{64}$",
     },
-    briefId: { type: "string", minLength: 1, maxLength: 160 },
+    briefId: { type: "string", pattern: IDENTIFIER_JSON_PATTERN },
     target: {
       type: "object",
       additionalProperties: false,
       required: ["path", "preimageHash"],
       properties: {
-        path: { type: "string", minLength: 1, maxLength: 512 },
+        path: { type: "string", minLength: 1, maxLength: 512, pattern: PATCH_TEXT_JSON_PATTERN },
         preimageHash: {
           type: "string",
           pattern: "^sha256:[a-f0-9]{64}$",
         },
       },
     },
-    summary: { type: "string", minLength: 1, maxLength: 1_000 },
-    rationale: { type: "string", minLength: 1, maxLength: 2_000 },
+    summary: { type: "string", minLength: 1, maxLength: 1_000, pattern: PATCH_TEXT_JSON_PATTERN },
+    rationale: { type: "string", minLength: 1, maxLength: 2_000, pattern: PATCH_TEXT_JSON_PATTERN },
     edits: {
       type: "array",
       minItems: 1,
@@ -230,8 +237,17 @@ export const SOURCE_PATCH_JSON_SCHEMA = {
         additionalProperties: false,
         required: ["anchor", "replacement"],
         properties: {
-          anchor: { type: "string", minLength: 1, maxLength: 8_192 },
-          replacement: { type: "string", maxLength: 16_384 },
+          anchor: {
+            type: "string", minLength: 1, maxLength: 8_192,
+            pattern: PATCH_TEXT_JSON_PATTERN,
+            description: "Exact source substring with no forbidden control or padding characters.",
+          },
+          replacement: {
+            type: "string", maxLength: 16_384,
+            pattern: PATCH_TEXT_JSON_PATTERN,
+            description:
+              "Complete syntactically valid final source fragment; never truncated, padded, or placeholder text.",
+          },
         },
       },
     },
@@ -256,24 +272,24 @@ export const modelSourcePatchSchema = z
       .min(1)
       .max(160)
       .regex(/^[A-Za-z0-9][A-Za-z0-9._:/-]*$/u),
-    appId: z.string().min(1).max(160),
-    opportunityId: z.string().min(1).max(160),
+    appId: modelIdentifierSchema,
+    opportunityId: modelIdentifierSchema,
     manifestHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
-    briefId: z.string().min(1).max(160),
+    briefId: modelIdentifierSchema,
     target: z
       .object({
-        path: z.string().min(1).max(512),
+        path: z.string().min(1).max(512).regex(PATCH_TEXT_ZOD_PATTERN, PATCH_TEXT_ERROR),
         preimageHash: z.string().regex(/^sha256:[a-f0-9]{64}$/u),
       })
       .strict(),
-    summary: z.string().min(1).max(1_000),
-    rationale: z.string().min(1).max(2_000),
+    summary: z.string().min(1).max(1_000).regex(PATCH_TEXT_ZOD_PATTERN, PATCH_TEXT_ERROR),
+    rationale: z.string().min(1).max(2_000).regex(PATCH_TEXT_ZOD_PATTERN, PATCH_TEXT_ERROR),
     edits: z
       .array(
         z
           .object({
-            anchor: z.string().min(1).max(8_192),
-            replacement: z.string().max(16_384),
+            anchor: z.string().min(1).max(8_192).regex(PATCH_TEXT_ZOD_PATTERN, PATCH_TEXT_ERROR),
+            replacement: z.string().max(16_384).regex(PATCH_TEXT_ZOD_PATTERN, PATCH_TEXT_ERROR),
           })
           .strict(),
       )
