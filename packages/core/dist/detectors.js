@@ -11,6 +11,15 @@ const defaultTechnicalFrictionConfig = {
     version: "1.0.0",
     minimumAffectedCases: 3,
 };
+const defaultRepeatedSequenceConfig = {
+    id: "detector.workflow-pattern.repeated-sequence",
+    version: "1.0.0",
+    minimumAffectedCases: 3,
+    minimumIndependentSessions: 3,
+    minimumSequenceLength: 2,
+    minimumOccurrencesPerCase: 2,
+    maximumSequenceLength: 64,
+};
 const supportedTechnicalSignals = new Set([
     "correction",
     "dead-click",
@@ -189,6 +198,218 @@ export function detectTechnicalFrictionOpportunitiesWithEvidence({ events, manif
     return Object.freeze(technicalFrictionDefinitions
         .map((definition) => detectTechnicalFrictionDefinition(events, manifestHash, evidenceUri, config, definition))
         .filter((candidate) => candidate !== null));
+}
+function assertRepeatedSequencePositiveInteger(value, field) {
+    if (!Number.isSafeInteger(value) || value < 1) {
+        throw new TypeError(`${field} must be a positive safe integer`);
+    }
+}
+function resolveRepeatedSequenceConfig(overrides) {
+    const config = { ...defaultRepeatedSequenceConfig, ...overrides };
+    assertRepeatedSequencePositiveInteger(config.minimumAffectedCases, "minimumAffectedCases");
+    assertRepeatedSequencePositiveInteger(config.minimumIndependentSessions, "minimumIndependentSessions");
+    assertRepeatedSequencePositiveInteger(config.minimumSequenceLength, "minimumSequenceLength");
+    assertRepeatedSequencePositiveInteger(config.minimumOccurrencesPerCase, "minimumOccurrencesPerCase");
+    assertRepeatedSequencePositiveInteger(config.maximumSequenceLength, "maximumSequenceLength");
+    if (config.minimumSequenceLength < 2) {
+        throw new TypeError("minimumSequenceLength must be at least 2");
+    }
+    if (config.minimumOccurrencesPerCase < 2) {
+        throw new TypeError("minimumOccurrencesPerCase must be at least 2");
+    }
+    if (config.maximumSequenceLength > 64) {
+        throw new TypeError("maximumSequenceLength must not exceed 64");
+    }
+    if (config.minimumSequenceLength > config.maximumSequenceLength) {
+        throw new TypeError("minimumSequenceLength must not exceed maximumSequenceLength");
+    }
+    if (config.id.trim().length === 0 || config.version.trim().length === 0) {
+        throw new TypeError("Detector id and version must not be empty");
+    }
+    return config;
+}
+function repeatedStepToken(step) {
+    return JSON.stringify([step.kind, step.nodeId, step.event.name]);
+}
+function repeatedSequenceCandidates(events, config) {
+    const candidates = new Map();
+    for (const workflowCase of projectWorkflowCases(events)) {
+        const journey = projectWorkflowJourneySteps(workflowCase.events);
+        const tokens = journey.map(repeatedStepToken);
+        const casePatterns = new Map();
+        const maximumLength = Math.min(config.maximumSequenceLength, Math.floor(journey.length / config.minimumOccurrencesPerCase));
+        for (let length = config.minimumSequenceLength; length <= maximumLength; length += 1) {
+            for (let start = 0; start + length <= journey.length; start += 1) {
+                const patternTokens = tokens.slice(start, start + length);
+                const key = JSON.stringify(patternTokens);
+                const existing = casePatterns.get(key);
+                if (existing === undefined) {
+                    casePatterns.set(key, {
+                        sequence: journey
+                            .slice(start, start + length)
+                            .map((step) => step.event.name),
+                        length,
+                        starts: [start],
+                    });
+                }
+                else {
+                    existing.starts.push(start);
+                }
+            }
+        }
+        for (const [key, pattern] of casePatterns) {
+            const acceptedStarts = [];
+            let nextAvailableIndex = 0;
+            for (const start of pattern.starts) {
+                if (start < nextAvailableIndex)
+                    continue;
+                acceptedStarts.push(start);
+                nextAvailableIndex = start + pattern.length;
+            }
+            if (acceptedStarts.length < config.minimumOccurrencesPerCase)
+                continue;
+            const evidenceEvents = uniqueEvents(acceptedStarts.flatMap((start) => journey
+                .slice(start, start + pattern.length)
+                .map((step) => step.event)));
+            const match = {
+                evidenceEvents: Object.freeze(evidenceEvents),
+                occurrenceCount: acceptedStarts.length,
+            };
+            const existing = candidates.get(key);
+            if (existing === undefined) {
+                candidates.set(key, {
+                    sequence: Object.freeze([...pattern.sequence]),
+                    matches: [match],
+                });
+            }
+            else {
+                existing.matches.push(match);
+            }
+        }
+    }
+    return [...candidates.entries()].map(([key, candidate]) => {
+        const evidenceEvents = candidate.matches.flatMap((match) => match.evidenceEvents);
+        return {
+            key,
+            sequence: candidate.sequence,
+            matches: Object.freeze([...candidate.matches]),
+            sessions: new Set(evidenceEvents.map((event) => event.sessionId)),
+            occurrenceCount: candidate.matches.reduce((total, match) => total + match.occurrenceCount, 0),
+        };
+    });
+}
+/**
+ * Finds ordinary journey subsequences that users repeat within a case and
+ * independently reproduce across cases and sessions. It uses only generic
+ * route/action/outcome structure; no product-specific signal names are needed.
+ */
+export function detectRepeatedSequenceOpportunityWithEvidence({ events, manifestHash, evidenceUri, config: overrides, }) {
+    if (events.length === 0)
+        return null;
+    const config = resolveRepeatedSequenceConfig(overrides);
+    const cases = projectWorkflowCases(events);
+    const candidate = repeatedSequenceCandidates(events, config)
+        .filter((item) => item.matches.length >= config.minimumAffectedCases &&
+        item.sessions.size >= config.minimumIndependentSessions)
+        .sort((left, right) => right.matches.length - left.matches.length ||
+        right.sessions.size - left.sessions.size ||
+        right.occurrenceCount - left.occurrenceCount ||
+        right.sequence.length - left.sequence.length ||
+        left.key.localeCompare(right.key))[0];
+    if (candidate === undefined)
+        return null;
+    const evidenceEvents = uniqueEvents(candidate.matches.flatMap((match) => match.evidenceEvents));
+    const evidenceCaseCount = projectWorkflowCases(evidenceEvents).length;
+    if (evidenceCaseCount !== candidate.matches.length) {
+        throw new TypeError("Repeated-sequence evidence cases do not match the detected cases");
+    }
+    const orderedTimes = evidenceEvents
+        .map((event) => event.occurredAt)
+        .sort((left, right) => Date.parse(left) - Date.parse(right));
+    const eventSetHash = computeEventSetHash(evidenceEvents);
+    const configHash = sha256(config);
+    const identityHash = sha256({
+        appId: events[0]?.appId ?? "",
+        configHash,
+        eventSetHash,
+        manifestHash,
+    });
+    const affectedRatio = candidate.matches.length / Math.max(1, cases.length);
+    const opportunity = parseOpportunity({
+        schemaVersion: "living.opportunity/v1",
+        opportunityId: `opportunity.repeated-sequence.${identityHash.slice(7, 19)}`,
+        appId: evidenceEvents[0]?.appId,
+        manifestHash,
+        detectedAt: orderedTimes.at(-1),
+        detector: {
+            id: config.id,
+            version: config.version,
+            configHash,
+        },
+        window: { from: orderedTimes[0], to: orderedTimes.at(-1) },
+        signal: {
+            kind: "repeated-sequence",
+            sequence: candidate.sequence,
+            metrics: [
+                {
+                    name: "affected_cases",
+                    unit: "count",
+                    observed: candidate.matches.length,
+                    comparator: config.minimumAffectedCases,
+                },
+                {
+                    name: "affected_sessions",
+                    unit: "count",
+                    observed: candidate.sessions.size,
+                    comparator: config.minimumIndependentSessions,
+                },
+                {
+                    name: "repeat_occurrences",
+                    unit: "count",
+                    observed: candidate.occurrenceCount,
+                },
+                {
+                    name: "sequence_length",
+                    unit: "count",
+                    observed: candidate.sequence.length,
+                },
+                {
+                    name: "affected_ratio",
+                    unit: "ratio",
+                    observed: affectedRatio,
+                },
+            ],
+        },
+        evidence: {
+            bundle: {
+                uri: evidenceUri ?? `living://evidence/${eventSetHash.slice(7)}`,
+                mediaType: "application/x-ndjson",
+                sha256: eventSetHash,
+            },
+            eventSetHash,
+            sampleEventIds: evidenceEvents.map((event) => event.eventId).slice(0, 256),
+            subjectCount: evidenceCaseCount,
+            sessionCount: candidate.sessions.size,
+            occurrenceCount: candidate.occurrenceCount,
+            dataOrigin: dataOrigin(evidenceEvents),
+        },
+        confidence: {
+            score: Math.min(0.9, 0.5 + affectedRatio * 0.35),
+            reasonCodes: [
+                "minimum-cases-met",
+                "minimum-sessions-met",
+                "repeated-sequence-observed",
+                "minimized-evidence",
+            ],
+        },
+    });
+    return Object.freeze({
+        opportunity,
+        evidenceEvents: Object.freeze(evidenceEvents),
+    });
+}
+export function detectRepeatedSequenceOpportunity(input) {
+    return detectRepeatedSequenceOpportunityWithEvidence(input)?.opportunity ?? null;
 }
 function metric(opportunity, name) {
     return opportunity.signal.metrics.find((candidate) => candidate.name === name)

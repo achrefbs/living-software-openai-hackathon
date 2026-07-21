@@ -1,4 +1,5 @@
 import type {
+  DetectorProgress,
   EvidenceBatchRecord,
   MetricReport,
   Opportunity,
@@ -7,7 +8,11 @@ import type {
   WorkflowEventBatch,
   WorkflowEventKind,
 } from "@living-software/contracts";
-import type { WorkflowCase, WorkflowVariant } from "@living-software/core";
+import type {
+  OpportunityDetectorFamilyEvaluation,
+  WorkflowCase,
+  WorkflowVariant,
+} from "@living-software/core";
 
 export interface CollectorEventBinding {
   readonly eventName: string;
@@ -85,6 +90,8 @@ export interface EvidenceAnalysis {
   readonly workflowCases: readonly WorkflowCase[];
   readonly workflowVariants: readonly WorkflowVariant[];
   readonly metricReport: MetricReport;
+  readonly detectorEvaluations: readonly OpportunityDetectorFamilyEvaluation[];
+  readonly detectorProgress: readonly DetectorProgress[];
   readonly opportunity: Opportunity | null;
   /** Exact minimized detector input; empty when no Opportunity was emitted. */
   readonly opportunityEvidenceEvents: readonly WorkflowEvent[];

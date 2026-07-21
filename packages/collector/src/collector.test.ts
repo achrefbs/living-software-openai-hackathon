@@ -295,6 +295,17 @@ test("promotes repeated correction signals using only their exact evidence event
       technicalSignalEvent(sessionId, 2, "correction"),
     ])));
     assert.equal(response.status, 202, await response.text());
+    const partial = await collector.analyze();
+    const correction = partial.detectorEvaluations.find(
+      ({ progress }) => progress.signalKind === "rework-loop",
+    );
+    assert.ok(correction);
+    assert.equal(partial.detectorProgress.length, 4);
+    assert.equal(correction.progress.affectedCases, caseIndex + 1);
+    assert.equal(correction.progress.minimumAffectedCases, 3);
+    assert.equal(correction.progress.thresholdMet, caseIndex === 2);
+    assert.equal(correction.detection === null, caseIndex < 2);
+    assert.equal(partial.opportunity === null, caseIndex < 2);
   }
 
   const analysis = await collector.analyze();

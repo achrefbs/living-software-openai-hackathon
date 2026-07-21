@@ -1,5 +1,5 @@
 import { parseMetricReport, } from "@living-software/contracts";
-import { detectBacktrackingOpportunityWithEvidence, detectTechnicalFrictionOpportunitiesWithEvidence, projectWorkflowCases, projectWorkflowVariants, selectOpportunityDetection, } from "@living-software/core";
+import { evaluateOpportunityDetectors, projectWorkflowCases, projectWorkflowVariants, } from "@living-software/core";
 import { buildMetricValues } from "./metric-reducer.js";
 import { verifyEvidenceRecords } from "./store.js";
 function dataOrigin(events) {
@@ -49,19 +49,17 @@ export function analyzeEvidenceRecords(candidates, definition) {
         manifestHash: definition.application.manifestHash,
         evidenceUri: `living://evidence/${chainHead.slice(7)}`,
     };
-    const backtracking = detectBacktrackingOpportunityWithEvidence(detectorInput);
-    const opportunityDetection = selectOpportunityDetection([
-        ...(backtracking === null ? [] : [backtracking]),
-        ...detectTechnicalFrictionOpportunitiesWithEvidence(detectorInput),
-    ]);
+    const detectorEvaluation = evaluateOpportunityDetectors(detectorInput);
     return Object.freeze({
         records: Object.freeze(records),
         events: Object.freeze(events),
         workflowCases: Object.freeze(workflowCases),
         workflowVariants: Object.freeze(workflowVariants),
         metricReport,
-        opportunity: opportunityDetection?.opportunity ?? null,
-        opportunityEvidenceEvents: opportunityDetection?.evidenceEvents ?? Object.freeze([]),
+        detectorEvaluations: detectorEvaluation.families,
+        detectorProgress: detectorEvaluation.progress,
+        opportunity: detectorEvaluation.selected?.opportunity ?? null,
+        opportunityEvidenceEvents: detectorEvaluation.selected?.evidenceEvents ?? Object.freeze([]),
         chainHead,
     });
 }

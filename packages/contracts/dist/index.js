@@ -6,6 +6,8 @@ export * from "./evolution-receipt.js";
 export * from "./evidence.js";
 export * from "./gpt56-proof.js";
 export * from "./install.js";
+export * from "./live.js";
+export * from "./live-view.js";
 export * from "./metrics.js";
 export * from "./observation.js";
 export * from "./opportunity.js";

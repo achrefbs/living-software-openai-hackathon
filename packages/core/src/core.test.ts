@@ -6,6 +6,7 @@ import type { JsonValue, Sha256, WorkflowEvent } from "@living-software/contract
 import {
   detectBacktrackingOpportunity,
   detectBacktrackingOpportunityWithEvidence,
+  detectRepeatedSequenceOpportunityWithEvidence,
   detectTechnicalFrictionOpportunitiesWithEvidence,
   projectWorkflowCases,
   projectWorkflowJourneySteps,
@@ -237,6 +238,18 @@ function telemetryCase(
   return events;
 }
 
+function repeatedRouteCase(caseNumber: number): WorkflowEvent[] {
+  return (["leads", "tasks", "leads", "tasks"] as const).map(
+    (route, sequence) =>
+      telemetryEvent(caseNumber, sequence, {
+        name: `route.${route}`,
+        kind: "navigation",
+        nodeId: `route.${route}`,
+        metadata: { routePhase: "complete" },
+      }),
+  );
+}
+
 function technicalFrictionEvent(
   caseNumber: number,
   sequence: number,
@@ -377,6 +390,180 @@ test("keeps phase-less successful navigation compatible without counting route n
       config: { minimumAffectedCases: 1, minimumRevisitsPerCase: 1 },
     }),
     null,
+  );
+});
+
+test("detects a repeated ordinary route sequence without scripted signals", () => {
+  const events = [1, 2, 3].flatMap(repeatedRouteCase);
+  assert.ok(events.every((candidate) => candidate.metadata.signal === undefined));
+
+  const detection = detectRepeatedSequenceOpportunityWithEvidence({
+    events,
+    manifestHash,
+  });
+
+  assert.ok(detection);
+  assert.equal(detection.opportunity.signal.kind, "repeated-sequence");
+  assert.equal(
+    detection.opportunity.detector.id,
+    "detector.workflow-pattern.repeated-sequence",
+  );
+  assert.equal(detection.opportunity.detector.version, "1.0.0");
+  assert.deepEqual(detection.opportunity.signal.sequence, [
+    "route.leads",
+    "route.tasks",
+  ]);
+  assert.equal(detection.opportunity.evidence.subjectCount, 3);
+  assert.equal(detection.opportunity.evidence.sessionCount, 3);
+  assert.equal(detection.opportunity.evidence.occurrenceCount, 6);
+  assert.equal(detection.evidenceEvents.length, 12);
+  assert.equal(
+    detection.opportunity.signal.metrics.find(
+      (candidate) => candidate.name === "affected_cases",
+    )?.observed,
+    3,
+  );
+  assert.equal(
+    detection.opportunity.signal.metrics.find(
+      (candidate) => candidate.name === "affected_sessions",
+    )?.observed,
+    3,
+  );
+  assert.equal(
+    detection.opportunity.signal.metrics.find(
+      (candidate) => candidate.name === "repeat_occurrences",
+    )?.observed,
+    6,
+  );
+  assert.equal(
+    detection.opportunity.evidence.eventSetHash,
+    sha256(
+      detection.evidenceEvents
+        .map((candidate) => candidate as unknown as JsonValue)
+        .sort((left, right) =>
+          JSON.stringify(left).localeCompare(JSON.stringify(right)),
+        ),
+    ),
+  );
+});
+
+test("repeated sequence remains falsifiable below case and session thresholds", () => {
+  const twoCases = [1, 2].flatMap(repeatedRouteCase);
+  assert.equal(
+    detectRepeatedSequenceOpportunityWithEvidence({
+      events: twoCases,
+      manifestHash,
+    }),
+    null,
+  );
+
+  const sharedSession = [1, 2, 3].flatMap(repeatedRouteCase).map((candidate) => ({
+    ...candidate,
+    sessionId: "session.shared",
+  }));
+  assert.equal(
+    detectRepeatedSequenceOpportunityWithEvidence({
+      events: sharedSession,
+      manifestHash,
+    }),
+    null,
+  );
+});
+
+test("repeated-sequence identity is independent of input event order", () => {
+  const events = [1, 2, 3].flatMap(repeatedRouteCase);
+  const forward = detectRepeatedSequenceOpportunityWithEvidence({
+    events,
+    manifestHash,
+  });
+  const reverse = detectRepeatedSequenceOpportunityWithEvidence({
+    events: [...events].reverse(),
+    manifestHash,
+  });
+
+  assert.ok(forward);
+  assert.ok(reverse);
+  assert.deepEqual(reverse.opportunity, forward.opportunity);
+  assert.deepEqual(reverse.evidenceEvents, forward.evidenceEvents);
+});
+
+test("repeated sequence is independent of product vocabulary and event timing", () => {
+  const events = [1, 2, 3].flatMap((caseNumber) =>
+    repeatedRouteCase(caseNumber).map((candidate, sequence) => ({
+      ...candidate,
+      name: candidate.name === "route.leads"
+        ? "route.pipeline"
+        : "route.calendar",
+      occurredAt: new Date(
+        Date.UTC(2026, 6, 19, 12, caseNumber, sequence * 17),
+      ).toISOString(),
+      product: {
+        ...candidate.product,
+        nodeId: candidate.product?.nodeId === "route.leads"
+          ? "route.pipeline"
+          : "route.calendar",
+      },
+    })),
+  );
+
+  const detection = detectRepeatedSequenceOpportunityWithEvidence({
+    events,
+    manifestHash,
+  });
+  assert.ok(detection);
+  assert.deepEqual(detection.opportunity.signal.sequence, [
+    "route.pipeline",
+    "route.calendar",
+  ]);
+});
+
+test("repeated sequence keeps exact participating evidence and excludes noise", () => {
+  const events = [1, 2, 3].flatMap((caseNumber) => [
+    telemetryEvent(caseNumber, -2, {
+      name: "route.leads.start",
+      kind: "navigation",
+      nodeId: "route.leads",
+      metadata: { routePhase: "start" },
+      status: "started",
+    }),
+    telemetryEvent(caseNumber, -1, {
+      name: "performance.lcp",
+      kind: "system",
+      nodeId: "integration.performance",
+      metadata: { metric: "lcp", value: 400, unit: "millisecond" },
+    }),
+    ...repeatedRouteCase(caseNumber),
+  ]);
+  const detection = detectRepeatedSequenceOpportunityWithEvidence({
+    events,
+    manifestHash,
+  });
+
+  assert.ok(detection);
+  assert.equal(detection.evidenceEvents.length, 12);
+  assert.ok(detection.evidenceEvents.every((candidate) =>
+    candidate.kind === "navigation" && candidate.metadata.routePhase === "complete"
+  ));
+});
+
+test("an equally broad explicit correction wins over a repeated sequence", () => {
+  const events = [1, 2, 3].flatMap((caseNumber) => [
+    ...repeatedRouteCase(caseNumber),
+    telemetrySignalEvent(caseNumber, 4, "correction"),
+  ]);
+  const repeated = detectRepeatedSequenceOpportunityWithEvidence({
+    events,
+    manifestHash,
+  });
+  const technical = detectTechnicalFrictionOpportunitiesWithEvidence({
+    events,
+    manifestHash,
+  });
+
+  assert.ok(repeated);
+  assert.equal(
+    selectOpportunityDetection([repeated, ...technical])?.opportunity.signal.kind,
+    "rework-loop",
   );
 });
 

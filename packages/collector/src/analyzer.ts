@@ -4,11 +4,9 @@ import {
   type WorkflowEvent,
 } from "@living-software/contracts";
 import {
-  detectBacktrackingOpportunityWithEvidence,
-  detectTechnicalFrictionOpportunitiesWithEvidence,
+  evaluateOpportunityDetectors,
   projectWorkflowCases,
   projectWorkflowVariants,
-  selectOpportunityDetection,
 } from "@living-software/core";
 
 import { buildMetricValues } from "./metric-reducer.js";
@@ -65,11 +63,7 @@ export function analyzeEvidenceRecords(
     manifestHash: definition.application.manifestHash,
     evidenceUri: `living://evidence/${chainHead.slice(7)}`,
   };
-  const backtracking = detectBacktrackingOpportunityWithEvidence(detectorInput);
-  const opportunityDetection = selectOpportunityDetection([
-    ...(backtracking === null ? [] : [backtracking]),
-    ...detectTechnicalFrictionOpportunitiesWithEvidence(detectorInput),
-  ]);
+  const detectorEvaluation = evaluateOpportunityDetectors(detectorInput);
 
   return Object.freeze({
     records: Object.freeze(records),
@@ -77,9 +71,11 @@ export function analyzeEvidenceRecords(
     workflowCases: Object.freeze(workflowCases),
     workflowVariants: Object.freeze(workflowVariants),
     metricReport,
-    opportunity: opportunityDetection?.opportunity ?? null,
+    detectorEvaluations: detectorEvaluation.families,
+    detectorProgress: detectorEvaluation.progress,
+    opportunity: detectorEvaluation.selected?.opportunity ?? null,
     opportunityEvidenceEvents:
-      opportunityDetection?.evidenceEvents ?? Object.freeze([]),
+      detectorEvaluation.selected?.evidenceEvents ?? Object.freeze([]),
     chainHead,
   });
 }
