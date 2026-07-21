@@ -15,16 +15,17 @@ The public YouTube video must be under three minutes, include audio, and show be
 Run:
 
 ```bash
-npm run living -- install --root ../crm-workflow-lab --synthetic
+npm run living -- install --root ../Living-Manual-Test-Fixed/crm-workflow-lab --synthetic
 ```
 
 Show the mapped-node summary and that observation is ready. Explain that installation is create-only and hash-journaled.
 
-### 0:35-0:58 — Observe
+### 0:35-0:58 — Observe and cross the threshold
 
 - Start the independent CRM and use visible browser actions in three fresh tabs. Each tab is one ephemeral session.
-- In each session, perform the same lead-link → detail-route → back-link → list-route flow twice. No countdown, pacing rule, scenario label, or injected signal is required.
-- Run `npm run living -- analyze --root ../crm-workflow-lab`. Its compact human output must show the actual captured total, detector/version, cases, sessions, occurrences, readable sequence, exact supporting-event count, and explicit-signal count.
+- After one or two sessions, show the recurring-sequence detector still below its three-session threshold. Refresh `/live` and show the same progress replayed from the durable ledger.
+- Complete the third session and show the detector cross its threshold. In each session, perform the same lead-link → detail-route → back-link → list-route flow twice. No countdown, pacing rule, scenario label, or injected signal is required.
+- Run `npm run living -- analyze --root ../Living-Manual-Test-Fixed/crm-workflow-lab`. Its compact human output must show the actual captured total, detector/version, cases, sessions, occurrences, readable sequence, exact supporting-event count, and explicit-signal count.
 - The preserved reference run produced three cases, three sessions, six occurrences, exactly 24 supporting events, and zero explicit signals. Its full cohort contained 79 events; do not present 79 as a guaranteed total for a fresh capture.
 - Explain what Living captures: routes, mapped actions, timing, friction and CSS-pixel geometry.
 - State what it excludes: content, values, DOM, screenshots, secrets and persistent identity.
@@ -35,7 +36,7 @@ Show the mapped-node summary and that observation is ready. Explain that install
 Run:
 
 ```bash
-npm run living -- improve --root ../crm-workflow-lab --provider codex
+npm run living -- improve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --provider codex
 ```
 
 - Show the detected evidence, interpretation, chosen file, exact GPT-authored edits, model provenance, proof result and evolution ID.
@@ -51,23 +52,23 @@ If using the API, select it explicitly with `--provider api`; never imply fallba
 
 ### 1:35-1:58 — Visualize in Studio
 
-If using Studio, start it before installation so the Live Run page can show the real state transition:
+Start Studio before installation so the Live Run page shows the real state transition. Studio is required for this submission story:
 
 ```bash
-npm run studio:live -- --root ../crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001
+npm run studio:live -- --root ../Living-Manual-Test-Fixed/crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001 --new-session
 ```
 
 - Open `http://127.0.0.1:3001/live` and show only events and lifecycle transitions that actually arrive from the validated ledger and awaited backend operations.
 - Show trigger → structured model result → exact code proposal → static proof → human gate. The UI does not expose private model reasoning.
 - Keep current source, proposed source, and the responding host visually distinct. A responding frame is not runtime proof until the changed UI is inspected.
-- Studio is optional; the terminal commands remain sufficient for the entire governed lifecycle.
+- Use truthful jump cuts or acceleration for idle model/build waiting and label a removed wait. Run CRM tests off-camera; keep the public cut under 2:59.
 
 ### 1:58-2:25 — Approve and apply
 
 After visibly reviewing the proposal:
 
 ```bash
-npm run living -- approve --root ../crm-workflow-lab --evolution <id> --actor hackathon-demo --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
+npm run living -- approve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <id> --actor hackathon-demo --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
 ```
 
 - Explain that this records human approval of exact hashes, then writes that same approved postimage.
@@ -77,7 +78,7 @@ npm run living -- approve --root ../crm-workflow-lab --evolution <id> --actor ha
 ### 2:25-2:45 — Roll back
 
 ```bash
-npm run living -- rollback --root ../crm-workflow-lab --evolution <id> --actor hackathon-demo
+npm run living -- rollback --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <id> --actor hackathon-demo
 ```
 
 Reload the CRM and show the exact original state. Show the receipt chain in terminal or Studio.

@@ -75,7 +75,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 
 ## Final submission
 
-- [ ] Latest Devpost announcements and requirements rechecked.
+- [x] Latest Devpost announcements and requirements rechecked.
 - [ ] `npm run submit:check` passes.
 - [ ] Team members, if any, have joined and accepted before the deadline.
 - [ ] Free judge access remains available through at least August 12, 2026.
