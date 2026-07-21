@@ -20,7 +20,7 @@ living install
 ordinary UI activity
   -> privacy-minimized, hash-linked local evidence
   -> deterministic workflow + metric analysis
-  -> threshold-based correction, interaction-failure, or corroborated-backtracking opportunity
+  -> threshold-based generic recurrence, correction, interaction-failure, or corroborated-backtracking opportunity
 
 living improve --provider codex|api
   -> GPT-5.6 evidence interpretation
@@ -150,10 +150,11 @@ A layout hypothesis requires repeated workflow friction plus a spatial or perfor
 
 ### Current opportunity rules
 
+- `repeated-sequence` v1.0 mines contiguous normalized route/action/outcome subsequences without product-specific names. A sequence must occur at least twice without overlap in each of three cases and span three independent sessions. Candidates are ranked deterministically by affected cases, sessions, occurrences, sequence length, and stable identity. Recurrence is not itself a friction or causality claim.
 - Three or more cases containing explicit `correction` signals can produce a `rework-loop` opportunity.
 - Three or more cases containing explicit `dead-click` or `rage-click` signals can produce one `failure-cluster` opportunity.
 - Backtracking detector v1.2 requires at least three affected cases, at least two revisits per case, and at least one explicit technical signal or failed/abandoned event in every affected case. Repeated successful navigation without that corroboration is a negative control, not an opportunity.
-- Only the exact minimized signal or corroborated journey evidence crosses the detector boundary. When multiple rules pass, deterministic arbitration selects one opportunity by affected ratio, affected cases, signal specificity, occurrence count, and stable identifier order.
+- Only the exact minimized sequence, signal, or corroborated journey evidence crosses the detector boundary. When multiple rules pass, deterministic arbitration selects one opportunity by affected ratio, affected cases, signal specificity, occurrence count, and stable identifier order.
 
 These rules identify reviewable technical hypotheses. They do not infer user intent, business success, or post-change improvement.
 
@@ -186,6 +187,19 @@ The first run produced a 170-node manifest. Visual Studio review exposed 26 orph
 - Two consecutive `snapshot --root` exports were byte-identical. The `living.studio-snapshot/v1` result contained five cases, 144 mapped nodes, and 224 events without absolute paths, raw event/session/case/user identifiers, or simulator output. The sync script accepted its explicit synthetic provenance and wrote it only to the gitignored Studio `.local` directory.
 - Product Map, Workflows, Opportunities, Evolutions, and Receipts were browser-verified against the corrected snapshot. Studio labels it as a validated synthetic static export, not live telemetry; GPT-5.6 was not called for that snapshot. The separately recorded neutral proof can be inspected in Evolution Review, while captured-snapshot interpretation and receipts remain explicitly unconnected.
 - Simulator traces remained a post-run oracle only. They were never input to discovery, workflow projection, metrics, the detector, or Studio.
+
+### Generic recurring-workflow proof - July 21, 2026
+
+A fresh checkout of the separate synthetic CRM established the generic path without importing simulator traces or hardcoding a CRM workflow. The complete record is [generic-recurring-workflow-discovery.md](proof/generic-recurring-workflow-discovery.md).
+
+- Discovery produced 144 nodes and 180 edges before observation.
+- The detector-bound snapshot was exactly the first 22 hash-linked records: 79 events across three independent sessions and zero events with `metadata.signal`.
+- `detector.workflow-pattern.repeated-sequence@1.0.0` learned lead-link → detail-route → back-link → list-route, observed it six times, and minimized the opportunity to exactly 24 evidence events.
+- Two live Codex GPT-5.6 calls prepared `evolution.source.v2.bd05a314a3b6e29d4971bc8e`: one evidence brief and one bounded patch proposal.
+- GPT selected `src/app/leads/[id]/page.tsx` and authored one exact replacement, `Leads` → `Back to leads`; Living passed all 13 deterministic proof checks.
+- Exact human approval and apply produced the visible browser change; the CRM passed 112/112 tests. Explicit rollback restored the byte-identical preimage `sha256:6f39fc74f30bc132cf3ba9b2975961a911be5e7197ba536ad4f7b69b907526e5`.
+
+A later rapid-sort stress attempt added three explicit rage-click signals, so `failure-cluster` won arbitration. That later evidence is a secondary technical diagnostic, not evidence that the generic sequence miner discovered the sort behavior and not evidence of measured improvement.
 
 ## Growth path
 

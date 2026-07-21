@@ -1,0 +1,142 @@
+# Filming script
+
+Use a fresh copy of the separate synthetic CRM. The public video must stay under three minutes and must show behavior from the exact submitted commit. Do not rehearse a fixed GPT answer: read and show the proposal the live run actually returns.
+
+## Before recording
+
+Open three windows:
+
+1. the CRM at `http://127.0.0.1:3000`;
+2. a terminal in the Living Software repository;
+3. optionally, Studio Live Run at `http://127.0.0.1:3001/live`.
+
+Build once, then start the CRM in its own terminal:
+
+```powershell
+# Living Software repository
+npm install
+npm run build:cli
+
+# Separate CRM repository
+npm install
+npm run dev
+```
+
+For the optional visual control room, start this **before installation** so it can show the real state transition from an uninstalled host. It is a loopback-only development monitor; the CLI remains sufficient for the whole demo.
+
+```powershell
+npm run studio:live -- --root ../Living-Manual-Test-Fixed/crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001 --new-session
+```
+
+## Record this sequence
+
+### 1. Install and map
+
+Say:
+
+> This is an independently built CRM. Living Software statically maps its routes and controls, then installs a create-only observer and same-origin collector. Synthetic marks this demo data honestly.
+
+Run:
+
+```powershell
+npm run living -- install --root ../Living-Manual-Test-Fixed/crm-workflow-lab --synthetic
+```
+
+Show the real app ID, mapped-node count, relationship count, and `observation is ready` result. Do not state fixed counts if the checked-out CRM produces different ones.
+
+### 2. Create ordinary evidence
+
+Open `/leads` in a fresh browser tab. Complete this visible workflow twice:
+
+```text
+select a lead -> lead detail -> existing return-to-leads control -> leads list
+```
+
+Close that tab after the list renders. Repeat the same two workflows in two more fresh tabs. Each tab is one ephemeral session, so the final cohort has three independent sessions and six occurrences. There is no countdown, required pace, scenario label, or injected friction signal.
+
+Say:
+
+> Living sees mapped actions and route completions, not the lead names or page text. It excludes form values, DOM, screenshots, secrets, and persistent identity.
+
+If Studio is visible, point to only events that actually arrive. Its history and live updates come from the validated evidence ledger; they are not a simulated animation.
+
+### 3. Show what was discovered
+
+Run:
+
+```powershell
+npm run living -- analyze --root ../Living-Manual-Test-Fixed/crm-workflow-lab
+```
+
+The compact human output should show the actual captured total, detector and version, case/session/occurrence support, readable sequence, exact supporting-event count, and explicit-signal count. For the preserved lead-detail proof, the detector found three cases, three sessions, six occurrences, a four-step sequence, 24 supporting events, and zero explicit technical signals. A fresh run's **total captured event count may differ**.
+
+Say:
+
+> The same validated evidence produces the same deterministic detection. Deterministic does not mean the workflow or fix was hardcoded. Recurrence makes this workflow reviewable; it does not prove frustration, causality, or improvement.
+
+### 4. Let GPT-5.6 invent a bounded proposal
+
+Run:
+
+```powershell
+npm run living -- improve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --provider codex
+```
+
+Keep the terminal visible. It now reports real awaited milestones: evidence validation, both GPT-5.6 requests, Codex run IDs, bounded source selection, patch compilation, each deterministic proof check, and ledger persistence. These lines expose lifecycle state, not private model reasoning.
+
+Say:
+
+> GPT-5.6 first interprets the minimized evidence. A second request sees at most three source-linked UI candidates and authors one bounded patch. GPT has no browser, terminal, source-write, approval, or rollback authority.
+
+When the command finishes, show the proposal it **actually** produced: interpretation, target file, exact minus/plus edits, run IDs, artifact hash, proof hash, and evolution ID. Do not promise a particular file, feature, wording, or number of edits before the call. Point out `prepared`: host source is still unchanged.
+
+### 5. Review, approve, and apply
+
+For a clean review screen, run:
+
+```powershell
+npm run living -- status --root ../Living-Manual-Test-Fixed/crm-workflow-lab
+```
+
+Say:
+
+> I am reviewing the exact GPT-authored artifact. Approval is bound to these artifact and proof hashes, not to a general permission.
+
+Copy and run the exact `Next:` command printed by Living. It contains the current evolution ID and hashes:
+
+```powershell
+npm run living -- approve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <printed-id> --actor hackathon-demo --artifact-hash <printed-artifact-hash> --proof-hash <printed-proof-hash> --apply
+```
+
+Show the approval receipt, preimage check, source write, postimage verification, and apply receipt. Reload the CRM and show the actual visible change. If included in the cut, run the CRM tests and show their real result:
+
+```powershell
+npm test
+```
+
+Say:
+
+> The engine wrote only the sealed postimage after exact approval. Rendering and tests verify application behavior; they do not yet prove that the workflow improved.
+
+### 6. Roll back exactly
+
+Copy the exact rollback command printed after application, or run:
+
+```powershell
+npm run living -- rollback --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <printed-id> --actor hackathon-demo
+```
+
+Show the postimage check, original-preimage restoration, hash verification, and rollback receipt. Reload the CRM and show the proposed UI is gone.
+
+Close with:
+
+> Codex helped build, test, and document Living Software. GPT-5.6 interpreted captured synthetic evidence and authored the proposal. Today Living governs one-file UI evolution with explicit approval and exact rollback. Automatic post-change measurement is the next step.
+
+## Recording truth checks
+
+- Show only the detector result and GPT proposal produced by the recorded run.
+- Do not call recurrence friction, intent, causality, or measured improvement.
+- Do not describe a responding browser frame as proof until the changed UI is visibly inspected.
+- Keep synthetic data labeled synthetic.
+- Keep model reasoning private; show structured interpretation and lifecycle milestones only.
+- If any command fails, stop the take. Do not substitute a fixture, old output, or scripted proposal while describing it as live.

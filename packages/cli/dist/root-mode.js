@@ -352,7 +352,8 @@ async function readLiveHostInstallRecord(root) {
 }
 /**
  * Reconstruct the current live-host state exclusively from validated reads.
- * This deliberately ignores legacy evidence and never creates storage.
+ * This deliberately does not read evidence or create storage. Live consumers
+ * must reconstruct evidence through their own bounded, append-safe reader.
  */
 export async function loadLiveHostState(rootInput) {
     const root = await realpath(rootInput);
@@ -403,13 +404,6 @@ export async function loadLiveHostState(rootInput) {
         });
     }
     const evidenceRelativePath = evidenceRelativePathForManifestHash(installed.collectorDefinition.application.manifestHash);
-    const evidenceSource = await optionalSafeRead(root, evidenceRelativePath);
-    const committedEvidenceSource = evidenceSource === undefined
-        ? undefined
-        : evidenceSource.slice(0, evidenceSource.lastIndexOf("\n") + 1);
-    const analysis = committedEvidenceSource === undefined || committedEvidenceSource.length === 0
-        ? undefined
-        : analyzeEvidenceRecords(parseEvidenceNdjson(committedEvidenceSource, installed.collectorDefinition), installed.collectorDefinition);
     return Object.freeze({
         root,
         application,
@@ -418,7 +412,6 @@ export async function loadLiveHostState(rootInput) {
             record,
             ...installed,
             evidenceRelativePath,
-            ...(analysis === undefined ? {} : { analysis }),
         }),
     });
 }

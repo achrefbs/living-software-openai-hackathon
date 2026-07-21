@@ -4,8 +4,8 @@ Every claim must point to runnable behavior, a test, a commit or a preserved art
 
 | Criterion | Evidence available now | Still required |
 | --- | --- | --- |
-| Technological Implementation | Versioned contracts; bounded Next.js discovery; create-only installer; browser observer and hash-linked collector; three deterministic detector families with arbitration and semantic recomputation; evidence-first model context; explicit GPT-5.6 transports; manifest-bound 3-file/96-KB source projection; GPT-authored one-file 1-8-edit proposal; static proof; caller-supplied artifact/proof-hash approval; exact-preimage application; receipts, recovery and rollback; fresh-clone-verified no-build CLI distribution; Studio | Primary `/feedback` ID; exact submission-commit live run |
-| Design | Terminal-first install -> observe -> improve flow; human-readable proposal/next command; Studio map, evidence, proposal, proof, comparison and receipt surfaces; explicit unchanged/prepared/applied states | Final recorded walkthrough |
+| Technological Implementation | Versioned contracts; bounded Next.js discovery; create-only installer; browser observer and hash-linked collector; four deterministic detector families with arbitration and semantic recomputation; evidence-first model context; explicit GPT-5.6 transports; manifest-bound 3-file/96-KB source projection; GPT-authored one-file 1-8-edit proposal; static proof; caller-supplied artifact/proof-hash approval; exact-preimage application; receipts, recovery and rollback; strict durable Studio live events, replay/SSE, safe evidence tailing, and exact lifecycle controls; fresh-clone-verified no-build CLI distribution | Primary `/feedback` ID; exact submission-commit live run |
+| Design | Terminal-first install -> observe -> improve flow; Live Run pipeline, event rail, detector thresholds, learned/invented/proved separation, one next action, source/runtime split, optional comparison; explicit unchanged/prepared/applied states | Final recorded walkthrough |
 | Potential Impact | A tool that rejected weak evidence, derived correction and interaction-failure opportunities, let GPT invent two different bounded UI changes and source targets, exact-hash applied them, passed CRM tests/builds, browser-rendered them and rolled them back without giving the model host authority | Exact-final-commit reproduction; no automatic post-change measurement claim |
 | Quality of Idea | Creativity and governance are separated: GPT authors the proposal, deterministic code bounds it, and a human controls exact source application | Concise entrant narration and submission copy |
 
@@ -22,15 +22,16 @@ The following path exercises a separate supported host and can use live GPT:
 npm install
 npm run build:cli
 npm run test
+npm run studio:live -- --root ../crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001
+# in another terminal
 npm run living -- install --root ../crm-workflow-lab --synthetic
 # exercise the running CRM
+# either use Live Run's explicit provider control or the equivalent CLI command
 npm run living -- improve --root ../crm-workflow-lab --provider codex
 npm run living -- status --root ../crm-workflow-lab
-npm run studio:sync -- --root ../crm-workflow-lab
-npm run dev --workspace @living-software/studio -- --port 3001
 ```
 
-Review the exact target, 1-8 model-authored edits, proof and evolution ID. Then:
+Review the exact target, 1-8 model-authored edits, proof and evolution ID. Use Studio's separately confirmed approve/apply controls, or the equivalent terminal command:
 
 ```bash
 npm run living -- approve --root ../crm-workflow-lab --evolution <id> --actor judge-demo --artifact-hash <artifact-sha256> --proof-hash <proof-sha256> --apply
@@ -61,6 +62,9 @@ The neutral proof demonstrates deterministic plumbing and a preserved model inte
 - `approve --apply` is a visible human action over both the exact artifact and proof hashes.
 - Runtime behavior is verified separately.
 - Rollback restores only the exact applied postimage.
+- Refresh/reconnect replays validated history without replaying an old apply as a new mutation, and below-threshold detector counts come from the same evaluator as final detection.
+- A partial evidence record waits; duplicate filesystem notifications remain idempotent; an integrity failure stops the monitor instead of silently retaining stale progress.
+- Model and proof milestones surround real awaited backend work. The UI uses SSE rather than elapsed-time or timer-polling theatre, and a host-frame response remains only a visual-inspection cue.
 
 ## Claims intentionally excluded
 

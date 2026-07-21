@@ -16,7 +16,7 @@ The current MVP implements the loop through apply and rollback. Capturing a fres
 
 1. **Map.** A static scanner reads a supported Next.js repository without executing its code. It creates a source-linked map of routes, surfaces, controls, operations, and relationships.
 2. **Observe.** Living installs create-only browser observation and a same-origin local collector. Normal use produces hash-linked events for mapped routes/actions, performance, layout facts, and technical signals such as corrections, dead clicks, and rage clicks.
-3. **Detect.** Deterministic detectors group events into privacy-safe workflow cases. A proposal is possible only when a configured, testable threshold is met. Current detectors cover corroborated navigation backtracking, repeated corrections, and interaction-failure clusters.
+3. **Detect.** Deterministic detectors group events into privacy-safe workflow cases. The generic detector mines repeated route/action/outcome subsequences without knowing CRM concepts or requiring explicit friction signals; a candidate must recur at least twice in each of three cases across three independent sessions. Other detectors cover corroborated navigation backtracking, repeated corrections, and interaction-failure clusters. Deterministic here means the same validated evidence produces the same result, not that the workflow is hardcoded.
 4. **Interpret.** GPT-5.6 receives the exact minimized evidence and a bounded product-map projection. It returns a strict `EvolutionBrief` citing supplied evidence and metrics.
 5. **Invent.** A separate GPT-5.6 request sees the brief and at most three source files linked to affected product nodes. It may propose one to eight exact edits in one existing UI file.
 6. **Prove.** Living treats the model output as untrusted. It verifies paths, source hashes, exact anchors, edit overlap, output size, prohibited authority, evidence/model bindings, and TypeScript/TSX syntax before storing a `prepared` proposal. Host source is still unchanged.
@@ -74,17 +74,26 @@ npm run living -- rollback --root <next-app> --evolution <id> --actor <label>
 
 ## What the current proof establishes
 
-Living has been installed in a separately built CRM, captured its own synthetic browser evidence, prepared a non-hardcoded two-stage GPT-5.6 proposal, exact-hash applied the resulting source edit, passed the CRM test/build gates, rendered the change, and restored the sealed preimage through rollback. Stress tests also exercise below-threshold controls, multiple detector families, deterministic arbitration, hostile/tampered inputs, crash recovery, and source-selection limits.
+In the [clean generic-discovery proof](proof/generic-recurring-workflow-discovery.md), Living started from a fresh separate CRM install with 144 mapped nodes and 180 edges. Its first 22 evidence records contained 79 synthetic events across three independent sessions. From ordinary route/action events—and zero `metadata.signal` events—it learned the four-step lead-link → detail-route → back-link → list-route sequence, found six non-overlapping occurrences, and bound exactly 24 evidence events.
+
+Two live Codex GPT-5.6 calls prepared evolution `evolution.source.v2.bd05a314a3b6e29d4971bc8e`. GPT proposed one exact edit in `src/app/leads/[id]/page.tsx`, changing `Leads` to `Back to leads`. Living passed 13 deterministic checks, required exact human approval, applied the sealed postimage, passed 112/112 CRM tests, rendered the label in the browser, and rolled back exactly to preimage `sha256:6f39fc74f30bc132cf3ba9b2975961a911be5e7197ba536ad4f7b69b907526e5`.
+
+A later rapid-sort experiment emitted three explicit rage signals, so `failure-cluster` won deterministic arbitration. That is a useful secondary detector test, not the generic-discovery proof.
 
 This proves a governed evidence-to-source-change pipeline. It does **not** yet prove production generalization, business-value improvement, pixel-perfect autonomous redesign, or automatic post-change metric improvement.
 
 ## Studio
 
-The CLI is the complete authority surface. Living Studio visualizes the same map, workflows, opportunity, proposal, proof, comparison, and receipts after an explicit sync:
+The CLI remains a complete authority surface. Connected Studio starts with a server-supplied root and visualizes the same real operations in a control room:
 
 ```bash
-npm run studio:sync -- --root <next-app>
-npm run dev --workspace @living-software/studio -- --port 3001
+npm run studio:live -- --root <next-app> --host-url http://127.0.0.1:3000 --port 3001
 ```
 
-Studio does not silently ingest continuously, and its before/after comparison does not itself grant mutation authority.
+Start it before installation to see the read-only map and not-installed state. The monitor then validates the public install record, tails only the active release evidence chain, runs the same deterministic evaluator used by analysis, and reconstructs evolution/receipt/source state after refresh or restart. A strict durable event log provides replay and an SSE stream provides new events; there is no lifecycle timer polling, and neither transport grants mutation authority.
+
+Model milestones correspond to the two actual awaited calls and deterministic proof. Reused proposals are labeled as reuse. Approve, apply, and rollback controls invoke the existing engine with exact identity, hash, and revision bindings. Application is shown as a source-hash transition; a responding host frame is a separate invitation to inspect, not runtime proof.
+
+Optional comparison views come from `preview:host`, which copies a bounded stable set of Git-tracked regular files into new directories, installs the exact sealed preimage or postimage, and exposes a source-hash identity endpoint. It never edits the connected host, and opening the preview does not approve or apply anything.
+
+The earlier `studio:sync` plus `dev:studio` path remains available as an explicitly offline snapshot/fixture mode for credential-free judging and regression tests. Its before/after comparison is display-only.

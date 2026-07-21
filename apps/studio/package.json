@@ -14,12 +14,16 @@
   },
   "dependencies": {
     "@living-software/cli": "0.1.0",
+    "@living-software/collector": "0.1.0",
     "@living-software/contracts": "0.1.0",
+    "@living-software/core": "0.1.0",
     "@living-software/evolution": "0.1.0",
+    "@living-software/installer": "0.1.0",
     "@living-software/intelligence": "0.1.0",
     "next": "16.2.10",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

@@ -86,11 +86,11 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 ## D-010 - Keep unfinished Studio states visibly locked
 
 - **Date:** 2026-07-19
-- **Status:** Superseded for an exact captured-host lifecycle by D-016; retained for fixture, disconnected, and unmatched-proof states
+- **Status:** Superseded for an exact connected-host lifecycle by D-023; retained for fixture, disconnected, and unmatched-proof states
 - **Owner:** Achref Boularess with Codex design review
 - **Decision:** Studio is initially a read-only, explicitly synthetic fixture that exposes Product Map, Workflows, Opportunities, Evolutions, and Receipts while keeping interpretation, contract, proof, and activation states visibly locked when no real artifact exists.
 - **Why:** The interface can communicate the product and trust model without fabricating a live backend or completed lifecycle.
-- **Consequence:** Studio must remain labeled offline and synthetic until replay output and live services are actually connected.
+- **Consequence:** The synchronized fixture path remains explicitly offline and synthetic. D-023 governs the separately started connected Live Run path; the two modes must not silently blend.
 
 ## D-011 - Make automatic discovery the next vertical slice
 
@@ -151,9 +151,9 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Date:** 2026-07-20
 - **Status:** Accepted
 - **Owner:** Achref Boularess with Codex implementation and review
-- **Decision:** Studio may show the unchanged connected CRM and an exact prepared postimage side by side only when the postimage runs in a separate isolated process and its strict identity endpoint matches the governed evolution ID and postimage hash. The comparison surface is read-only and exposes no approval, apply, or rollback command.
+- **Decision:** Studio may show an unchanged connected supported host and an exact prepared postimage side by side only when the postimage runs in a separate isolated process and its strict identity endpoint matches the governed evolution ID, target path, view, and source hash. The comparison surface is read-only and grants no approval, apply, or rollback authority.
 - **Why:** A judge should be able to see the proposed user experience before granting source-write authority, while the product must not misrepresent a preview as a deployed or approved change.
-- **Consequence:** The preview URL is an optional display input. Missing or mismatched identity or connected-host preimage drift fails closed and hides both frames. A committed generator copies only clean Git-tracked CRM files into a new path, writes the ledger postimage, and adds a runtime-hashing identity endpoint without editing or deleting host files. The comparison link exists only before source application, and direct visits become phase-aware after apply or rollback. A verified preview grants no lifecycle authority, does not alter the connected host, and is not runtime activation evidence. The connected source can change only through the exact operator approval and hash-guarded apply path in D-018.
+- **Consequence:** The preview URL is an optional display input. Missing or mismatched identity or connected-host preimage drift fails closed and hides both frames. The generic generator copies only bounded Git-tracked regular files from a stable host revision/status snapshot into new paths, writes the sealed ledger preimage or postimage, and adds a source-hashing identity endpoint without editing or deleting host files. A clean worktree is not required, but a changing tracked snapshot, unsafe path, symlink, wrong target preimage, or excessive file/byte set is rejected. A verified preview grants no lifecycle authority, does not alter the connected host, and is not runtime activation evidence. The connected source can change only through the exact operator approval and hash-guarded apply path in D-018.
 
 ## D-018 - Replace the fixed recipe with bounded GPT-authored source proposals
 
@@ -179,8 +179,8 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Status:** Accepted
 - **Owner:** Achref Boularess with Codex implementation and lifecycle stress testing
 - **Decision:** Settled status and listing validate state and receipts without acquiring a mutation lease. A pending journal or inconsistent concurrent snapshot falls back to locked recovery; mutations remain serialized.
-- **Why:** Status polling should not change host state or require an available write lease when no recovery is needed.
-- **Consequence:** Studio and CLI polling do not disturb an existing lease, while crash recovery and mutation safety remain unchanged.
+- **Why:** Repeated status reads should not change host state or require an available write lease when no recovery is needed.
+- **Consequence:** CLI reads and Studio reconciliation do not disturb an existing lease, while crash recovery and mutation safety remain unchanged. Connected Studio receives lifecycle events over SSE rather than timer-polling the backend.
 
 ## D-021 - Separate change-control corrections from click-friction inference
 
@@ -190,3 +190,21 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Decision:** A mapped target with a declared `change` binding records click and change actions and may emit correction signals, but it does not emit click-derived dead-click or rage-click signals. Dead/rage inference remains available for activation-only targets without a change binding.
 - **Why:** Native selects and other browser-owned change controls can remain open without mutating the document, and browsers can deliver trailing or duplicated clicks around a legitimate change. Treating those clicks as failed interaction creates deterministic false positives that can become model context.
 - **Consequence:** Correction loops remain measurable without capturing values, keyboard input, or content. Opening, inspecting, canceling, or slowly choosing a native option is not labeled failure. Activation-only buttons and links retain the existing dead/rage detector and threshold behavior.
+
+## D-022 - Mine recurring workflows without claiming they are friction
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; clean live proof complete
+- **Owner:** Achref Boularess with Codex implementation and proof review
+- **Decision:** Add a generic `repeated-sequence` detector over normalized route/action/outcome journey tuples. A candidate must occur at least twice without overlap in each of three cases across three independent sessions. Selection is deterministic, but neither CRM concepts nor a fixed workflow appears in the rule. The opportunity carries exact minimized evidence and may be emitted without `metadata.signal`.
+- **Why:** Living must learn ordinary recurring workflows from an unfamiliar host rather than require a named failure or a hardcoded demo path. Reproducible mining is useful, while recurrence alone is too ambiguous to label as user frustration or causality.
+- **Consequence:** GPT-5.6 may interpret the bounded recurrence and invent a proposal, but the brief must retain synthetic-data and non-causal limitations. Explicit correction/dead/rage detectors remain independent candidates, and arbitration may select one of them when stronger technical evidence exists. The later rapid-sort diagnostic did exactly that: three rage signals caused `failure-cluster` to win, so it is not counted as generic-discovery proof.
+
+## D-023 - Make connected Studio an event-driven projection of the governed backend
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; implementation and aggregate gates complete, exact-commit connected browser walkthrough pending
+- **Owner:** Achref Boularess with Codex architecture, implementation, and adversarial review
+- **Decision:** Add a separately started, loopback-only Live Run mode whose canonical host root and URLs come from server startup configuration. Persist strict, bounded `living.live-event/v1` facts in a per-session hash chain; replay validated history after the SSE `Last-Event-ID`; tail only complete records from the exact active-release evidence file; and derive detector progress from the same evaluator that produces the Opportunity. Instrument the real awaited model, proof, approval, apply, and rollback operations instead of synthesizing elapsed-time progress. Keep the synchronized snapshot UI as an explicit offline fixture/regression mode.
+- **Why:** A control room is trustworthy only when every visible transition can be traced to durable backend state. Timer polling and optimistic animations can make a disconnected browser look authoritative, replay an old source write as new, or let display code drift from detector and lifecycle semantics.
+- **Consequence:** Browser requests cannot select a filesystem root. Duplicate semantic event IDs are idempotent and conflicting reuse fails; evidence truncation, replacement, deletion, symlink traversal, invalid UTF-8, chain corruption, receipt/ledger failure, or target-hash drift stops monitoring visibly. Commands are serialized and bound to the current session, app, manifest, analysis snapshot, evolution hashes, and receipt revision. Approval never writes source. Apply and rollback are complete only after the existing engine returns, the matching receipt exists, and the target has the sealed hash. A host-frame response is a local visual-inspection cue, not runtime proof or post-change measurement.

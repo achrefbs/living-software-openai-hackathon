@@ -699,6 +699,116 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-21 - Prove generic recurring-workflow discovery end to end
+
+**Scope**
+
+- Installed Living into the fresh separate synthetic CRM at commit `545136b`; discovery produced 144 nodes and 180 edges.
+- The first 22 hash-linked records contained 79 events across three sessions and zero `metadata.signal` events. Generic sequence mining learned lead-link → detail-route → back-link → list-route, counted six occurrences, and bound exactly 24 evidence events.
+- Completed a live two-call Codex GPT-5.6 prepare, exact proof, human approval, source apply, browser verification, CRM tests, and exact rollback.
+- Kept a later failed sort stress attempt separate: rapid toggles emitted three rage signals, so `failure-cluster` won arbitration. It is secondary technical evidence, not generic-discovery proof.
+
+**How Codex accelerated the work**
+
+- Codex audited the record boundary, exact event set, detector output, model provenance, receipt chain, source hashes, CRM tests, browser result, and rollback before reconciling the documentation.
+
+**How GPT-5.6 was used**
+
+- Codex CLI thread `019f858a-a42c-7d83-a70b-54dd6241a29c` authored the evidence-bound brief; thread `019f858a-ed88-7482-a455-c39a6325320e` authored the bounded source proposal.
+- GPT selected `src/app/leads/[id]/page.tsx` and proposed the single exact replacement `Leads` → `Back to leads`. It had no approval, write, test, browser, or rollback authority.
+
+**Human decisions**
+
+- The entrant approved the exact artifact and proof hashes, required visible runtime verification, then explicitly rolled the change back. Synthetic recurrence remains labeled as a hypothesis, not causal proof of friction or improvement.
+
+**Evidence**
+
+- Prepared evolution: `evolution.source.v2.bd05a314a3b6e29d4971bc8e`; 13 deterministic checks passed.
+- The CRM passed 112/112 tests and the applied `Back to leads` label was visible in the browser.
+- Rollback restored exact preimage `sha256:6f39fc74f30bc132cf3ba9b2975961a911be5e7197ba536ad4f7b69b907526e5`; the evolution has nine valid receipts and status `rolled-back`.
+- Full evidence and non-claims are recorded in [docs/proof/generic-recurring-workflow-discovery.md](docs/proof/generic-recurring-workflow-discovery.md).
+
+---
+
+## 2026-07-21 - Replace Studio polling with a truthful connected Live Run
+
+**Scope**
+
+- Added `studio:live`, which maps and canonicalizes a supported host at server startup, binds the development server and configured frames to loopback, and can start before Living is installed.
+- Added a strict, bounded `living.live-event/v1` contract and a durable per-session event store with monotonic sequences, canonical hashes, duplicate/conflict handling, restart validation, paged replay, and SSE resume from `Last-Event-ID`. The browser consumes events rather than using a timer to invent lifecycle progress.
+- Added an active-release evidence tailer that accepts only complete newline-terminated collector records from a bounded no-follow file handle. Duplicate notifications are idempotent; partial writes wait; truncation, deletion, replacement, symlink traversal, invalid UTF-8, or hash-chain corruption stops monitoring.
+- Moved detector threshold projection into a shared evaluator so below-threshold cards and the final selected Opportunity use the same inputs and semantics, including the generic recurring-sequence family.
+- Instrumented the real awaited evidence validation, two model calls, source-candidate selection, proof checks, proposal persistence/reuse, approval, application, source-hash verification, receipts, and rollback. No prompt, reasoning, source body, raw workflow value, or optimistic completion enters the live event contract.
+- Added exact, serialized connected controls over the existing evolution engine. Commands bind the current session, app, manifest, analysis snapshot, Opportunity, evolution hashes, and receipt revision. Approval cannot write source; apply and rollback complete only after the receipt and sealed target hash are observed.
+- Rebuilt the Studio page as a Live Run control room with an event rail, lifecycle pipeline, detector thresholds, learned/invented/proved separation, exact next action, receipts, and an explicit source-versus-runtime split. Refresh reconstructs durable backend state, and replayed source transitions are not animated as new writes.
+- Generalized preview creation to bounded Git-tracked regular files from any supported host. Optional before/proposed copies are isolated from the connected root and expose a sealed evolution/path/view/source-hash identity route.
+- Preserved `studio:sync` and the existing dashboard as an explicit offline snapshot/fixture and regression path rather than silently upgrading it into a connection.
+
+**How Codex accelerated the work**
+
+- Codex split the contracts, evidence integrity, lifecycle instrumentation, Studio UI, integration, adversarial review, and documentation audits across parallel work, then reconciled the shared boundaries against the actual engine and collector code.
+
+**How GPT-5.6 was used**
+
+- Live Run reports GPT-5.6 activity only around the product's two real model requests. It records verified transport/model/run provenance and allowed token counts, but never model reasoning. An exact evidence-bound proposal reuse is labeled as reuse rather than represented as a new call.
+
+**Human decisions**
+
+- The entrant kept filesystem-root selection server-side, limited connected mode to loopback development, required exact identity/revision bindings for mutation, and kept runtime inspection and post-change measurement outside source proof.
+
+**Evidence**
+
+- Focused contracts, event-store, evidence-tailer, HTTP-boundary, projection, session, SSE, UI, startup, and generic-preview tests were added. `npm run build:cli` passed; the full gate passed 335 product tests plus 33 integration tests with one intentional Windows filesystem skip; every workspace typecheck passed; and the Studio production build completed with all connected routes. The first sandboxed Next build reached a successful compile but its worker spawn was blocked by Windows `EPERM`, so the identical required gate was rerun outside that process sandbox and passed.
+- `npm run submit:check` remains truthfully blocked by 23 open submission checklist items and the required `/feedback` Session ID. The final exact-commit connected browser walkthrough and external submission metadata remain pending; no acceptance demo is claimed in this entry yet.
+
+---
+
+## 2026-07-21 - Prove a second generic workflow and make the CLI filmable
+
+**Scope**
+
+- Captured an independent generic recurrence on a second fresh CRM host: the detector-bound first 12 records contained 68 events across three cases/sessions and zero explicit signals. The user repeated `/leads` → `/tasks` twice per session; Living found six occurrences and emitted `opportunity.repeated-sequence.bc1fd36d9f4d`.
+- Added a compact human `living analyze` view with actual capture totals, detector/version, threshold support, readable sequence, exact supporting-event counts and explicit-signal counts; canonical JSON remains available with `--json`.
+- Added terminal progress around real awaited model, source-selection, proof, approval, apply, receipt and rollback operations. Progress excludes prompts, private reasoning and source bodies. Generated `Next:` commands are copy-pasteable through `npm run living --`, and help exits successfully.
+- Added [the exact filming runbook](docs/FILMING_SCRIPT.md), which does not promise a fixed GPT proposal or a fixed total event count for a fresh run.
+
+**How Codex accelerated the work**
+
+- Codex ran the different workflow end to end, audited the exact detector-bound record window, exercised GPT preparation, applied and browser-checked the new artifact, ran the CRM suite, rolled it back, and reconciled the CLI and submission documentation.
+
+**How GPT-5.6 was used**
+
+- Brief thread `019f85a8-a92e-7123-87e0-f3c801ed4e0d` interpreted the Leads → Tasks recurrence as a possible shared-context need.
+- Patch thread `019f85a9-0327-7850-be99-33beef2457b6` independently selected `src/app/tasks/page.tsx` and authored a two-edit `Lead context` card. The detector and prompt contained neither that target nor feature.
+
+**Human decisions**
+
+- The entrant authorized exact-hash approval/application for the synthetic proof, required CRM tests and visible browser inspection, then required exact rollback. The result remains a recurrence hypothesis and governed source proof, not a claim of measured improvement.
+
+**Evidence**
+
+- Evolution `evolution.source.v2.672622f9c94f7121dcc8217c`; artifact `sha256:6a6e2d1adb53b8cb6e3651953ddb63fc9bec53139e4a009d550e8053926e84d9`; proof `sha256:bbd3a118e542f0d4c0e0b97c92894f35f75b6990018137bb78220617112d435c`; 13/13 checks passed.
+- The CRM passed 112/112 tests. Browser screenshots show the card present after apply and absent after rollback.
+- Rollback restored preimage `sha256:40e4afc91d422a2d06ff1f13186417cb5d4f822c1e0ef4a852f32a4dc85e6a54`; nine valid receipts close at chain head `sha256:0e41482bbdc957afa00304bc0db999e1dfe64d54e77fec68d7e353c02d62401c`.
+- Full aggregate repository tests and the final exact-commit submission gate remain separate pending checks.
+
+---
+
+## 2026-07-21 - Validate the clean connected Studio launch
+
+**Scope**
+
+- Bound the launcher explicitly to `127.0.0.1`, made a fresh durable session the default, and retained validated resume through `--session-id`.
+- Corrected the filming CRM path and added `--new-session` so the demo starts from a clean session intentionally.
+- Made lifecycle, source state, runtime state, and recovery rollback authoritative in the Studio display.
+
+**Evidence**
+
+- The final build passed; Studio passed 73/73 tests; launcher and preview passed 13/13 tests; and review found no P0 or P1 issues.
+- Clean smoke session `live-session.ed6737298ec0f8120471cb1f4636bf0a` listened only on `127.0.0.1:3130`; `/live` and `/api/live/state` returned 200, the next action was not-installed/install, the CRM remained untouched, all processes were stopped, and the port was confirmed free.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

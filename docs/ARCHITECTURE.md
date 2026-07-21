@@ -15,7 +15,7 @@ living install
 ordinary UI activity
   -> privacy-minimized, hash-linked local evidence
   -> deterministic workflows + metrics
-  -> corroborated-backtracking, correction-rework and dead/rage-click candidates
+  -> generic repeated-sequence, corroborated-backtracking, correction-rework and dead/rage-click candidates
   -> deterministic single-opportunity arbitration
 
 living improve --provider codex|api
@@ -30,8 +30,19 @@ human exact-hash approval
   -> manual host build/reload and verification
   -> exact-postimage rollback when requested
 
+studio:live --root <host> --host-url <loopback>
+  -> server-canonicalized read-only map before installation
+  -> bounded active-release tailer + shared deterministic evaluator
+  -> durable strict event hash chain + replay + SSE Last-Event-ID resume
+  -> the same model, proof, approval, apply and rollback functions
+  -> source verification separate from host-frame inspection
+
+preview:host --root <host> --out <new-path>
+  -> bounded stable Git-tracked snapshot in an isolated copy
+  -> sealed preimage/postimage identity endpoint for display only
+
 explicit studio:sync
-  -> Studio map, workflow, opportunity, proposal, proof and receipt views
+  -> separate offline map, workflow, opportunity, proposal, proof and receipt views
 ```
 
 ## Implemented components
@@ -41,12 +52,20 @@ explicit studio:sync
 | Discovery | Source-linked nodes, edges, routes and runtime locators for supported `src/app` repositories | Arbitrary Node/framework support; host execution; business-goal inference |
 | Installer | Create-only atomic writes, journaled hashes, idempotency and exact-hash removal | Existing-file overwrite, dependency editing, evidence deletion |
 | Observer/collector | Route/action/performance/friction events and bounded CSS-pixel geometry in manifest-scoped hash chains | Content, DOM, screenshots, persistent identity, production telemetry |
-| Analyzer | Deterministic workflow cases, variants, metrics, exact-evidence candidates for corroborated backtracking, repeated corrections and dead/rage-click failures, plus input-order-independent arbitration | Causality or automatic knowledge of success |
+| Analyzer | Deterministic workflow cases, variants, metrics, generic repeated subsequence mining, exact-evidence candidates for corroborated backtracking, repeated corrections and dead/rage-click failures, plus input-order-independent arbitration | Product-specific workflow rules, causality or automatic knowledge of success |
 | Intelligence | Explicit Codex CLI and Responses API transports; evidence brief plus source-patch Structured Outputs; provenance and local validation | Tools, filesystem authority, approval or application authority |
 | Candidate selector | Source provenance from affected manifest nodes; at most 3 files, 64 KB each and 96 KB total | Repository-wide context, API/tests/configuration, symlinks, binary or changed-during-read files |
 | Evolution engine | One existing UI file, 1-8 exact edits, static guards, exact hashes, proof, receipts, approval, apply, recovery and rollback | New/multiple files, dependencies, Git, server/network/process/secret/dynamic-code authority |
 | CLI | Human-readable `install`, `improve`, `status`, `approve`, `apply`, `rollback`; canonical `--json` | Background or automatic approval/application |
-| Studio | Validated static capture plus loopback connected lifecycle, proposal inspection and optional comparison | Continuous live ingestion, remote production control plane, automatic measurement |
+| Studio | Server-started loopback Live Run; durable strict events; active-release evidence tailing; shared detector progress; real model/proof/lifecycle milestones; exact governed commands; optional isolated comparison; separate explicit offline capture | Remote production control plane, arbitrary browser-selected roots, model reasoning, automatic runtime proof or post-change measurement |
+
+## Generic recurring-workflow discovery
+
+The generic detector operates on normalized journey-step tuples of event kind, manifest node ID, and event name. Within each workflow case it enumerates contiguous subsequences from 2 to 64 steps, counts only non-overlapping occurrences, and retains a candidate only when it occurs at least twice per case in at least three cases spanning three independent sessions.
+
+Candidates are ordered by affected cases, independent sessions, total occurrences, sequence length, and stable tuple identity. The algorithm contains no lead, CRM, route-name, or feature-specific pattern. It also requires no `metadata.signal`; deterministic means identical validated evidence yields identical mining and selection.
+
+The result is a `repeated-sequence` hypothesis with an exact minimized event set. Recurrence alone does not establish friction, user intent, or causality. The [clean generic proof](proof/generic-recurring-workflow-discovery.md) learned a four-step workflow from zero explicit signal events before GPT interpreted its possible meaning.
 
 ## Two model calls, one authority boundary
 
@@ -101,18 +120,36 @@ npm run living -- approve --root <next-app> --evolution <id> --actor <operator> 
 npm run living -- rollback --root <next-app> --evolution <id> --actor <operator>
 ```
 
-Select `--provider api` explicitly when using the Responses API. The CLI is sufficient for the complete governed source lifecycle. Studio is a visual companion that consumes an explicitly synchronized, minimized capture and the same local evolution ledger.
+Select `--provider api` explicitly when using the Responses API. The CLI is sufficient for the complete governed source lifecycle. Connected Studio observes and invokes those same functions; its display stream cannot mutate source or change authority. The older synchronized capture remains an explicit offline fixture/regression path.
+
+## Live Studio event boundary
+
+`studio:live` maps and canonicalizes the supported host before launching Next.js on loopback. Server-only environment values bind the root, session, mapped app, and host URL; no API accepts a root. The monitor reconstructs state from validated installation artifacts, the exact active-release evidence chain, deterministic analysis, evolution state, receipts, and the current sealed target hash.
+
+Each `living.live-event/v1` event is strict, bounded, sequence-numbered, and hash-linked on disk under the server-owned live session. Duplicate semantic event IDs are idempotent; conflicting reuse fails. SSE uses the sequence as its event ID, replays only validated history after `Last-Event-ID`, and registers new delivery behind the same append barrier. The browser uses no lifecycle timer polling; an event triggers a fresh strict state read. A disconnected browser changes only presentation state.
+
+Evidence reads use a bounded no-follow handle and accept only complete newline-terminated collector records. Previously accepted hashes may not disappear or change. Truncation, deletion, replacement, symlink traversal, invalid UTF-8, or chain corruption stops monitoring. Safe event clues contain only allowlisted event identity, mapped node identity, technical signal, origin, and aggregate counts.
+
+Studio lifecycle instrumentation surrounds the real awaited model and evolution operations. It emits no optimistic completion and no reasoning content. Approval cannot write source. Apply and rollback become completed source transitions only after the engine returns, the receipt exists, and the current target hash equals the sealed result.
+
+## Generic preview boundary
+
+`preview:host` selects one prepared or approved evolution and copies only bounded Git-tracked regular files from a stable revision/status snapshot into new output directories outside the connected root. It does not require a clean worktree, but it rejects a snapshot that changes during capture, symlinks or unsafe paths, an untracked evolution target, a target that no longer matches the sealed preimage, and excessive file or byte counts.
+
+The optional before copy receives the exact sealed preimage; the proposed copy receives the exact sealed postimage. Each gets a reserved loopback identity endpoint that reopens the target without following links and verifies the evolution, target path, view, and current source hash. Studio displays a frame only after that identity matches. The copy is not a sandbox for arbitrary untrusted code, grants no lifecycle authority, and provides no evidence about the connected host's runtime.
 
 ## Reference CRM boundary
 
 The separate CRM exposes an ordinary product surface and has no dependency on Living core or Studio. Its simulator drives synthetic browser behavior but does not tell Living what to detect or what patch to create. Living independently derives the map, evidence, opportunity and model context.
 
 The engine contains no CRM-specific Previous/Next transform. GPT may propose any change that fits the one-file UI envelope and passes the static policy.
+The clean July 21 proof started from 144 discovered nodes and 180 edges, then learned the lead-link → detail-route → back-link → list-route sequence from generic manifest identities. The resulting `Back to leads` edit was GPT-authored; neither that workflow nor that replacement exists as an engine rule.
 
 ## Current non-claims
 
 - Universal or zero-configuration support for arbitrary codebases.
 - Automatic knowledge of business goals, outcomes or causality.
+- A claim that recurrence alone means friction or that the mined sequence caused the generated change to improve outcomes.
 - Semantic proof that a generated patch is correct, accessible or buildable.
 - Automatic source application without human approval.
 - Runtime success merely because source was written.

@@ -10,7 +10,7 @@ Hackathon judges seeing Living Studio for the first time, the project owner and 
 
 ## Product purpose
 
-Studio visualizes the terminal-first story **install -> observe -> improve**. It renders a validated product map, privacy-minimized workflows, deterministic friction evidence, GPT-5.6's one-file source proposal, the static proof, human approval state and receipts.
+Studio visualizes **map -> install -> observe -> analyze -> detect -> GPT interpretation -> GPT patch -> deterministic proof -> human approval -> source apply -> source verification -> visual runtime inspection -> rollback** from validated backend events. It renders a validated product map, privacy-minimized evidence counts, shared deterministic detector progress, GPT-5.6's one-file source proposal, proof, exact source state, human approval, and receipts. Runtime inspection remains a separate local observation, never a consequence inferred from source state.
 
 The interface must never imply that a prepared proposal is live, that source application proves runtime success, or that Living automatically measured an improvement.
 
@@ -26,6 +26,8 @@ Honest, calm and evidentiary: a product control room, not a generic AI dashboard
 4. **One obvious next action.** Every lifecycle state explains what changed, what did not and the exact next command/action.
 5. **Honest interactivity.** Preview is display-only; disabled controls explain prerequisites.
 6. **Legible by default.** Body 14-16px, metadata at least 12px, visible focus and reduced-motion support.
+7. **Streaming without theatre.** Reconnect and waiting states are visible; elapsed time never creates progress, and replay never reanimates an old apply as a new write.
+8. **Source is not runtime.** Exact source-hash verification can turn green only after the governed write; a host-frame response remains a separate visual-inspection fact.
 
 ## Accessibility
 
