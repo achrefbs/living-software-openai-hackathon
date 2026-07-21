@@ -4,11 +4,10 @@ Use a fresh copy of the separate synthetic CRM. The public video must stay under
 
 ## Before recording
 
-Open three windows:
+Open two windows:
 
 1. the CRM at `http://127.0.0.1:3000`;
-2. a terminal in the Living Software repository;
-3. Studio Live Run at `http://127.0.0.1:3001/live`.
+2. a terminal in the Living Software repository.
 
 Build once, then start the CRM in its own terminal:
 
@@ -22,13 +21,7 @@ npm install
 npm run dev
 ```
 
-Start Studio **before installation** so the recording shows the real transition from an uninstalled host. Studio is the required visual control room for this submission story; it is a loopback-only development monitor backed by the same evidence ledger and governed lifecycle as the CLI.
-
-```powershell
-npm run studio:live -- --root ../Living-Manual-Test-Fixed/crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001 --new-session
-```
-
-Open `http://127.0.0.1:3001/live` and confirm that it is connected to `crm-workflow-lab` before recording. Keep the CRM tests running in the CRM terminal **off-camera**; they are verification, not part of the under-three-minute story.
+The terminal is the control surface for this recording. Keep CRM tests in the CRM terminal **off-camera**; they are verification, not part of the under-three-minute story.
 
 Record a truthful edited take: keep every user action, command invocation, important output, and visible state transition, but cut or accelerate idle model/build waiting. Label a removed wait with a brief `wait removed` card. Do not claim that the edited duration is execution time.
 
@@ -48,7 +41,7 @@ npm run living -- install --root ../Living-Manual-Test-Fixed/crm-workflow-lab --
 
 Show the real app ID, mapped-node count, relationship count, and `observation is ready` result. Do not state fixed counts if the checked-out CRM produces different ones.
 
-### 2. Show the detector below threshold
+### 2. Capture two sessions and show restraint
 
 Open `/leads` in a fresh browser tab. Complete this visible workflow twice in that tab:
 
@@ -56,29 +49,28 @@ Open `/leads` in a fresh browser tab. Complete this visible workflow twice in th
 select a lead -> lead detail -> existing return-to-leads control -> leads list
 ```
 
-Close the tab after the list renders. Repeat the same two workflows in one more fresh tab. Each tab is one ephemeral session, so Studio should now show only one or two supporting sessions and the recurring-sequence detector must remain below its required three-session threshold.
+Close the tab after the list renders so its final beacon flushes. Repeat the same two workflows in a second brand-new tab, then close it. Do not duplicate tabs because that can clone session state.
 
-Point to the actual below-threshold detector card and say:
-
-> Living has seen the sequence repeat, but two sessions are not enough. It has not promoted a proposal trigger.
-
-Refresh `http://127.0.0.1:3001/live`. Show that the same evidence and detector progress return after reconnect.
+Run `npm run living -- analyze --root ../Living-Manual-Test-Fixed/crm-workflow-lab` and show that two independent sessions are still below the promotion threshold.
 
 Say:
 
-> This is durable replay from the validated evidence ledger, not a staged animation.
+> Living has seen the sequence repeat, but two independent sessions are not enough. It has not promoted a proposal trigger.
+
+This negative control proves the terminal is reporting actual threshold state rather than a scripted feature.
+
+Then continue the same recording run.
 
 ### 3. Complete the evidence cohort
 
-Open one third fresh tab and perform the same workflow twice. The final cohort now has three independent sessions and six occurrences. There is no countdown, required pace, scenario label, or injected friction signal. Point to the recurring-sequence detector crossing its actual threshold in Studio.
+Open one third brand-new tab, perform the same workflow twice, wait for the list to render, and close it. The final cohort now has three independent sessions and six occurrences. There is no countdown, required pace, scenario label, or injected friction signal.
 
 Say:
 
 > Living sees mapped actions and route completions, not the lead names or page text. It excludes form values, DOM, screenshots, secrets, and persistent identity.
 
-Point only to events that actually arrive. Studio history and live updates come from the validated evidence ledger; they are not a simulated animation.
 
-### 4. Show what was discovered
+### 4. Show what the terminal discovered
 
 Run:
 
@@ -100,7 +92,7 @@ Run:
 npm run living -- improve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --provider codex
 ```
 
-Keep the terminal and Studio visible when the command starts. They report real awaited milestones: evidence validation, both GPT-5.6 requests, Codex run IDs, bounded source selection, patch compilation, each deterministic proof check, and ledger persistence. These lines expose lifecycle state, not private model reasoning. Cut or accelerate the idle wait, then resume on the actual returned output with `wait removed` visible briefly.
+Keep the terminal visible when the command starts. It reports real awaited milestones: evidence validation, both GPT-5.6 requests, Codex run IDs, bounded source selection, patch compilation, each deterministic proof check, and ledger persistence. These lines expose lifecycle state, not private model reasoning. Cut or accelerate the idle wait, then resume on the actual returned output with `wait removed` visible briefly.
 
 Say:
 
@@ -156,7 +148,7 @@ Close with:
 
 - Show only the detector result and GPT proposal produced by the recorded run.
 - Do not call recurrence friction, intent, causality, or measured improvement.
-- Do not describe a responding browser frame as proof until the changed UI is visibly inspected.
+- Do not describe a source write as runtime proof until the changed CRM UI is visibly inspected.
 - Keep synthetic data labeled synthetic.
 - Keep model reasoning private; show structured interpretation and lifecycle milestones only.
 - If any command fails, stop the take. Do not substitute a fixture, old output, or scripted proposal while describing it as live.

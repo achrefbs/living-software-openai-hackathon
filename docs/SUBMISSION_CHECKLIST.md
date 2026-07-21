@@ -42,7 +42,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] A live generic GPT-authored proposal was exact-hash approved, applied, CRM-tested/built, and browser-verified.
 - [x] A live adversarial run rejected below-threshold evidence and exercised current correction and interaction-failure detectors through two different GPT-authored targets, CRM tests/builds, browser verification, and exact rollback.
 - [ ] The live generic path is reproduced or preserved from the exact final submission commit.
-- [ ] Final connected acceptance walkthrough starts Studio before installation, shows partial detector progress, runs a real provider, refreshes/replays, approves and applies through exact controls, records visual host inspection separately, and rolls back.
+- [ ] Final acceptance walkthrough uses one Living terminal plus the CRM: install/map, three independent sessions, analyze, a real variable GPT proposal, the printed exact-hash approve/apply command, visible CRM inspection, the printed rollback, and visible restoration.
 - [x] Exact rollback restored the target byte-for-byte to its sealed preimage; `rolled-back` state, nine-receipt chain, and healthy CRM integration were verified.
 - [x] Connected Evolution Review explains the automatic/manual trigger boundary and hides unrelated neutral proof during the active decision flow.
 - [ ] Every final claim tied to the submission commit.
@@ -68,7 +68,7 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 ## Demo video
 
 - [ ] Public YouTube video is under three minutes.
-- [ ] Video shows Studio connected before install, live evidence and detector thresholds, a real GPT-authored proposal, exact artifact/proof-hash approval and application, visual host inspection, refresh/replay, and rollback without implying runtime proof or automatic measurement.
+- [ ] Video shows the terminal lifecycle and CRM: install/map, three independent sessions, `analyze`, a real variable GPT proposal in `prepared`, the printed exact-hash approve/apply command, the applied UI, the printed rollback, and the restored original UI without implying automatic measurement.
 - [ ] Audio explains what was built and how Codex and GPT-5.6 were used.
 - [ ] No unlicensed media, private data, or unsupported product claims appear.
 - [ ] Link works without login.

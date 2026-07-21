@@ -30,7 +30,7 @@ Living Software is an installable developer tool for supported TypeScript Next.j
 
 Living discovers routes, actions, source provenance, and layout geometry without recording text, form values, DOM, screenshots, query strings, secrets, or persistent identity. A generic repeated-sequence detector mines ordinary route/action/outcome subsequences; it does not contain CRM-specific feature rules. The recorded synthetic demonstration found a repeated Leads-to-Tasks workflow across three independent sessions with zero explicit friction signals. GPT then independently selected an existing Tasks UI file and proposed a Lead context card.
 
-The model receives at most three manifest-linked UI files, capped at 96 KB total, and can propose one to eight exact edits in one existing file. Living treats the response as untrusted, runs deterministic path, authority, evidence, preimage, diff, and postimage checks, and stores a sealed artifact. Only the engine can apply the human-approved postimage. Hash-linked receipts record preparation, approval, application, verification, and byte-exact rollback. Living Studio visualizes the same backend lifecycle in real time; the CLI remains a complete interface.
+The model receives at most three manifest-linked UI files, capped at 96 KB total, and can propose one to eight exact edits in one existing file. Living treats the response as untrusted, runs deterministic path, authority, evidence, preimage, diff, and postimage checks, and stores a sealed artifact. Only the engine can apply the human-approved postimage. Hash-linked receipts record preparation, approval, application, verification, and byte-exact rollback. The CLI provides the complete governed lifecycle; Studio is an optional local visualization.
 
 ### Codex + GPT-5.6
 
@@ -89,16 +89,15 @@ npm ci
 npm run dev
 ```
 
-With that host running on port 3000, use a second terminal in the Living repository:
+With that host running on port 3000, use a terminal in the Living repository:
 
 ```bash
-npm run studio:live -- --root ../crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001 --new-session
 npm run living -- install --root ../crm-workflow-lab --synthetic
 npm run living -- analyze --root ../crm-workflow-lab
 npm run living -- improve --root ../crm-workflow-lab --provider codex
 ```
 
-Open `http://127.0.0.1:3001/live`. Review the actual proposal and use the exact approval command printed by Living. Reload the host to inspect the applied change, then use the printed rollback command to restore the sealed preimage.
+In three fresh CRM tabs, repeat the lead-list → detail → return workflow twice per tab before `analyze`. Review the actual variable proposal and run the exact approval command printed by Living. Reload the CRM to inspect the applied change, then run the printed rollback command and reload the restored original UI.
 
 ## Free-access statement
 
@@ -108,15 +107,15 @@ The public repository, committed credential-free judge path, documentation, and 
 
 **0:00–0:15 — Promise and boundary**
 
-Show Live Studio already running before installation: “Living Software observes recurring workflows and lets GPT propose a bounded code change. A human and deterministic engine control every write.” Mention that Codex built and tested the tool while GPT-5.6 runs inside it.
+Show the CRM and one Living terminal: “Living Software observes recurring workflows and lets GPT propose a bounded code change. A human and deterministic engine control every write.” Mention that Codex built and tested the tool while GPT-5.6 runs inside it.
 
-**0:15–0:40 — Install, partial threshold, refresh**
+**0:15–0:40 — Install and map**
 
-Install Living into the synthetic CRM. Show the detector below threshold after partial evidence, refresh Studio, and show that the validated durable event history replays instead of restarting or fabricating progress.
+Install Living into the synthetic CRM. Show the real mapping summary and ready observer in the terminal.
 
 **0:40–1:05 — Generic detection**
 
-Complete the repeated workflow across three independent sessions. Show the threshold crossing, actual cases/sessions/occurrences, learned route/action sequence, and zero explicit signals. Say: “This proves recurrence, not frustration or causality. The CRM workflow was not hardcoded.”
+In three fresh CRM tabs, repeat lead list → detail → return twice per tab. Run `analyze` and show the actual cases, sessions, occurrences, learned sequence, support, and explicit signals. Say: “This proves recurrence, not frustration or causality. The CRM workflow was not hardcoded.”
 
 **1:05–1:42 — Live, variable GPT proposal**
 
@@ -136,6 +135,6 @@ Run the printed rollback command, reload the host, and show the original UI rest
 
 ## Suggested screenshots and captions
 
-1. **Living Studio: evidence becoming a workflow** — “Synthetic CRM activity progresses from below threshold to a generic recurring-sequence opportunity across three independent sessions; refresh replays the validated history.”
+1. **Terminal analysis: evidence becomes a workflow** — “Synthetic CRM activity produces a generic recurring-sequence opportunity across three independent sessions.”
 2. **GPT proposal behind a human gate** — “GPT-5.6 chose the actual target and edits from bounded source context; Living proved and sealed the artifact, but the host remains unchanged until exact-hash approval.”
 3. **Applied UI and reversible proof** — “The GPT-authored change rendered in the CRM, passed host tests, and was then restored to its byte-identical preimage through the receipt-bound rollback.” Use the preserved applied and rolled-back images from `docs/proof/screenshots/` as a labeled side-by-side composite.

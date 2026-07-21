@@ -23,7 +23,7 @@ Show the mapped-node summary and that observation is ready. Explain that install
 ### 0:35-0:58 — Observe and cross the threshold
 
 - Start the independent CRM and use visible browser actions in three fresh tabs. Each tab is one ephemeral session.
-- After one or two sessions, show the recurring-sequence detector still below its three-session threshold. Refresh `/live` and show the same progress replayed from the durable ledger.
+- After two sessions, run `analyze` in the terminal and show that recurrence remains below its three-session threshold.
 - Complete the third session and show the detector cross its threshold. In each session, perform the same lead-link → detail-route → back-link → list-route flow twice. No countdown, pacing rule, scenario label, or injected signal is required.
 - Run `npm run living -- analyze --root ../Living-Manual-Test-Fixed/crm-workflow-lab`. Its compact human output must show the actual captured total, detector/version, cases, sessions, occurrences, readable sequence, exact supporting-event count, and explicit-signal count.
 - The preserved reference run produced three cases, three sessions, six occurrences, exactly 24 supporting events, and zero explicit signals. Its full cohort contained 79 events; do not present 79 as a guaranteed total for a fresh capture.
@@ -50,18 +50,11 @@ npm run living -- improve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --
 
 If using the API, select it explicitly with `--provider api`; never imply fallback.
 
-### 1:35-1:58 — Visualize in Studio
+### 1:35-1:58 — Review in the terminal
 
-Start Studio before installation so the Live Run page shows the real state transition. Studio is required for this submission story:
-
-```bash
-npm run studio:live -- --root ../Living-Manual-Test-Fixed/crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001 --new-session
-```
-
-- Open `http://127.0.0.1:3001/live` and show only events and lifecycle transitions that actually arrive from the validated ledger and awaited backend operations.
-- Show trigger → structured model result → exact code proposal → static proof → human gate. The UI does not expose private model reasoning.
-- Keep current source, proposed source, and the responding host visually distinct. A responding frame is not runtime proof until the changed UI is inspected.
-- Use truthful jump cuts or acceleration for idle model/build waiting and label a removed wait. Run CRM tests off-camera; keep the public cut under 2:59.
+- Use `living status` if needed for a clean view of the actual proposal, proof hashes, and printed next command.
+- Show prepared source separately from the unchanged CRM, then use truthful jump cuts for idle waiting.
+- Run CRM tests off-camera and keep the public cut under 2:59.
 
 ### 1:58-2:25 — Approve and apply
 
@@ -81,7 +74,7 @@ npm run living -- approve --root ../Living-Manual-Test-Fixed/crm-workflow-lab --
 npm run living -- rollback --root ../Living-Manual-Test-Fixed/crm-workflow-lab --evolution <id> --actor hackathon-demo
 ```
 
-Reload the CRM and show the exact original state. Show the receipt chain in terminal or Studio.
+Reload the CRM and show the exact original state. Show the receipt chain in the terminal.
 
 ### 2:45-2:59 — Close honestly
 
