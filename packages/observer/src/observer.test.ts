@@ -94,6 +94,25 @@ function runtimeMap(overrides: {
   };
 }
 
+function activationOnlyRuntimeMap(): ObservationRuntimeMap {
+  const config = runtimeMap();
+  const target = config.targets[0];
+  assert.ok(target);
+  const { click, deadClick, rageClick } = target.events;
+  assert.ok(click);
+  assert.ok(deadClick);
+  assert.ok(rageClick);
+  return {
+    ...config,
+    targets: [
+      {
+        ...target,
+        events: { click, deadClick, rageClick },
+      },
+    ],
+  };
+}
+
 class FakeEventTarget {
   readonly listeners = new Map<string, Set<(event: unknown) => void>>();
 
@@ -437,9 +456,9 @@ test("resolves existing living ids before test-id and structural fallbacks", asy
   assert.ok(events.some((event) => event.name === "deal.save.click"));
 });
 
-test("detects dead clicks, rage clicks, and corrections without reading values", async () => {
+test("activation-only targets still detect dead clicks and rage clicks", async () => {
   const scope = createScope();
-  const controller = startRuntime(runtimeMap(), scope);
+  const controller = startRuntime(activationOnlyRuntimeMap(), scope);
   const target = new FakeElement("button", { "data-living-id": "deal.save" });
 
   scope.document.dispatch("click", { target });
@@ -447,15 +466,54 @@ test("detects dead clicks, rage clicks, and corrections without reading values",
   scope.document.dispatch("click", { target });
   scope.document.dispatch("click", { target });
   scope.document.dispatch("click", { target });
+  await controller.flush();
+
+  const names = allEvents(scope).map(parseWorkflowEvent).map((event) => event.name);
+  assert.equal(names.filter((name) => name === "deal.save.dead-click").length, 1);
+  assert.equal(names.filter((name) => name === "deal.save.rage-click").length, 1);
+  await controller.stop();
+});
+
+test("slow native select choices and trailing clicks do not infer dead clicks", async () => {
+  const scope = createScope();
+  const controller = startRuntime(runtimeMap(), scope);
+  const target = new FakeElement("select", { "data-living-id": "deal.save" });
+
+  scope.document.dispatch("click", { target });
+  scope.runTimeouts();
   scope.document.dispatch("change", { target });
-  scope.document.dispatch("change", { target });
+  scope.document.dispatch("click", { target });
   scope.runTimeouts();
   await controller.flush();
 
-  const names = new Set(allEvents(scope).map(parseWorkflowEvent).map((event) => event.name));
-  assert.ok(names.has("deal.save.dead-click"));
-  assert.ok(names.has("deal.save.rage-click"));
-  assert.ok(names.has("deal.save.correction"));
+  const names = allEvents(scope).map(parseWorkflowEvent).map((event) => event.name);
+  assert.equal(names.filter((name) => name === "deal.save.click").length, 2);
+  assert.equal(names.filter((name) => name === "deal.save.change").length, 1);
+  assert.equal(names.includes("deal.save.dead-click"), false);
+  assert.equal(names.includes("deal.save.rage-click"), false);
+  await controller.stop();
+});
+
+test("change-capable targets retain corrections without rage-click inference", async () => {
+  const scope = createScope();
+  const controller = startRuntime(runtimeMap(), scope);
+  const target = new FakeElement("select", { "data-living-id": "deal.save" });
+
+  scope.document.dispatch("click", { target });
+  scope.document.dispatch("change", { target });
+  scope.document.dispatch("click", { target });
+  scope.document.dispatch("change", { target });
+  scope.document.dispatch("click", { target });
+  scope.runTimeouts();
+  await controller.flush();
+
+  const names = allEvents(scope).map(parseWorkflowEvent).map((event) => event.name);
+  assert.equal(names.filter((name) => name === "deal.save.click").length, 3);
+  assert.equal(names.filter((name) => name === "deal.save.change").length, 2);
+  assert.equal(names.filter((name) => name === "deal.save.correction").length, 1);
+  assert.equal(names.includes("deal.save.dead-click"), false);
+  assert.equal(names.includes("deal.save.rage-click"), false);
+  await controller.stop();
 });
 
 test("emits supported vitals and session end through an application/json beacon", async () => {

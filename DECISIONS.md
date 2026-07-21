@@ -181,3 +181,12 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 - **Decision:** Settled status and listing validate state and receipts without acquiring a mutation lease. A pending journal or inconsistent concurrent snapshot falls back to locked recovery; mutations remain serialized.
 - **Why:** Status polling should not change host state or require an available write lease when no recovery is needed.
 - **Consequence:** Studio and CLI polling do not disturb an existing lease, while crash recovery and mutation safety remain unchanged.
+
+## D-021 - Separate change-control corrections from click-friction inference
+
+- **Date:** 2026-07-21
+- **Status:** Accepted
+- **Owner:** Achref Boularess with Codex manual-run debugging
+- **Decision:** A mapped target with a declared `change` binding records click and change actions and may emit correction signals, but it does not emit click-derived dead-click or rage-click signals. Dead/rage inference remains available for activation-only targets without a change binding.
+- **Why:** Native selects and other browser-owned change controls can remain open without mutating the document, and browsers can deliver trailing or duplicated clicks around a legitimate change. Treating those clicks as failed interaction creates deterministic false positives that can become model context.
+- **Consequence:** Correction loops remain measurable without capturing values, keyboard input, or content. Opening, inspecting, canceling, or slowly choosing a native option is not labeled failure. Activation-only buttons and links retain the existing dead/rage detector and threshold behavior.

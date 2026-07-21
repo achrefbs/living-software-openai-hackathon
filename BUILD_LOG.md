@@ -666,6 +666,39 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-21 - Remove native change-control click-friction false positives
+
+**Scope**
+
+- A user-controlled CRM run captured four browser sessions and 62 events, but a native Stage dropdown produced six `dead-click` signals and one `rage-click` alongside only one real `correction`. The deterministic analyzer therefore emitted `failure-cluster` instead of the intended correction-driven negative control and `rework-loop`.
+- The trace isolated a semantic conflict: change-capable controls had both change/correction bindings and generic click-friction bindings, while browser-owned select UI may legitimately produce clicks without a DOM mutation for longer than the dead-click window.
+- The generated observer now performs dead/rage inference only for targets without a declared change binding. It continues to record click and change actions, preserves correction detection, and retains dead/rage detection for activation-only controls.
+- Added focused regressions for activation-only button friction, a slow native select choice with a trailing click, and repeated change-capable corrections without dead/rage inference.
+- Added self-contained manual-test helpers and prepared a second untouched CRM clone for a clean rerun. The original evidence remains preserved as bug evidence; it was not reset or edited.
+
+**How Codex accelerated the work**
+
+- Codex correlated the raw event chronology with discovery bindings, generated runtime behavior, MutationObserver timing, and detector arbitration; parallel reviewers independently checked the runtime semantics and PowerShell failure.
+- Codex implemented the minimal signal-boundary change, split the regression coverage, rebuilt the installable CLI, verified the independent CRM, and corrected terminal instructions so new PowerShell windows do not depend on variables from another process.
+
+**How GPT-5.6 was used**
+
+- GPT-5.6 was not called on the contaminated evidence. The failed `improve` command had empty PowerShell variables and Node attempted to open a local file named `improve`; no model run, proposal, evolution, approval, or source mutation occurred.
+
+**Human decisions**
+
+- The manual interaction remains explicitly labeled synthetic because it is controlled demo/test evidence, not organic production usage. No simulator drives the browser.
+- A proposal must not be generated from the first run because its selected opportunity is based primarily on invalid select click-friction signals. The clean rerun must prove the two-case negative control and three-case correction threshold first.
+
+**Evidence**
+
+- Observer workspace: 14/14 tests pass, including the three click-friction/correction regressions.
+- Full repository gate: 284 passing tests (263 product and 21 integration) with one intentional Windows filesystem skip; all workspace builds, typechecks, baseline compliance checks, and the Codex process-isolation test pass. The first sandboxed gate was rerun with process permission after Windows returned `spawn EPERM` for its required child process.
+- The fresh independent CRM at commit `545136b` passes its Next.js 15.5.20 production build and remains Git-clean with no `.living` installation or evidence before the entrant starts the rerun.
+- `npm run submit:check` still fails truthfully because 20 submission checklist items and the required `/feedback` Codex Session ID remain open. This entry does not claim submission readiness.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

@@ -593,7 +593,7 @@ const startGeneratedLivingObserver = (runtimeConfig, injectedScope) => {
         interaction: interactionType,
         ...geometryFor(mapped.element),
       });
-      if (interactionType === "click") {
+      if (interactionType === "click" && !mapped.target.events.change) {
         const expectedActivityVersion = activityVersion;
         detectRageClick(mapped, timestamp);
         scheduleDeadClickCheck(mapped, expectedActivityVersion);
