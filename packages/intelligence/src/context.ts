@@ -76,10 +76,38 @@ export function boundProductContext(
   opportunity: Opportunity,
   events: readonly WorkflowEvent[],
 ): BoundedProductContext {
-  const nodes: BoundedProductNode[] = [...manifest.nodes]
-    .sort(byKey((node) => node.id))
-    .slice(0, NODE_LIMIT)
-    .map((node) => ({ id: node.id, kind: node.kind }));
+  const nodeById = new Map(manifest.nodes.map((node) => [node.id, node]));
+  const evidenceNodeIds = [...new Set(events.flatMap((event) =>
+    event.product === undefined ? [] : [event.product.nodeId]
+  ))].sort((left, right) => left.localeCompare(right, "en"));
+  const missingEvidenceNodeId = evidenceNodeIds.find((id) => !nodeById.has(id));
+  if (missingEvidenceNodeId !== undefined) {
+    throw new Error(`Evidence-linked product node is absent from the manifest: ${missingEvidenceNodeId}`);
+  }
+  if (evidenceNodeIds.length === 0) {
+    throw new Error("At least one evidence event must link to a product node");
+  }
+  if (evidenceNodeIds.length > NODE_LIMIT) {
+    throw new Error("Evidence-linked product nodes exceed the hard product-context node limit");
+  }
+
+  const evidenceNodeIdSet = new Set(evidenceNodeIds);
+  const neighborNodeIds = [...new Set(manifest.edges.flatMap((edge) => {
+    if (evidenceNodeIdSet.has(edge.from)) return [edge.to];
+    if (evidenceNodeIdSet.has(edge.to)) return [edge.from];
+    return [];
+  }))]
+    .filter((id) => !evidenceNodeIdSet.has(id))
+    .sort((left, right) => left.localeCompare(right, "en"));
+  const relevantNodeIdSet = new Set([...evidenceNodeIds, ...neighborNodeIds]);
+  const lexicalFillNodeIds = [...nodeById.keys()]
+    .filter((id) => !relevantNodeIdSet.has(id))
+    .sort((left, right) => left.localeCompare(right, "en"));
+  const selectedNodeIds = [
+    ...evidenceNodeIds,
+    ...neighborNodeIds,
+    ...lexicalFillNodeIds,
+  ].slice(0, NODE_LIMIT);
   const operations = [...(manifest.hostInterface?.operations ?? [])]
     .sort(byKey((operation) => `${operation.id}@${operation.version}`))
     .slice(0, OPERATION_LIMIT)
@@ -97,6 +125,10 @@ export function boundProductContext(
   });
 
   const makeContext = (): BoundedProductContext => {
+    const nodes: BoundedProductNode[] = selectedNodeIds
+      .map((id) => nodeById.get(id)!)
+      .map((node) => ({ id: node.id, kind: node.kind }))
+      .sort(byKey((node) => node.id));
     const nodeIds = new Set(nodes.map((node) => node.id));
     const edges = [...manifest.edges]
       .filter((edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to))
@@ -120,14 +152,20 @@ export function boundProductContext(
       },
       included: { nodes: [...nodes], edges, operations, extensionPoints, evidenceEvents },
       truncated: includedCount < totalCount,
+      relevantProductNodeIds: selectedNodeIds
+        .filter((id) => relevantNodeIdSet.has(id))
+        .sort((left, right) => left.localeCompare(right, "en")),
       sampleEvidenceAliases,
       evidenceScope: evidenceScope(opportunity.evidence.dataOrigin),
     };
   };
 
   let context = makeContext();
-  while (Buffer.byteLength(JSON.stringify(context), "utf8") > BYTE_LIMIT && nodes.length > 0) {
-    nodes.pop();
+  while (
+    Buffer.byteLength(JSON.stringify(context), "utf8") > BYTE_LIMIT &&
+    selectedNodeIds.length > evidenceNodeIds.length
+  ) {
+    selectedNodeIds.pop();
     context = makeContext();
   }
   if (Buffer.byteLength(JSON.stringify(context), "utf8") > BYTE_LIMIT) {

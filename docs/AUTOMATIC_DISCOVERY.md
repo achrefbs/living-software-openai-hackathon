@@ -20,11 +20,12 @@ living install
 ordinary UI activity
   -> privacy-minimized, hash-linked local evidence
   -> deterministic workflow + metric analysis
-  -> current threshold-based backtracking opportunity
+  -> threshold-based correction, interaction-failure, or corroborated-backtracking opportunity
 
 living improve --provider codex|api
   -> GPT-5.6 evidence interpretation
-  -> at most 3 manifest-linked UI candidates / 96 KB
+  -> evidence-first bounded product context
+  -> at most 3 source candidates from cited relevant nodes / 96 KB
   -> second tool-less GPT-5.6 call authors 1-8 edits to 1 existing UI file
   -> deterministic compilation + static proof
   -> prepared state; host unchanged
@@ -38,7 +39,7 @@ explicit studio:sync
   -> Studio map, workflows, opportunity, proposal, proof and receipts
 ```
 
-The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing, detecting an opportunity, or prompting GPT. Simulator output is compared only after a run. `studio:sync` exports a verified, privacy-minimized snapshot through an explicit local file boundary; Studio is not continuous live ingestion. For an exactly bound captured host, Evolution Review can use its loopback-only development broker to invoke the explicitly selected GPT-5.6 provider and the same governed lifecycle ledger as the CLI. Neutral, disconnected, and identity-mismatched views remain read-only.
+The separate Surus CRM simulator drives the public UI. Living does not import its traces or scenario labels while observing, detecting an opportunity, or prompting GPT. Simulator output is compared only after a run. Product-context budgeting retains evidence-linked manifest nodes and their direct graph neighbors ahead of deterministic lexical fill; GPT may cite affected nodes only from that relevant set. `studio:sync` exports a verified, privacy-minimized snapshot through an explicit local file boundary; Studio is not continuous live ingestion. For an exactly bound captured host, Evolution Review can use its loopback-only development broker to invoke the explicitly selected GPT-5.6 provider and the same governed lifecycle ledger as the CLI. Neutral, disconnected, and identity-mismatched views remain read-only.
 
 ## CLI surface
 
@@ -147,6 +148,15 @@ These are technical observations. Automatic browser telemetry does not know whet
 
 A layout hypothesis requires repeated workflow friction plus a spatial or performance burden within one viewport class. No model or detector may recommend moving an element solely because of its coordinates.
 
+### Current opportunity rules
+
+- Three or more cases containing explicit `correction` signals can produce a `rework-loop` opportunity.
+- Three or more cases containing explicit `dead-click` or `rage-click` signals can produce one `failure-cluster` opportunity.
+- Backtracking detector v1.2 requires at least three affected cases, at least two revisits per case, and at least one explicit technical signal or failed/abandoned event in every affected case. Repeated successful navigation without that corroboration is a negative control, not an opportunity.
+- Only the exact minimized signal or corroborated journey evidence crosses the detector boundary. When multiple rules pass, deterministic arbitration selects one opportunity by affected ratio, affected cases, signal specificity, occurrence count, and stable identifier order.
+
+These rules identify reviewable technical hypotheses. They do not infer user intent, business success, or post-change improvement.
+
 ## Independent Surus CRM proof
 
 This validation completed the supported installation, runtime capture, privacy-audit, and byte-preserving removal sequence. The steps below record the proof flow.
@@ -172,7 +182,7 @@ The first run produced a 170-node manifest. Visual Studio review exposed 26 orph
 - The clean smoke completed two of two synthetic browser sessions with 46 simulator events and 42 actions. Living independently stored 17 hash-linked records containing 86 events, projected two cases and two variants, computed 61 metric values, and emitted no opportunity.
 - The added friction cohort used seed 202 and pace 0. It completed three of three synthetic sessions with 75 simulator events and 69 actions, with zero simulator retries or errors.
 - The final corrected release contains 48 records and 224 Living events across five cases. Its chain head is `sha256:58ededd51d06ea7e3ee66af41dcaa9273059ac4722fa611c93d6d120c0a147b2`; deterministic analysis produced five variants and 70 metric values.
-- `detector.backtracking@1.1.0` emitted `opportunity.backtracking.fcf5d947adf8`: three affected cases, 17 revisits, affected ratio 0.6, confidence 0.74, and 17 sample event references.
+- The then-current `detector.backtracking@1.1.0` emitted `opportunity.backtracking.fcf5d947adf8`: three affected cases, 17 revisits, affected ratio 0.6, confidence 0.74, and 17 sample event references. This is retained as historical proof; it is not represented as a new v1.2 detection.
 - Two consecutive `snapshot --root` exports were byte-identical. The `living.studio-snapshot/v1` result contained five cases, 144 mapped nodes, and 224 events without absolute paths, raw event/session/case/user identifiers, or simulator output. The sync script accepted its explicit synthetic provenance and wrote it only to the gitignored Studio `.local` directory.
 - Product Map, Workflows, Opportunities, Evolutions, and Receipts were browser-verified against the corrected snapshot. Studio labels it as a validated synthetic static export, not live telemetry; GPT-5.6 was not called for that snapshot. The separately recorded neutral proof can be inspected in Evolution Review, while captured-snapshot interpretation and receipts remain explicitly unconnected.
 - Simulator traces remained a post-run oracle only. They were never input to discovery, workflow projection, metrics, the detector, or Studio.

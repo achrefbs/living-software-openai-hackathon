@@ -29,6 +29,7 @@
     "proof:gpt56:cli": "npm run build:packages && node scripts/run-gpt56-demo.mjs --provider codex --out docs/proof/gpt56-live-codex-cli.json",
     "preview:crm": "npm run build:packages && node scripts/create-crm-preview.mjs",
     "demo:neutral": "npm run build:cli && node scripts/run-neutral-demo.mjs",
+    "judge:neutral": "node scripts/run-neutral-demo.mjs",
     "living": "node packages/cli/dist/main.js",
     "test": "npm run check && npm run typecheck && npm run test:product && npm run test:integration",
     "test:automatic": "npm run build:automatic && npm run test --workspace @living-software/automatic",

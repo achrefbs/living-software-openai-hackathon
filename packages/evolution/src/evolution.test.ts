@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  chmod,
   mkdtemp,
   mkdir,
   readFile,
@@ -578,6 +579,57 @@ test("v2 listing ignores isolated legacy v1 storage", async () => {
   assert.match(prepared.storage.directory, /^\.living\/data\/evolutions-v2\//u);
   await rm(root, { recursive: true, force: true });
 });
+
+test("settled status and listing do not require a writable mutation-lock slot", async () => {
+  const root = await rootFixture("lead-navigation");
+  const prepared = await prepareSourceEvolution(prepareInput(root, "lead-navigation"));
+  const lockPath = storageFile(root, prepared, "mutation.lock");
+  const sentinel = "read-only-storage-sentinel\n";
+  await writeFile(lockPath, sentinel, { encoding: "utf8", flag: "wx" });
+
+  assert.equal(
+    (await getEvolutionStatus(root, prepared.evolutionId)).evolutionId,
+    prepared.evolutionId,
+  );
+  assert.deepEqual(
+    (await listEvolutionStatuses(root)).map((entry) => entry.evolutionId),
+    [prepared.evolutionId],
+  );
+  assert.equal(await readFile(lockPath, "utf8"), sentinel);
+  await rm(root, { recursive: true, force: true });
+});
+
+test(
+  "settled status and listing work with read-only evolution storage",
+  { skip: process.platform === "win32" },
+  async () => {
+    const root = await rootFixture("lead-navigation");
+    const prepared = await prepareSourceEvolution(
+      prepareInput(root, "lead-navigation"),
+    );
+    const directory = path.join(root, ...prepared.storage.directory.split("/"));
+    const statePath = storageFile(root, prepared, "state.json");
+    const receiptsPath = storageFile(root, prepared, "receipts.ndjson");
+    await chmod(statePath, 0o444);
+    await chmod(receiptsPath, 0o444);
+    await chmod(directory, 0o555);
+    try {
+      assert.equal(
+        (await getEvolutionStatus(root, prepared.evolutionId)).status,
+        "prepared",
+      );
+      assert.deepEqual(
+        (await listEvolutionStatuses(root)).map((entry) => entry.status),
+        ["prepared"],
+      );
+    } finally {
+      await chmod(directory, 0o755);
+      await chmod(statePath, 0o644);
+      await chmod(receiptsPath, 0o644);
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
 
 test("journal recovery completes a dynamic-target apply exactly once", async () => {
   const root = await rootFixture("priority-card");

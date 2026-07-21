@@ -9,7 +9,7 @@ Living Software treats host source, observed events, and every model response as
 | Discovery | Read supported TypeScript/Next.js source and derive a source-linked manifest | Next.js App Router 15.3+ using `src/app`; no module import, JSX execution, host scripts, arbitrary configuration, or path escape |
 | Installer | Create declared observation files after explicit installation | Create-only, repository-relative, symlink-safe, atomic and hash-journaled; no `package.json` edit or overwrite |
 | Observer and collector | Record bounded same-origin workflow, performance, friction and CSS-pixel geometry evidence | No text, form values, keystrokes, query strings, DOM/HTML, cookies, headers, bodies, screenshots, or persistent user identifiers |
-| Analyzer | Deterministically derive workflows, metrics and the current threshold-based backtracking opportunity | No model inference, business-outcome truth, causality, or host mutation |
+| Analyzer | Deterministically derive workflows, metrics, exact-evidence candidates for corroborated backtracking, repeated corrections and dead/rage-click failures, then select at most one through input-order-independent arbitration | No model inference, business-outcome truth, causality, or host mutation |
 | GPT brief call | Interpret one exact privacy-minimized opportunity | Strict schema and evidence references; no tools, approval or source authority |
 | Source projection | Read UI files linked by the brief's affected manifest nodes | At most 3 regular UTF-8 files, 64 KB each and 96 KB total; only eligible existing source; symlinks and read races fail closed |
 | GPT patch call | Select one supplied candidate and author 1-8 exact anchor/replacement edits | Strict schema; no terminal, filesystem, browser, network tool, or access to any unprojected file |
@@ -22,12 +22,13 @@ Living Software treats host source, observed events, and every model response as
 
 Living intentionally allows GPT-5.6 to invent the proposed UI change. It confines that creativity before and after the request:
 
-1. The evidence brief may reference only product nodes bound to the exact manifest and opportunity.
-2. Living maps those nodes to eligible source provenance below `src/app` or `src/components`.
-3. It sends no more than three candidate files, no file larger than 64 KB, and no more than 96 KB in total.
-4. The model is instructed to select exactly one candidate and return one to eight exact anchor/replacement edits.
-5. Both the brief and patch calls use strict Structured Outputs and no requested tools. The Codex CLI transport runs from a private read-only temporary workspace with installed host-capable features disabled; the Responses API transport uses `store: false`.
-6. Living revalidates the response locally. Model prose or source comments never become authority.
+1. For exact built-in detector versions, Living recomputes metrics, evidence counts, samples, time bounds, confidence, configuration and opportunity identity from the minimized events before model transport. Unknown detector versions remain subject to the generic contract and evidence checks only.
+2. The model context always retains evidence-linked product nodes and then their included one-edge manifest neighbors. Only that relevant set may appear in `affectedProductNodeIds`; lexically selected fill nodes are context only.
+3. Living maps the cited affected nodes to eligible source provenance below `src/app` or `src/components`.
+4. It sends no more than three candidate files, no file larger than 64 KB, and no more than 96 KB in total.
+5. The model is instructed to select exactly one candidate and return one to eight exact anchor/replacement edits.
+6. Both the brief and patch calls use strict Structured Outputs and no requested tools. The Codex CLI transport runs from a private read-only temporary workspace with installed host-capable features disabled; the Responses API transport uses `store: false`.
+7. Living revalidates the response locally. Model prose or source comments never become authority.
 
 Eligible patch targets are existing `.ts`, `.tsx`, `.js`, `.jsx`, or `.css` files below `src/app` or `src/components`. Route handlers, API directories, tests, E2E files, configuration, hidden paths, declarations, lock files, new files, multiple files and dependencies are excluded.
 
@@ -54,6 +55,8 @@ These are static defense-in-depth checks, not a semantic proof that arbitrary ge
 Application fails if the source no longer equals the approved preimage. Rollback fails unless it still equals the applied postimage. Transactions and receipts are recovered and revalidated after interruption. The model cannot satisfy any lifecycle transition.
 
 Approval, application, and rollback are serialized by an application-scoped lease lock within the repository. Approval or application rejects another same-app evolution already in `approved` or `applied`; exact rollback releases that active slot.
+
+Settled `status` and listing reads validate the hash-linked state and receipts without acquiring or modifying the mutation lease. If a pending transaction journal exists, the read falls back to the locked recovery path. Mutations remain application- and evolution-locked.
 
 ## Installation and removal safety
 

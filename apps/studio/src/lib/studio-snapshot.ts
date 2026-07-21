@@ -298,6 +298,7 @@ export function studioDatasetFromSnapshot(snapshot: StudioSnapshot): StudioDatas
           `${snapshot.opportunity.evidence.subjectCount} captured cases crossed the ` +
           `${snapshot.opportunity.detector.id} threshold. This is deterministic evidence, not a causal explanation.`,
         status: "detected",
+        signalKind: snapshot.opportunity.signal.kind,
         detector: snapshot.opportunity.detector.id,
         detectorVersion: snapshot.opportunity.detector.version,
         confidence: snapshot.opportunity.confidence.score,

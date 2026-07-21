@@ -14,7 +14,9 @@ living install
 
 ordinary UI activity
   -> privacy-minimized, hash-linked local evidence
-  -> deterministic workflows + metrics + opportunity
+  -> deterministic workflows + metrics
+  -> corroborated-backtracking, correction-rework and dead/rage-click candidates
+  -> deterministic single-opportunity arbitration
 
 living improve --provider codex|api
   -> GPT-5.6 evidence interpretation
@@ -39,7 +41,7 @@ explicit studio:sync
 | Discovery | Source-linked nodes, edges, routes and runtime locators for supported `src/app` repositories | Arbitrary Node/framework support; host execution; business-goal inference |
 | Installer | Create-only atomic writes, journaled hashes, idempotency and exact-hash removal | Existing-file overwrite, dependency editing, evidence deletion |
 | Observer/collector | Route/action/performance/friction events and bounded CSS-pixel geometry in manifest-scoped hash chains | Content, DOM, screenshots, persistent identity, production telemetry |
-| Analyzer | Deterministic workflow cases, variants, metrics and the current threshold-based backtracking opportunity | Causality or automatic knowledge of success |
+| Analyzer | Deterministic workflow cases, variants, metrics, exact-evidence candidates for corroborated backtracking, repeated corrections and dead/rage-click failures, plus input-order-independent arbitration | Causality or automatic knowledge of success |
 | Intelligence | Explicit Codex CLI and Responses API transports; evidence brief plus source-patch Structured Outputs; provenance and local validation | Tools, filesystem authority, approval or application authority |
 | Candidate selector | Source provenance from affected manifest nodes; at most 3 files, 64 KB each and 96 KB total | Repository-wide context, API/tests/configuration, symlinks, binary or changed-during-read files |
 | Evolution engine | One existing UI file, 1-8 exact edits, static guards, exact hashes, proof, receipts, approval, apply, recovery and rollback | New/multiple files, dependencies, Git, server/network/process/secret/dynamic-code authority |
@@ -48,7 +50,7 @@ explicit studio:sync
 
 ## Two model calls, one authority boundary
 
-The first GPT-5.6 call receives the exact privacy-minimized opportunity context and returns an `EvolutionBrief`. Living validates all cited evidence, metrics and affected product nodes.
+Before the first GPT-5.6 call, Living revalidates the exact minimized evidence and recomputes the semantics of known built-in detector versions. Product context is evidence-first: evidence-linked nodes are retained, included one-edge neighbors follow, and lexical fill is context only. The returned `EvolutionBrief` may name affected nodes only from the evidence-linked/neighbor set.
 
 Living then resolves those affected nodes to eligible UI source provenance. It reads at most three exact candidates, capped at 96 KB total. The second GPT-5.6 call receives only the validated brief and those candidates. It selects one file and authors one to eight exact anchor/replacement edits.
 
@@ -75,12 +77,15 @@ prepared -> approved -> applied -> rolled-back
 ```
 
 - GPT can create only an untrusted proposal.
-- Deterministic code owns source selection, validation, hashes, proof and filesystem operations.
+- Deterministic code owns candidate projection, target validation, hashes, proof and filesystem operations; GPT selects only among the supplied candidates.
 - A human resupplies and approves the exact artifact and proof hashes; the engine binds the stored contract and current receipt revision.
 - Application writes only while the target equals the approved preimage.
 - Rollback restores only while the target equals the applied postimage.
 - Every transition extends the receipt chain; interrupted transactions are recovered before further work.
 - An application-scoped lease lock serializes mutations; a same-app sibling cannot also become approved or applied until the active evolution is rolled back.
+- `improve` reuses an existing evolution only when the app, manifest, opportunity ID, and complete stored Opportunity contract are deeply equal.
+
+Settled `status` and listing reads validate state and receipts without acquiring or modifying the mutation lease. If a pending journal exists, the read enters the locked recovery path. Mutations remain application- and evolution-locked.
 
 `approve --apply` combines two explicit engine transitions for terminal convenience: record exact human approval, then apply that same approved postimage. Omitting `--apply` preserves separate approval and application commands.
 

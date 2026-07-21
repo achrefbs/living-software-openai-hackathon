@@ -43,12 +43,12 @@ npm run living -- apply --root <next-app> --evolution <id>
 - Bounded, non-executing discovery of a supported Next.js application into a source-linked Product Manifest, observation runtime map, and metric catalog.
 - Create-only, hash-journaled installation of a self-contained browser observer and same-origin local collector.
 - Privacy-minimized route, action, performance, friction, viewport, visibility, scroll, and CSS-pixel geometry capture.
-- Hash-linked, manifest-scoped local evidence plus deterministic workflow projection, technical metrics, and the current threshold-based backtracking opportunity.
+- Hash-linked, manifest-scoped local evidence plus deterministic workflow projection, technical metrics, and threshold-based opportunities. Corrections can produce a `rework-loop`; dead/rage clicks can produce a `failure-cluster`; each requires at least three affected cases. Backtracking v1.2 requires at least three cases with two revisits each plus a technical signal or failed/abandoned event in every affected case.
 - A terminal-first lifecycle: `install`, `improve`, `status`, `approve`, `apply`, and `rollback`.
 - Explicit Codex CLI and Responses API GPT-5.6 transports with strict structured outputs and no automatic fallback.
 - An evidence-bound `EvolutionBrief`, followed by a separate GPT-authored source-patch proposal.
 - An authorized live CRM run through two Codex CLI requests, deterministic proof, exact-hash human approval, source application, CRM tests/build, and browser-visible rendering.
-- Read-only source projection limited to at most three eligible files, 64 KB per file and 96 KB total, selected only from source provenance on affected manifest nodes.
+- Evidence-first product context that retains evidence-linked nodes and their direct graph neighbors before deterministic lexical fill, and restricts model-cited affected nodes to that relevant set. The subsequent read-only source projection is limited to at most three eligible files, 64 KB per file and 96 KB total, selected from source provenance on those cited nodes.
 - One-file patch compilation with one to eight exact, unique, non-overlapping anchor replacements; exact preimage/postimage hashes; static authority and diff guards; an append-only receipt chain; human approval requiring the exact artifact and proof hashes; capture-verify/no-overwrite application; crash recovery; and exact-postimage rollback.
 - Living Studio surfaces for Product Map, Workflows, Opportunities, Evolution Review, Receipts, and optional Current vs Proposed comparison.
 - A neutral fixture and offline replay for credential-free deterministic verification.
@@ -56,7 +56,7 @@ npm run living -- apply --root <next-app> --evolution <id>
 ## Honest limits
 
 - Source discovery and installation currently support TypeScript Next.js App Router applications using `src/app`.
-- The current automatic proposal trigger is the configured backtracking opportunity. Other captured friction and layout metrics remain evidence; they are not all converted into proposals automatically.
+- Automatic proposal triggers are limited to the configured, threshold-passing `rework-loop`, `failure-cluster`, or corroborated backtracking opportunity selected by deterministic arbitration. Other captured layout, performance, and workflow metrics remain evidence; they are not automatically converted into proposals.
 - Patch candidates are existing `.ts`, `.tsx`, `.js`, `.jsx`, or `.css` UI files below `src/app` or `src/components`. API routes, route handlers, tests, configuration, symlinks, new files, multiple files, and dependency changes are excluded.
 - Static guards reject declared server, network, process, secret, dynamic-code, raw-HTML, script, Git, and dependency authority. Passing those guards does not prove the model's idea is correct, accessible, secure in every semantic sense, or buildable.
 - Applying source records an exact source transition; it is not proof that the running application hot-reloaded successfully. The operator must build or reload and inspect the host.
@@ -79,6 +79,23 @@ Install and build:
 npm install
 npm run build:cli
 ```
+
+### No-rebuild judge path
+
+The repository includes the final platform-neutral JavaScript output for every
+CLI package. After dependency installation, judges can run the credential-free
+proof without compiling TypeScript or rebuilding Studio:
+
+    npm ci
+    npm run judge:neutral
+    npm run living -- map --fixture samples/neutral-host/host-fixture.json
+
+The judge:neutral command maps the neutral host and replays 31 explicitly
+synthetic events. Its current backtracking v1.2 opportunity requires three
+affected cases, two revisits per case, and an allowlisted correction signal in
+every affected case. It does not call a model or mutate another repository.
+The preserved live artifacts and stress record demonstrate the separate
+material GPT-5.6 path.
 
 Map the included neutral descriptor:
 
@@ -150,7 +167,7 @@ The intelligence request excludes raw event IDs, source provenance unrelated to 
 
 Fixtures under `samples/neutral-host` contain no real identities, messages, customers, credentials, or production telemetry. The separate CRM simulator uses synthetic records. Simulator conclusions are never an input to Living's discovery or detector.
 
-The current synthetic CRM capture demonstrates that the observation system can independently derive 18 backtracking revisits across three workflows from 135 captured events. That evidence is a detector proof, not a claim that every application has the same problem or needs the same patch.
+The July 21 synthetic CRM capture used for the recorded GPT evolution independently produced 18 backtracking revisits across three workflows from 135 captured events under detector v1.1. That historical evidence is not a claim that every application has the same problem or needs the same patch. Current backtracking v1.2 additionally requires per-case technical-signal or failed/abandoned corroboration.
 
 ## Testing
 
@@ -161,7 +178,7 @@ npm run test
 npm run demo:neutral
 ```
 
-The tests cover strict model schemas, malicious source instructions, candidate path and size boundaries, exact edit compilation, prohibited authority, evidence/model binding, lifecycle transitions, crash recovery, exact-hash application, and rollback. Model calls are not required for the offline test suite.
+The tests cover strict model schemas, malicious source instructions, evidence-first context under lexical decoys, candidate path and size boundaries, exact edit compilation, prohibited authority, evidence/model binding, detector thresholds and negative controls, lifecycle transitions, crash recovery, exact-hash application, and rollback. Model calls are not required for the offline test suite.
 
 Optional live intelligence paths:
 
@@ -174,7 +191,9 @@ set OPENAI_API_KEY=<runtime-secret>
 npm run demo:gpt56:api
 ```
 
-The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) demonstrates the earlier structured evidence-interpretation boundary. A [July 21 live run](docs/proof/gpt56-live-crm-source-evolution.md) records the current generic path: GPT authored `Leads` to `Back to leads`, Living exact-hash approved and applied it, and the real CRM rendered the change after passing its tests and production build. This proves governed source application and runtime rendering, not measured workflow improvement. Reproduction from the exact final submission commit and an executed runtime rollback remain submission gates.
+The preserved [GPT-5.6 Terra proof](docs/proof/gpt56-live-codex-cli.json) demonstrates the earlier structured evidence-interpretation boundary. A [July 21 live run](docs/proof/gpt56-live-crm-source-evolution.md) records the generic path: GPT authored `Leads` to `Back to leads`, Living exact-hash approved and applied it, and the real CRM rendered the change after passing its tests and production build. Living later rolled that evolution back from the exact sealed postimage to a byte-identical preimage, closed a valid ninth receipt, and returned the CRM integration to a healthy state.
+
+The separate [live stress record](docs/proof/gpt56-live-stress-evolutions.md) adds a below-threshold negative control and two different positive domains. A correction loop produced GPT-authored lead guidance in `src/app/leads/[id]/page.tsx`; an isolated rage-click cluster produced GPT-authored live sort feedback in `src/components/leads-table.tsx`. Both passed deterministic proof, exact approval/application, 112 CRM tests, a production build, browser verification, and byte-exact rollback. This proves governed source application, materially different source selection, runtime rendering, and exact restoration—not measured workflow improvement. Reproduction from the exact final submission commit remains a submission gate.
 
 ## Judge path
 
@@ -210,7 +229,9 @@ npm run living -- rollback --root ../crm-workflow-lab --evolution <id> --actor j
 
 Use `--provider api` only with an entrant-supplied runtime API key. Never claim runtime success or improvement measurement without showing that separate evidence.
 
-The required no-rebuild distribution and fresh-clone verification remain submission gates until recorded in [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
+The checked-in package distribution provides the no-rebuild terminal path.
+Fresh-clone verification against the exact final commit remains a submission
+gate until recorded in [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
 
 ## How Codex and GPT-5.6 are being used
 
@@ -225,6 +246,7 @@ GPT-5.6 cannot approve, apply, roll back, invoke tools, or bypass the determinis
 
 ## Documentation
 
+- [How Living Software works](docs/HOW_LIVING_SOFTWARE_WORKS.md)
 - [Automatic discovery and observation](docs/AUTOMATIC_DISCOVERY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Security and trust model](SECURITY.md)

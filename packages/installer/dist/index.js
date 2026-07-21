@@ -1,0 +1,2 @@
+export { INSTALL_RECORD_PATH, InstallConflictError, applyCreateOnlyInstall, applySafeUninstall, planCreateOnlyInstall, planSafeUninstall, readInstallRecord, } from "./installer.js";
+//# sourceMappingURL=index.js.map

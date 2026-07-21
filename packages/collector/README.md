@@ -21,7 +21,9 @@ manifest's release segment.
 
 `analyzeEvidenceRecords` verifies the complete chain before projecting
 workflow cases and variants, producing a contract-validated Metric Report,
-and optionally detecting the existing deterministic backtracking opportunity.
+deriving exact-evidence candidates for corroborated backtracking, correction
+rework and dead/rage-click failure clusters, and selecting at most one through
+deterministic input-order-independent arbitration.
 
 The first automatic metric slice is strictly technical. Control and geometry
 metrics are scoped by product node, owner route, and responsive viewport when

@@ -23,6 +23,7 @@ import {
   type DraftSourcePatchResult,
   type IntelligenceClient,
 } from "@living-software/intelligence";
+import { isDeepStrictEqual } from "node:util";
 
 import {
   loadAutomaticEvolutionInput,
@@ -324,7 +325,8 @@ async function exactExistingEvolution(
     if (
       state.app.appId === input.application.appId &&
       state.bindings.manifestHash === input.application.manifestHash &&
-      state.bindings.opportunityId === input.opportunity.opportunityId
+      state.bindings.opportunityId === input.opportunity.opportunityId &&
+      isDeepStrictEqual(state.inputs.opportunity, input.opportunity)
     ) {
       return state;
     }

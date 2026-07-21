@@ -24,3 +24,7 @@ Current artifact:
 - `gpt56-live-crm-source-evolution.md` — sanitized July 21 record of the
   generic CRM brief and patch runs, exact hashes, approval/application,
   receipt-chain audit, CRM tests/build, and browser-visible result.
+- `gpt56-live-stress-evolutions.md` — adversarial July 21 record covering a
+  below-threshold negative control, correction and interaction-failure
+  opportunities, two different GPT-authored targets, runtime checks, defects
+  found during the run, and byte-exact rollback.

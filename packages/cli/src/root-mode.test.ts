@@ -361,7 +361,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
   for (let caseIndex = 0; caseIndex < 3; caseIndex += 1) {
     const sessionId = `private-session-${caseIndex}`;
     const journey = [firstRoute, secondRoute, firstRoute, secondRoute, firstRoute];
-    const events: WorkflowEvent[] = journey.map((binding, sequence) => {
+    const journeyEvents: WorkflowEvent[] = journey.map((binding, sequence) => {
       const eventId = `private-event-${caseIndex}-${sequence}`;
       rawIdentifiers.push(eventId, sessionId, binding.eventName);
       return {
@@ -387,6 +387,20 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
         provenance: { source: "technical-telemetry", synthetic: true },
       };
     });
+    const corroborationEventId = `private-event-${caseIndex}-corroboration`;
+    rawIdentifiers.push(corroborationEventId);
+    const events: WorkflowEvent[] = [
+      ...journeyEvents,
+      {
+        ...journeyEvents[0]!,
+        eventId: corroborationEventId,
+        occurredAt: new Date(
+          Date.parse("2026-07-19T12:01:00.000Z") + caseIndex * 10_000 + journey.length * 100,
+        ).toISOString(),
+        sequence: journey.length,
+        status: "failed",
+      },
+    ];
     const batch: WorkflowEventBatch = {
       schemaVersion: "living.event-batch/v1",
       sequence: 0,
@@ -447,7 +461,7 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
   assert.equal(controlResponse.status, 202, JSON.stringify(await controlResponse.clone().json()));
 
   const snapshot = parseStudioSnapshot(await runRootCommand("snapshot", { root }));
-  assert.equal(snapshot.evidence.events, 17);
+  assert.equal(snapshot.evidence.events, 20);
   assert.equal(snapshot.workflows.cases.length, 4);
   assert.equal(snapshot.workflows.variants.length, 2);
   assert.equal(snapshot.workflows.variants[0]?.caseCount, 3);
@@ -467,8 +481,8 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
 
   const evolutionInput = await loadAutomaticEvolutionInput(root);
   assert.equal(evolutionInput.snapshotHash, sha256(snapshot));
-  assert.equal(allEvents.length, 17);
-  assert.equal(evolutionInput.evidenceEvents.length, 15);
+  assert.equal(allEvents.length, 20);
+  assert.equal(evolutionInput.evidenceEvents.length, 18);
   assert.ok(
     evolutionInput.evidenceEvents.every(
       (candidate) => candidate.sessionId !== controlSessionId,
@@ -591,7 +605,12 @@ test("snapshot regroups journeys and minimizes detected Opportunity evidence", a
   );
   assert.deepEqual(driftedInput.evidenceEvents, evolutionInput.evidenceEvents);
   assert.notEqual(driftedInput.snapshotHash, evolutionInput.snapshotHash);
-  assert.equal(transportCalls, 1, "snapshot drift must not require a model call");
+  assert.notDeepEqual(
+    driftedInput.opportunity,
+    evolutionInput.opportunity,
+    "source-cohort drift must produce a different full Opportunity contract",
+  );
+  assert.equal(transportCalls, 1, "loading the drifted analysis does not itself call a model");
 });
 
 test("uninstall preserves evidence policy files and permits a clean reinstall", async (t) => {

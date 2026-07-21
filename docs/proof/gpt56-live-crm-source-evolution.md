@@ -22,14 +22,15 @@ separate `crm-workflow-lab` test host.
 - Artifact: `sha256:c1c6408afee5b06ddad6f0ec6571576a902daf8094c7e9b30461f49e96ccb390`
 - Proof: `sha256:29e4ab3134ba2748666d43b218626bd05ee5415569808b62f6855d96bef0f866`
 - Proof checks: 13 passed
-- Lifecycle receipts: 8
-- Receipt-chain head: `sha256:14b6a4b1f3fe8b7686f807f98008565302a75d95396851dd8a34161b0f409c0f`
+- Lifecycle receipts: 9
+- Receipt-chain head: `sha256:5855158cfb287e3ffce076353283db50626e8621ec93586126c3cb6967cb882f`
 - Approval actor label: `acera` (an audit label, not authenticated identity)
 
-The engine verified that Git HEAD matched the retained preimage and that the
-current CRM target matched the sealed postimage. Recomputed artifact, proof,
-provenance bindings, receipt hashes, lifecycle order, and deterministic patch
-compilation all passed.
+Before application, the engine verified that Git HEAD and the current CRM
+target matched the retained preimage. Before rollback, it verified that the
+target still matched the sealed postimage. Recomputed artifact, proof,
+provenance bindings, all nine receipt hashes, lifecycle order, and deterministic
+patch compilation passed.
 
 ## Runtime evidence
 
@@ -39,12 +40,20 @@ compilation all passed.
 - Visible result: the real lead detail page rendered `Back to leads`.
 - Post-apply remapping preserved `.living/data` and returned `living status`
   to `INSTALL_HEALTHY`.
+- Explicit rollback actor label: `acera-stress`.
+- Rollback result: status `rolled-back`; the target changed from the exact
+  postimage back to the byte-identical preimage
+  `sha256:e37b5c1bb7fe8665fd2d4dd313859e5cfa86256d1040afd07ade3117dfb1d5ab`.
+- The appended `installation.rolled-back` receipt is sequence 8 and closes the
+  valid nine-receipt chain. Living health checks reported the restored CRM
+  integration healthy.
 
 ## Limits
 
 - Evidence was synthetic; this does not establish production behavior.
-- Exact rollback was not executed. Its retained preimage and exact-postimage
-  precondition were verified, but a restored runtime is not claimed.
+- Exact source rollback does not by itself prove a user-visible runtime state;
+  the applied state was browser-verified, while the restored state was
+  hash- and health-verified.
 - Post-change workflow capture and before/after measurement are not
   implemented, so this is not proof that the metric improved.
 - The run occurred from the corrected working tree before the final

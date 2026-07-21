@@ -4,12 +4,19 @@ Every claim must point to runnable behavior, a test, a commit or a preserved art
 
 | Criterion | Evidence available now | Still required |
 | --- | --- | --- |
-| Technological Implementation | Versioned contracts; bounded Next.js discovery; create-only installer; browser observer and hash-linked collector; deterministic workflows/metrics/opportunity; explicit GPT-5.6 transports; manifest-bound 3-file/96-KB source projection; GPT-authored one-file 1-8-edit proposal; static proof; caller-supplied artifact/proof-hash approval; exact-preimage application; receipts, recovery and rollback; Studio | Fresh-clone/no-rebuild judge path; primary `/feedback` ID; exact submission-commit live run |
+| Technological Implementation | Versioned contracts; bounded Next.js discovery; create-only installer; browser observer and hash-linked collector; three deterministic detector families with arbitration and semantic recomputation; evidence-first model context; explicit GPT-5.6 transports; manifest-bound 3-file/96-KB source projection; GPT-authored one-file 1-8-edit proposal; static proof; caller-supplied artifact/proof-hash approval; exact-preimage application; receipts, recovery and rollback; committed no-build CLI distribution; Studio | Fresh-clone verification of the final commit; primary `/feedback` ID; exact submission-commit live run |
 | Design | Terminal-first install -> observe -> improve flow; human-readable proposal/next command; Studio map, evidence, proposal, proof, comparison and receipt surfaces; explicit unchanged/prepared/applied states | Final recorded walkthrough |
-| Potential Impact | A tool that derived CRM backtracking friction, let GPT invent a bounded UI change, exact-hash applied it, passed the CRM tests/build, and browser-rendered the result without giving the model host authority | Exact-final-commit reproduction and executed rollback; no automatic post-change measurement claim |
+| Potential Impact | A tool that rejected weak evidence, derived correction and interaction-failure opportunities, let GPT invent two different bounded UI changes and source targets, exact-hash applied them, passed CRM tests/builds, browser-rendered them and rolled them back without giving the model host authority | Exact-final-commit reproduction; no automatic post-change measurement claim |
 | Quality of Idea | Creativity and governance are separated: GPT authors the proposal, deterministic code bounds it, and a human controls exact source application | Concise entrant narration and submission copy |
 
 ## Primary judge path
+
+Credential-free, no-build proof:
+
+    npm ci
+    npm run judge:neutral
+
+The following path exercises a separate supported host and can use live GPT:
 
 ```bash
 npm install
@@ -41,11 +48,13 @@ npm run demo:neutral
 npm run dev:studio
 ```
 
-The neutral proof demonstrates deterministic plumbing and a preserved model interpretation. The separate July 21 CRM record documents a current live GPT-authored patch, exact-hash approval/application, and browser-visible runtime verification.
+The neutral proof demonstrates deterministic plumbing and a preserved model interpretation. The separate July 21 CRM record documents a live GPT-authored patch, exact-hash approval/application, browser-visible runtime verification and rollback. The stress record documents two additional detector domains and model-authored targets. These runs predate the final documentation commit and therefore do not satisfy the exact-submission-commit live-run gate.
 
 ## What judges should verify
 
 - GPT sees only an evidence brief and at most three manifest-bound UI files / 96 KB.
+- Current built-in detector semantics are recomputed from the exact minimized evidence before GPT; repeated successful navigation alone is not classified as backtracking friction.
+- Model-authored affected nodes are limited to evidence-linked nodes and included one-edge neighbors; other bounded context cannot become source-target authority.
 - GPT has no tools and proposes one existing UI file with 1-8 exact edits.
 - Living—not GPT—enforces target, preimage, anchors, static authority, diff and lifecycle bindings.
 - Prepared source is unchanged.

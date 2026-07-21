@@ -12,6 +12,7 @@ import {
 } from "@living-software/core";
 
 const sampleRoot = new URL("../samples/neutral-host/", import.meta.url);
+const allowedSignals = new Set(["correction", "dead-click", "rage-click"]);
 
 async function readJson(name) {
   return JSON.parse(await readFile(new URL(name, sampleRoot), "utf8"));
@@ -46,7 +47,19 @@ export async function buildNeutralDemo() {
     if (!Array.isArray(workflowCase.steps)) {
       throw new TypeError(`Scenario '${workflowCase.id}' must declare steps`);
     }
-    return workflowCase.steps.map(([name, surfaceId], sequence) => {
+    return workflowCase.steps.map((step, sequence) => {
+      if (!Array.isArray(step) || step.length < 2 || step.length > 3) {
+        throw new TypeError(`Scenario '${workflowCase.id}' has an invalid step`);
+      }
+      const [name, surfaceId, signal] = step;
+      if (
+        typeof name !== "string" ||
+        typeof surfaceId !== "string" ||
+        (signal !== undefined &&
+          (typeof signal !== "string" || !allowedSignals.has(signal)))
+      ) {
+        throw new TypeError(`Scenario '${workflowCase.id}' has an invalid step value`);
+      }
       const definition = plan.config.semantics.events[name];
       if (definition === undefined) {
         throw new TypeError(`Scenario event '${name}' is not declared by the host`);
@@ -68,7 +81,7 @@ export async function buildNeutralDemo() {
           nodeId: surfaceId,
           surfaceId,
         },
-        metadata: {},
+        metadata: signal === undefined ? {} : { signal },
         provenance: scenarios.provenance,
       });
       const validation = validateWorkflowEventAgainstConfig(event, plan.config);

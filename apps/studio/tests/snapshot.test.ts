@@ -8,12 +8,16 @@ import {
   fixtureStudioDataset,
   studioDatasetFromSnapshot,
 } from "../src/lib/studio-snapshot";
+import type { OpportunitySignalKind } from "../src/lib/studio-types";
 
 const HASH = `sha256:${"a".repeat(64)}`;
 const CASE_ID = `case:${"b".repeat(64)}`;
 const VARIANT_ID = `variant:${"c".repeat(64)}`;
 
-function snapshot(withOpportunity = true): StudioSnapshot {
+function snapshot(
+  withOpportunity = true,
+  signalKind: OpportunitySignalKind = "backtracking",
+): StudioSnapshot {
   const candidate = {
     schemaVersion: "living.studio-snapshot/v1",
     generatedAt: "2026-07-20T12:00:00.000Z",
@@ -127,17 +131,17 @@ function snapshot(withOpportunity = true): StudioSnapshot {
     ...(withOpportunity
       ? {
           opportunity: {
-            opportunityId: "opportunity.backtracking",
+            opportunityId: `opportunity.${signalKind}`,
             appId: "captured-app",
             manifestHash: HASH,
             detectedAt: "2026-07-20T12:00:00.000Z",
-            detector: { id: "detector.backtracking", version: "1.1.0", configHash: HASH },
+            detector: { id: `detector.${signalKind}`, version: "1.1.0", configHash: HASH },
             window: {
               from: "2026-07-20T11:59:00.000Z",
               to: "2026-07-20T12:00:00.000Z",
             },
             signal: {
-              kind: "backtracking",
+              kind: signalKind,
               metrics: [{ name: "affected_cases", unit: "count", observed: 1 }],
             },
             evidence: {
@@ -194,6 +198,15 @@ test("renders valid analysis honestly when no opportunity crossed threshold", ()
   const dataset = studioDatasetFromSnapshot(snapshot(false));
 
   assert.deepEqual(dataset.opportunities, []);
+  assert.equal(dataset.workflows.variants[0]?.tone, "healthy");
+});
+
+test("preserves non-backtracking signals without relabeling revisits", () => {
+  const dataset = studioDatasetFromSnapshot(
+    snapshot(true, "failure-cluster"),
+  );
+
+  assert.equal(dataset.opportunities[0]?.signalKind, "failure-cluster");
   assert.equal(dataset.workflows.variants[0]?.tone, "healthy");
 });
 

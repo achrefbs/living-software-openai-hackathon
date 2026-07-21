@@ -5,8 +5,10 @@ import {
 } from "@living-software/contracts";
 import {
   detectBacktrackingOpportunityWithEvidence,
+  detectTechnicalFrictionOpportunitiesWithEvidence,
   projectWorkflowCases,
   projectWorkflowVariants,
+  selectOpportunityDetection,
 } from "@living-software/core";
 
 import { buildMetricValues } from "./metric-reducer.js";
@@ -58,11 +60,16 @@ export function analyzeEvidenceRecords(
     },
     values: buildMetricValues(events, workflowCases, workflowVariants),
   });
-  const opportunityDetection = detectBacktrackingOpportunityWithEvidence({
+  const detectorInput = {
     events,
     manifestHash: definition.application.manifestHash,
     evidenceUri: `living://evidence/${chainHead.slice(7)}`,
-  });
+  };
+  const backtracking = detectBacktrackingOpportunityWithEvidence(detectorInput);
+  const opportunityDetection = selectOpportunityDetection([
+    ...(backtracking === null ? [] : [backtracking]),
+    ...detectTechnicalFrictionOpportunitiesWithEvidence(detectorInput),
+  ]);
 
   return Object.freeze({
     records: Object.freeze(records),

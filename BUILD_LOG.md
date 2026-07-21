@@ -626,6 +626,45 @@ Replace this only with the real ID from the task where the majority of core func
 
 ---
 
+## 2026-07-21 - Stress-test detector truth and generalized source evolution
+
+**Scope**
+
+- Added correction-driven `rework-loop` and dead/rage-click `failure-cluster` detectors with at least three affected cases and deterministic input-order-independent arbitration. Backtracking v1.2 now requires per-case technical-signal or failed/abandoned corroboration, so successful repeated navigation alone is a negative control.
+- Added semantic recomputation for exact built-in detector versions before model transport. Metrics, samples, supporting events, time bounds, confidence, configuration and opportunity identity must agree with the minimized evidence.
+- Made intelligence context evidence-first: evidence-linked nodes and included one-edge neighbors retain priority under node and byte pressure; lexical fill is context only and cannot become affected-node or source-target authority.
+- Fixed evolution reuse so an existing proposal is reused only when the complete canonical Opportunity is deeply equal. A live cohort change had preserved the stable opportunity ID while changing its denominator and confidence; Living now generated a fresh proposal for that changed contract and still reused an exact replay.
+- Kept settled status/list reads mutation-free. A pending transaction journal still enters the locked recovery path.
+- Extended the independent CRM simulator with a deterministic failure-signals scenario and an asynchronous delivery-settle hook after the first live run exposed teardown before the observer finished posting.
+
+**How Codex accelerated the work**
+
+- Codex ran a below-threshold negative control, expanded correction cohort, and isolated interaction-failure cohort; audited the resulting evidence; implemented every defect found; and added regression coverage across core, collector, intelligence, CLI and evolution packages.
+- Parallel Codex reviews independently examined detector false positives, evidence-context bias, lifecycle lock side effects, opportunity integrity, documentation claims and the test-host diff.
+
+**How GPT-5.6 was used**
+
+- A correction opportunity produced evolution `evolution.source.v2.c8787271793aa9ad6d8b3777`: GPT authored lead-stage and note-entry guidance in `src/app/leads/[id]/page.tsx`.
+- An isolated rage-click opportunity produced evolution `evolution.source.v2.27dfdc4eea4430b732b9edc0`: GPT independently selected `src/components/leads-table.tsx` and authored accessible live sort-status feedback.
+- Each evolution passed all 13 deterministic proof checks. GPT received no browser, terminal, filesystem, source-write, approval, application or rollback authority.
+
+**Human decisions**
+
+- The entrant authorized end-to-end live generation and testing while preserving the explicit human approval boundary as product behavior.
+- Synthetic evidence remains visibly labeled, and no workflow-improvement or production-generalization claim is made.
+
+**Evidence**
+
+- The correction run and interaction-failure run each passed 112/112 independent CRM tests and a production build after application. Both behaviors were browser-verified.
+- Both targets were then restored to their byte-identical sealed preimages through exact rollback, followed by another passing CRM test suite and production build.
+- The earlier applied label evolution was also exactly rolled back, closing its ninth valid receipt and restoring a healthy installation.
+- Full hashes, model threads, opportunity facts, defects and limitations are recorded in [docs/proof/gpt56-live-stress-evolutions.md](docs/proof/gpt56-live-stress-evolutions.md).
+- The repaired neutral proof now uses backtracking v1.2 with one explicit correction signal in each of three affected cases. Both `npm run demo:neutral` and the committed-output `npm run judge:neutral` path pass without weakening the detector.
+- The final repository gate passed 282 tests with one intentional Windows skip: 261 product tests passed, one read-only-filesystem product test was skipped on Windows, and 21 integration tests passed. Every workspace typecheck and the Studio production build also passed.
+- These live runs predate the final documentation commit. Fresh-clone verification of the committed no-build distribution, the final-commit recorded run, public video, `/feedback` Session ID and Devpost submission remain open.
+
+---
+
 ## Entry template
 
 ### YYYY-MM-DD - Short outcome

@@ -158,8 +158,26 @@ Decisions are recorded here so judges can distinguish generated assistance from 
 ## D-018 - Replace the fixed recipe with bounded GPT-authored source proposals
 
 - **Date:** 2026-07-20
-- **Status:** Accepted; live Codex prepare, exact-hash apply, and browser verification complete; exact rollback and post-change measurement pending
+- **Status:** Accepted; live Codex prepare, exact-hash apply, browser verification and exact rollback complete; post-change measurement pending
 - **Owner:** Achref Boularess with Codex architecture, implementation, and adversarial review
 - **Decision:** Living uses two bounded model requests: GPT-5.6 first interprets verified workflow evidence into an Evolution Brief, then authors a strict source-patch proposal against at most three manifest-linked existing UI files. The source request is capped at 64 KiB per file and 96 KiB total. The model can select one file and return one to eight exact anchored replacements, but receives no tools, filesystem access, process access, secrets, or write authority. Living independently validates candidate identity, preimage hashes, anchors, overlap, output bounds, target provenance, and prohibited constructs before compiling an artifact. An operator must resupply and approve both the exact artifact hash and exact proof hash before a hash-guarded apply; rollback accepts only the exact installed postimage. Provider selection is explicit (`codex` or `api`) and never silently falls back.
 - **Why:** A hardcoded Previous/Next navigation recipe demonstrated governance but did not prove that Living could invent a change. The product premise requires the model to derive the source proposal from evidence while deterministic code retains evidence integrity and mutation authority.
-- **Consequence:** Living now demonstrates general GPT-authored evolution inside a deliberately narrow first boundary: one existing `.ts`, `.tsx`, `.js`, `.jsx`, or `.css` UI file in a supported Next.js application. It is not an unrestricted repository agent and does not claim arbitrary backend, dependency, configuration, asset, or multi-file changes. Studio and the terminal expose the same proposal, provenance, approval, apply, and rollback ledger. The retired v1 adapter remains historical only; active lifecycle data is isolated under the v2 store. Local proof covers two materially different model-authored proposals and targets through prepare, approve, apply, and rollback. Application-scoped mutation locking rejects a second same-app approved or applied evolution until the active one is rolled back. A live CRM run has now prepared, approved, applied, built, and browser-rendered a GPT-authored one-file change. This is runtime evidence, not proof of workflow improvement; exact rollback has not yet been executed.
+- **Consequence:** Living now demonstrates general GPT-authored evolution inside a deliberately narrow first boundary: one existing `.ts`, `.tsx`, `.js`, `.jsx`, or `.css` UI file in a supported Next.js application. It is not an unrestricted repository agent and does not claim arbitrary backend, dependency, configuration, asset, or multi-file changes. Studio and the terminal expose the same proposal, provenance, approval, apply, and rollback ledger. The retired v1 adapter remains historical only; active lifecycle data is isolated under the v2 store. Local proof covers materially different model-authored proposals and targets through prepare, approve, apply, runtime verification and rollback. Application-scoped mutation locking rejects a second same-app approved or applied evolution until the active one is rolled back. This is runtime evidence, not proof of workflow improvement.
+
+## D-019 - Require falsifiable, evidence-local opportunity triggers
+
+- **Date:** 2026-07-21
+- **Status:** Accepted; implementation and adversarial regressions complete, exact-submission-commit live rerun pending
+- **Owner:** Achref Boularess with Codex implementation, stress testing and adversarial review
+- **Decision:** Backtracking v1.2 requires its revisit threshold plus per-affected-case technical-signal or failed/abandoned corroboration. Separate correction and dead/rage-click detectors require at least three affected cases. Deterministic arbitration selects at most one candidate. Before GPT, known detector versions are semantically recomputed from exact minimized evidence; model change targets are limited to evidence-linked nodes and included one-edge neighbors.
+- **Why:** A trigger must be falsifiable from captured evidence and must not turn ordinary successful navigation, lexical similarity, or a structurally valid but tampered Opportunity into mutation authority.
+- **Consequence:** Successful repeated navigation alone is no longer treated as friction. Lexical context cannot become target authority, tampered built-in Opportunity semantics fail before transport, and CLI reuse requires equality of the complete Opportunity contract.
+
+## D-020 - Keep settled lifecycle reads read-only
+
+- **Date:** 2026-07-21
+- **Status:** Accepted
+- **Owner:** Achref Boularess with Codex implementation and lifecycle stress testing
+- **Decision:** Settled status and listing validate state and receipts without acquiring a mutation lease. A pending journal or inconsistent concurrent snapshot falls back to locked recovery; mutations remain serialized.
+- **Why:** Status polling should not change host state or require an available write lease when no recovery is needed.
+- **Consequence:** Studio and CLI polling do not disturb an existing lease, while crash recovery and mutation safety remain unchanged.

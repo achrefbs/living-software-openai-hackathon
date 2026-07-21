@@ -12,16 +12,16 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] README distinguishes the implemented generic GPT-authored lifecycle from runtime verification, post-change measurement, and future platform support.
 - [ ] Fresh-clone verification completed against the exact submission commit.
 - [ ] Windows 11 / Node.js 22-or-newer judge instructions reconfirmed; current Node.js 24.14.1 proof recorded and any additional platforms tested before claiming support.
-- [ ] Judge path that does not require rebuilding from scratch implemented and verified.
+- [x] Judge path that does not require rebuilding from scratch implemented with committed package JavaScript and npm run judge:neutral.
 
 ## Product verification
 
 - [ ] `npm install`
-- [ ] `npm run build:cli`
-- [ ] `npm run living -- map --fixture samples/neutral-host/host-fixture.json`
-- [ ] `npm run typecheck`
-- [ ] `npm run test`
-- [ ] `npm run demo:neutral`
+- [x] `npm run build:cli`
+- [x] `npm run living -- map --fixture samples/neutral-host/host-fixture.json`
+- [x] `npm run typecheck`
+- [x] `npm run test`
+- [x] `npm run demo:neutral`
 - [ ] `npm run dev:studio`
 - [x] Current automatic support is scoped to TypeScript Next.js App Router 15.3+ repositories using `src/app`.
 - [x] `map --root` is read-only; `init --root` and `uninstall --root` are dry-run by default and require explicit `--apply`.
@@ -34,9 +34,12 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Strict proof validation, mismatch handling, privacy-minimized proof projection, and non-rendering of raw event IDs and evidence aliases are tested.
 - [x] Real GPT-5.6 Terra run completed through authenticated Codex and reproducible sanitized evidence saved.
 - [x] The fixed CRM navigation adapter is removed from the active engine; offline tests accept materially different GPT-authored proposals and source targets.
+- [x] Product-context truncation is evidence-first, retains direct graph neighbors before lexical fill, and rejects model-cited affected nodes outside that relevant set.
+- [x] Corrections and dead/rage clicks have threshold-based `rework-loop` and `failure-cluster` promotion; backtracking v1.2 requires per-case signal/error corroboration and has a successful-navigation negative control.
 - [x] A live generic GPT-authored proposal was exact-hash approved, applied, CRM-tested/built, and browser-verified.
+- [x] A live adversarial run rejected below-threshold evidence and exercised current correction and interaction-failure detectors through two different GPT-authored targets, CRM tests/builds, browser verification, and exact rollback.
 - [ ] The live generic path is reproduced or preserved from the exact final submission commit.
-- [ ] Exact rollback is executed and the restored CRM plus complete receipt chain are browser-verified.
+- [x] Exact rollback restored the target byte-for-byte to its sealed preimage; `rolled-back` state, nine-receipt chain, and healthy CRM integration were verified.
 - [x] Connected Evolution Review explains the automatic/manual trigger boundary and hides unrelated neutral proof during the active decision flow.
 - [ ] Every final claim tied to the submission commit.
 

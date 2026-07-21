@@ -246,7 +246,7 @@ test("comparison output is byte-for-byte deterministic", () => {
   assert.equal(JSON.stringify(second), JSON.stringify(first));
 });
 
-test("dynamic CRM targets normalize to manifest action families", () => {
+test("dynamic targets normalize only to manifest-derived action families", () => {
   assert.equal(
     canonicalizeSimulatorTargetFamily("lead-link-lead-19", ["lead-link-*"]),
     "lead-link-*",
@@ -263,6 +263,7 @@ test("dynamic CRM targets normalize to manifest action families", () => {
     canonicalizeSimulatorTargetFamily("board-stage-select-card-07", ["board-stage-select-*"]),
     "board-stage-select-*",
   );
+  assert.equal(canonicalizeSimulatorTargetFamily("lead-link-lead-19", []), null);
 
   const result = compareIndependentProof(sources());
   assert.deepEqual(

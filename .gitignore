@@ -8,6 +8,12 @@ coverage/
 playwright-report/
 test-results/
 
+# The final package build is committed as the small, platform-neutral
+# no-rebuild CLI judge distribution. Studio's .next output remains ignored.
+!packages/*/dist/
+packages/*/dist/*
+!packages/*/dist/*.js
+
 # Local databases and generated evidence
 *.db
 *.db-shm

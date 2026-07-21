@@ -45,19 +45,6 @@ const SIMULATOR_TYPES = new Set([
 ]);
 const PARITY_ACTIONS = new Set(["goto", "click", "select", "submit"]);
 const NON_PARITY_ACTIONS = new Set(["fill", "read"]);
-const KNOWN_DYNAMIC_TARGET_PREFIXES = [
-  "board-stage-select-",
-  "task-checkbox-",
-  "company-row-",
-  "contact-row-",
-  "pipeline-stage-",
-  "board-column-",
-  "lead-link-",
-  "lead-row-",
-  "task-item-",
-  "board-card-",
-];
-
 class ProofInputError extends Error {
   constructor(code) {
     super(code);
@@ -724,11 +711,6 @@ export function canonicalizeSimulatorTargetFamily(target, manifestActionFamilies
     });
   for (const family of candidates) {
     if (dynamicFamilyMatches(family, normalized)) return family;
-  }
-  for (const prefix of KNOWN_DYNAMIC_TARGET_PREFIXES) {
-    if (normalized.length > prefix.length && normalized.startsWith(prefix)) {
-      return `${prefix}*`;
-    }
   }
   return null;
 }

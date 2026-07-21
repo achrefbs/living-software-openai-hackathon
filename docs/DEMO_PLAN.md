@@ -25,6 +25,7 @@ Show the mapped-node summary and that observation is ready. Explain that install
 - Start the independent CRM and exercise its UI with the simulator or visible browser actions.
 - Explain what Living captures: routes, mapped actions, timing, friction and CSS-pixel geometry.
 - State what it excludes: content, values, DOM, screenshots, secrets and persistent identity.
+- Show at least three workflows crossing a current supported threshold: repeated corrections, dead/rage-click failures, or A-B-A navigation with per-case technical-signal or failed/abandoned corroboration. Repeated successful navigation alone must not be described as friction.
 
 ### 0:58-1:35 — GPT invents the proposal
 
@@ -35,6 +36,7 @@ npm run living -- improve --root ../crm-workflow-lab --provider codex
 ```
 
 - Show the detected evidence, interpretation, chosen file, exact GPT-authored edits, model provenance, proof result and evolution ID.
+- Show the selected detector/version and its exact minimized evidence. Living must stop before GPT when a known detector's semantics cannot be recomputed from that evidence.
 - Say that the engine did not contain the proposed CRM fix. GPT chose the change from up to three manifest-bound UI candidates capped at 96 KB.
 - Explain the enforced envelope: one existing UI file, one to eight exact edits, no tools, no API/server/process/secret/dynamic-code/dependency authority.
 - Point out “prepared”: the CRM source is still unchanged.
@@ -82,6 +84,7 @@ Reload the CRM and show the exact original state. Show the receipt chain in term
 - [x] Real GPT-5.6 transport proof exists.
 - [ ] Fresh-clone build/test path passes from the exact video commit.
 - [ ] Live generic GPT-authored source proposal is recorded from that commit.
+- [ ] The recorded cohort crosses a current detector threshold and does not reuse the historical `detector.backtracking@1.1.0` opportunity.
 - [ ] Proposal shown in the video is not fixture-only or hardcoded.
 - [ ] Exact approval, runtime-visible application and rollback are shown.
 - [ ] No automatic measurement or semantic-safety claim exceeds the implementation.

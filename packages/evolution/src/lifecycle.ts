@@ -2477,6 +2477,50 @@ async function getEvolutionStatusUnlocked(
   return (await loadEvolution(root, evolutionId)).state;
 }
 
+/**
+ * Read a fully committed evolution without acquiring a mutation lease.
+ *
+ * A pending journal is the only state that requires recovery and therefore
+ * write authority. Settled state and receipts are already hash-linked and
+ * strictly validated by loadEvolution. The second journal check closes the
+ * race where a writer publishes a transaction while the snapshot is read.
+ * A single retry tolerates a transaction that completed between inconsistent
+ * state/receipt reads without hiding a persistent integrity failure.
+ */
+async function loadSettledEvolutionReadOnly(
+  rootInput: string,
+  evolutionId: string,
+): Promise<Awaited<ReturnType<typeof loadEvolution>> | undefined> {
+  validateEvolutionId(evolutionId);
+  const root = await repositoryRoot(rootInput);
+
+  const pending = async (): Promise<boolean> =>
+    (await readPendingTransaction(root, evolutionId)) !== undefined;
+  const readOnce = async () => {
+    const loaded = await loadEvolution(root, evolutionId);
+    return (await pending()) ? undefined : loaded;
+  };
+
+  try {
+    return await readOnce();
+  } catch (firstError) {
+    if (
+      firstError instanceof SourceEvolutionError &&
+      (firstError.code === "EVOLUTION_NOT_FOUND" ||
+        firstError.code === "UNSAFE_TARGET")
+    ) {
+      throw firstError;
+    }
+    if (await pending()) return undefined;
+    try {
+      return await readOnce();
+    } catch (secondError) {
+      if (await pending()) return undefined;
+      throw secondError;
+    }
+  }
+}
+
 async function readEvolutionApplicationIdentity(
   rootInput: string,
   evolutionId: string,
@@ -2618,6 +2662,8 @@ export async function getEvolutionStatus(
   root: string,
   evolutionId: string,
 ): Promise<SourceEvolutionState> {
+  const settled = await loadSettledEvolutionReadOnly(root, evolutionId);
+  if (settled !== undefined) return settled.state;
   return withEvolutionLock(root, evolutionId, () =>
     getEvolutionStatusUnlocked(root, evolutionId),
   );

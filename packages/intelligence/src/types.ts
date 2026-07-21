@@ -52,6 +52,12 @@ export type BoundedProductContext = Readonly<{
     evidenceEvents: readonly NormalizedEvidenceEvent[];
   }>;
   truncated: boolean;
+  /**
+   * Evidence-linked product nodes plus their included one-edge manifest
+   * neighbors. Model-authored affected node references are restricted to this
+   * set; lexically selected fill nodes are context only.
+   */
+  relevantProductNodeIds: readonly string[];
   sampleEvidenceAliases: readonly string[];
   evidenceScope: Readonly<{
     origin: Opportunity["evidence"]["dataOrigin"];

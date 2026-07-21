@@ -21,6 +21,7 @@ import {
   type ModelSourcePatch,
 } from "./schema.js";
 import { buildSourcePatchRequest } from "./source-prompt.js";
+import { validateBuiltInOpportunitySemantics } from "./opportunity-integrity.js";
 import { CODEX_CLI_GPT56_MODEL } from "./codex-transport.js";
 import { createFetchTransport } from "./transport.js";
 import type {
@@ -277,7 +278,7 @@ function validateReferenceIntegrity(
   if (brief.evidenceCitations.sampleEvidenceAliases.some((alias) => !eventIdByAlias.has(alias))) issues.push("sampleEvidenceAliases");
   const allowedMetrics = new Map(opportunity.signal.metrics.map((metric) => [metric.name, metric.observed]));
   if (brief.evidenceCitations.metrics.some((metric) => allowedMetrics.get(metric.name) !== metric.observed)) issues.push("metrics");
-  const allowedNodes = new Set(context.included.nodes.map((node) => node.id));
+  const allowedNodes = new Set(context.relevantProductNodeIds);
   if (brief.proposedChange.affectedProductNodeIds.some((id) => !allowedNodes.has(id))) issues.push("affectedProductNodeIds");
   if (
     brief.evidenceScope.origin !== context.evidenceScope.origin ||
@@ -538,6 +539,7 @@ export function createIntelligenceClient(
         throw new Error("Opportunity must reference the supplied product manifest hash");
       }
       const events = validateEvidence(opportunity, manifest, input.evidenceEvents);
+      validateBuiltInOpportunitySemantics(opportunity, events);
       const context = boundProductContext(manifest, opportunity, events);
       const sampleIdSet = new Set(opportunity.evidence.sampleEventIds);
       const sampleAliasEntries = buildEvidenceAliasEntries(events).filter((entry) => sampleIdSet.has(entry.eventId));

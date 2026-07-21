@@ -348,6 +348,79 @@ test("improve performs both GPT runs, prepares only, and prints exact model-auth
   assert.match(human, new RegExp(`Proof hash: ${HASH_C}`, "u"));
 });
 
+test("improve reuses only an exact full Opportunity contract", async () => {
+  const exact = {
+    ...state("prepared"),
+    inputs: {
+      ...state("prepared").inputs,
+      opportunity: automaticInput.opportunity,
+    },
+  } as SourceEvolutionState;
+  let modelRequested = false;
+  const reused = await runTerminalCommand(
+    {
+      mode: "terminal",
+      command: "improve",
+      rootPath: automaticInput.root,
+      provider: "codex",
+      json: false,
+    },
+    {
+      async loadEvolutionInput() {
+        return automaticInput;
+      },
+      async listEvolutions() {
+        return [summary(exact)];
+      },
+      async getEvolution() {
+        return exact;
+      },
+      createIntelligence() {
+        modelRequested = true;
+        throw new Error("an exact Opportunity must not call the model");
+      },
+    },
+  );
+  assert.equal(reused.reused, true);
+  assert.equal(modelRequested, false);
+
+  const driftedInput = {
+    ...automaticInput,
+    opportunity: {
+      ...automaticInput.opportunity,
+      confidence: { score: 0.8 },
+    },
+  } as AutomaticEvolutionInput;
+  await assert.rejects(
+    runTerminalCommand(
+      {
+        mode: "terminal",
+        command: "improve",
+        rootPath: automaticInput.root,
+        provider: "codex",
+        json: false,
+      },
+      {
+        async loadEvolutionInput() {
+          return driftedInput;
+        },
+        async listEvolutions() {
+          return [summary(exact)];
+        },
+        async getEvolution() {
+          return exact;
+        },
+        createIntelligence() {
+          modelRequested = true;
+          throw new Error("model-requested-after-opportunity-drift");
+        },
+      },
+    ),
+    /model-requested-after-opportunity-drift/u,
+  );
+  assert.equal(modelRequested, true);
+});
+
 test("approve --apply preserves separate approval and application transitions", async () => {
   const calls: unknown[] = [];
   const approved = state("approved");

@@ -14,6 +14,11 @@ import {
   getStudioDataset,
 } from "@/lib/studio-data";
 import { studioAppHref } from "@/lib/studio-routes";
+import {
+  workflowSignalCopy,
+  workflowSignalFactNote,
+  workflowSignalFootnote,
+} from "@/lib/workflow-signal";
 
 export const metadata: Metadata = { title: "Workflow Explorer" };
 
@@ -66,6 +71,11 @@ export default async function WorkflowsPage({
       ? "synthetic fixture"
       : dataset.app.source.dataOrigin;
   const stage = journeyStages(dataset)[1];
+  const activeOpportunity = dataset.opportunities.find(
+    (opportunity) => opportunity.status === "detected",
+  );
+  const signalKind = activeOpportunity?.signalKind ?? null;
+  const signalCopy = workflowSignalCopy(signalKind);
 
   return (
     <>
@@ -105,9 +115,8 @@ export default async function WorkflowsPage({
                 "How a case ended. Only a recorded success event counts.",
             },
             {
-              term: "Backtracking",
-              definition:
-                "Returning to a screen already visited — a friction signal.",
+              term: signalCopy.term,
+              definition: signalCopy.definition,
             },
           ]}
         />
@@ -134,10 +143,13 @@ export default async function WorkflowsPage({
           {
             label: "Reached success",
             value: `${succeeded} of ${workflows.observedCases}`,
-            note:
-              frictionCount > 0
-                ? `Revisits appear in ${frictionCount} of ${workflows.variants.length} journeys`
-                : "No backtracking observed",
+            note: workflowSignalFactNote({
+              kind: signalKind,
+              affectedCases: activeOpportunity?.affectedCases ?? 0,
+              totalCases: workflows.observedCases,
+              frictionVariants: frictionCount,
+              totalVariants: workflows.variants.length,
+            }),
             tone: succeeded < workflows.observedCases ? "warm" : "default",
           },
         ]}
@@ -145,17 +157,20 @@ export default async function WorkflowsPage({
           "Counts describe this " +
           origin +
           " capture only. They are far too few to generalize from — their job is to demonstrate that detection works." +
-          (dataset.opportunities[0] !== undefined &&
-          frictionCount > 0 &&
-          /backtracking/i.test(dataset.opportunities[0].detector)
-            ? ` The deterministic detector flags only the cases whose backtracking crossed its threshold — ${dataset.opportunities[0].affectedCases} of ${workflows.observedCases} did.`
-            : "")
+          (activeOpportunity === undefined
+            ? ""
+            : workflowSignalFootnote({
+                kind: activeOpportunity.signalKind,
+                affectedCases: activeOpportunity.affectedCases,
+                totalCases: workflows.observedCases,
+              }))
         }
       />
 
       <WorkflowExplorer
         defaultVariantId={defaultVariant?.id ?? ""}
         evidenceCases={workflows.evidenceCases}
+        signalKind={signalKind}
         variants={workflows.variants}
       />
 

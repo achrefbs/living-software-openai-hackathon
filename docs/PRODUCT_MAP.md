@@ -23,7 +23,9 @@ living install
 ordinary UI activity
   -> privacy-minimized route/action/performance/friction/geometry events
   -> manifest-scoped hash-linked evidence
-  -> deterministic workflows + technical metrics + current threshold-based backtracking opportunity
+  -> deterministic workflows + technical metrics
+  -> corroborated-backtracking, correction-rework and dead/rage-click failure candidates
+  -> deterministic single-opportunity arbitration
 
 living improve --provider codex|api
   -> GPT-5.6 authors a strict evidence brief
@@ -53,21 +55,24 @@ The separate CRM and its simulator remain independent projects. Living derives i
 3. Create-only installation, doctor validation, hash-journaled removal, and modified-file preservation.
 4. Self-contained browser observation and same-origin single-process local collection without editing the host `package.json`.
 5. Privacy-minimized workflow, performance, friction, viewport, and CSS-pixel geometry evidence.
-6. Deterministic workflow projection, technical metrics, and the current threshold-based backtracking opportunity detector.
+6. Deterministic opportunity detection for friction-corroborated backtracking, repeated corrections, and dead/rage-click failure clusters, followed by input-order-independent arbitration.
 7. Explicit Codex CLI and Responses API GPT-5.6 transports with no automatic fallback.
 8. Two bounded model roles: evidence interpretation and one-file source-patch authorship.
 9. Deterministic target/preimage/anchor/diff/authority validation, proof, human approval requiring exact artifact and proof hashes, capture-verify/no-overwrite application, recovery, receipts, and exact rollback.
 10. Terminal-first `install -> improve -> approve/apply -> rollback`, with Studio as a visual companion.
 11. Neutral fixtures and offline replay for credential-free deterministic verification.
-12. A live CRM generic proposal, exact-hash approval/application, CRM tests/build, and browser-visible runtime result.
+12. Live CRM generic proposals across correction and interaction-failure evidence, two different GPT-authored source targets, exact-hash approval/application, CRM tests/build, browser-visible runtime results, and exact rollback.
+13. Built-in detector semantics recomputed from exact minimized evidence before a model request.
+14. Evidence-first model context that preserves evidence-linked nodes and direct neighbors while preventing lexical context from becoming change-target authority.
+15. Settled lifecycle status/list reads that are read-only; pending journals still enter locked recovery.
 
-The preserved [`docs/proof/gpt56-live-codex-cli.json`](proof/gpt56-live-codex-cli.json) proves an earlier authenticated GPT-5.6 Terra interpretation run. The [July 21 CRM record](proof/gpt56-live-crm-source-evolution.md) proves the current generic patch path prepared, applied, and visibly rendered one governed change; it does not prove measured improvement.
+The preserved [`docs/proof/gpt56-live-codex-cli.json`](proof/gpt56-live-codex-cli.json) proves an earlier authenticated GPT-5.6 Terra interpretation run. The [July 21 CRM record](proof/gpt56-live-crm-source-evolution.md) proves one generic patch path prepared, applied, visibly rendered and exactly rolled back. The [live stress record](proof/gpt56-live-stress-evolutions.md) adds a negative control plus correction and interaction-failure paths that produced two different GPT-authored source targets. None proves measured improvement.
 
 ## Next evidence milestones
 
 1. Reproduce or preserve the live generic path from the exact final submission commit.
-2. Demonstrate exact rollback and browser-verify the restored CRM while preserving the complete receipt chain.
-3. Verify the fresh-clone path and required no-rebuild judge distribution.
+2. Verify the fresh-clone path and required no-rebuild judge distribution.
+3. Record the public under-three-minute demo against the exact submission commit.
 4. Add automatic post-change capture and before/after measurement only as future work; do not claim a closed improvement loop today.
 
 ## Explicit non-claims

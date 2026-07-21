@@ -51,6 +51,24 @@ function definition(overrides: CollectorDefinition["limits"] = {}): CollectorDef
         nodeId: "action.filter-stage",
         surfaceId: "surface.leads",
       },
+      {
+        eventName: "signal.filter-stage.correction",
+        kind: "outcome",
+        nodeId: "action.filter-stage",
+        surfaceId: "surface.leads",
+      },
+      {
+        eventName: "signal.filter-stage.dead-click",
+        kind: "outcome",
+        nodeId: "action.filter-stage",
+        surfaceId: "surface.leads",
+      },
+      {
+        eventName: "signal.filter-stage.rage-click",
+        kind: "outcome",
+        nodeId: "action.filter-stage",
+        surfaceId: "surface.leads",
+      },
     ],
     limits: {
       maxPayloadBytes: 64_000,
@@ -127,6 +145,27 @@ function interactionEvent(sessionId: string, sequence: number): WorkflowEvent {
   };
 }
 
+function technicalSignalEvent(
+  sessionId: string,
+  sequence: number,
+  signal: "correction" | "dead-click" | "rage-click",
+): WorkflowEvent {
+  const candidate = routeEvent(sessionId, sequence, "leads");
+  const interaction = interactionEvent(sessionId, sequence);
+  const { interaction: _interaction, ...geometry } = interaction.metadata;
+  return {
+    ...candidate,
+    name: `signal.filter-stage.${signal}`,
+    kind: "outcome",
+    product: {
+      ...candidate.product,
+      nodeId: "action.filter-stage",
+      surfaceId: "surface.leads",
+    },
+    metadata: { signal, ...geometry },
+  };
+}
+
 function eventForDefinition(
   collectorDefinition: CollectorDefinition,
   sessionId: string,
@@ -192,12 +231,14 @@ test("stores a hash-linked chain and deterministically analyzes workflows", asyn
 
   for (let caseIndex = 0; caseIndex < 3; caseIndex += 1) {
     const sessionId = `session-${caseIndex}`;
+    const corroboration = ["correction", "dead-click", "rage-click"] as const;
     const events = [
       routeEvent(sessionId, 0, "leads"),
       routeEvent(sessionId, 1, "tasks"),
       routeEvent(sessionId, 2, "leads"),
       routeEvent(sessionId, 3, "tasks"),
       routeEvent(sessionId, 4, "leads"),
+      technicalSignalEvent(sessionId, 5, corroboration[caseIndex]!),
     ];
     const response = await collector.handle(request(batch(sessionId, events)));
     assert.equal(response.status, 202);
@@ -218,13 +259,14 @@ test("stores a hash-linked chain and deterministically analyzes workflows", asyn
 
   const first = await collector.analyze();
   const second = analyzeEvidenceRecords(records, definition());
-  assert.equal(first.events.length, 17);
+  assert.equal(first.events.length, 20);
   assert.equal(first.workflowCases.length, 4);
-  assert.equal(first.workflowVariants.length, 2);
+  assert.equal(first.workflowVariants.length, 4);
   assert.equal(first.metricReport.schemaVersion, "living.metric-report/v1");
   assert.equal(first.metricReport.dataOrigin, "synthetic");
   assert.ok(first.opportunity);
-  assert.equal(first.opportunityEvidenceEvents.length, 15);
+  assert.equal(first.opportunity.signal.kind, "backtracking");
+  assert.equal(first.opportunityEvidenceEvents.length, 18);
   assert.ok(
     first.opportunityEvidenceEvents.every(
       (candidate) => candidate.sessionId !== controlSessionId,
@@ -236,6 +278,43 @@ test("stores a hash-linked chain and deterministically analyzes workflows", asyn
   );
   assert.equal(JSON.stringify(first.metricReport), JSON.stringify(second.metricReport));
   assert.equal(first.chainHead, records.at(-1)?.recordHash);
+});
+
+test("promotes repeated correction signals using only their exact evidence events", async (t) => {
+  const root = await temporaryRoot(t);
+  const collector = createEvidenceCollector({
+    rootPath: root,
+    definition: definition(),
+  });
+
+  for (let caseIndex = 0; caseIndex < 3; caseIndex += 1) {
+    const sessionId = `correction-session-${caseIndex}`;
+    const response = await collector.handle(request(batch(sessionId, [
+      routeEvent(sessionId, 0, "leads"),
+      interactionEvent(sessionId, 1),
+      technicalSignalEvent(sessionId, 2, "correction"),
+    ])));
+    assert.equal(response.status, 202, await response.text());
+  }
+
+  const analysis = await collector.analyze();
+  assert.ok(analysis.opportunity);
+  assert.equal(analysis.opportunity.signal.kind, "rework-loop");
+  assert.equal(analysis.opportunity.evidence.subjectCount, 3);
+  assert.equal(analysis.opportunity.evidence.occurrenceCount, 3);
+  assert.equal(analysis.opportunityEvidenceEvents.length, 3);
+  assert.ok(
+    analysis.opportunityEvidenceEvents.every(
+      (candidate) =>
+        candidate.kind === "outcome" && candidate.metadata.signal === "correction",
+    ),
+  );
+  assert.equal(
+    analysis.metricReport.values.find(
+      (candidate) => candidate.id === "friction.correction-count",
+    )?.value,
+    3,
+  );
 });
 
 test("keeps manifest releases in independent append-only evidence segments", async (t) => {

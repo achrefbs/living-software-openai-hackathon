@@ -1,6 +1,13 @@
 export type Provenance = "scanned" | "declared" | "inferred";
 export type ProductNodeKind = "surface" | "action" | "api" | "entity";
 export type PreviewMode = "data" | "empty" | "disconnected" | "error";
+export type OpportunitySignalKind =
+  | "rework-loop"
+  | "backtracking"
+  | "abandonment"
+  | "failure-cluster"
+  | "repeated-sequence"
+  | "handoff-delay";
 
 export type StudioSource = {
   kind: "fixture" | "captured_snapshot";
@@ -76,6 +83,7 @@ export type Opportunity = {
   title: string;
   summary: string;
   status: "detected" | "watching";
+  signalKind: OpportunitySignalKind;
   detector: string;
   detectorVersion: string;
   confidence: number;

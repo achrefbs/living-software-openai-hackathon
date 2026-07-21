@@ -5,13 +5,20 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { MapExplorer } from "../src/components/map-explorer";
 import { RecordedGpt56Brief } from "../src/components/recorded-gpt56-brief";
-import { buildWorkflowJourney } from "../src/components/workflow-explorer";
+import {
+  buildWorkflowJourney,
+  WorkflowExplorer,
+} from "../src/components/workflow-explorer";
 import {
   getCommittedGpt56Run,
   relateGpt56RunToDataset,
 } from "../src/lib/gpt56-proof";
 import { fixtureStudioDataset } from "../src/lib/studio-snapshot";
-import type { ProductNode } from "../src/lib/studio-types";
+import type {
+  OpportunitySignalKind,
+  ProductNode,
+  WorkflowVariant,
+} from "../src/lib/studio-types";
 
 const nodes: ProductNode[] = [
   {
@@ -44,6 +51,46 @@ test("workflow revisit detection uses node identity, not display labels", () => 
   assert.equal(journey[0]?.revisitOf, undefined);
   assert.equal(journey[1]?.revisitOf, undefined);
   assert.equal(journey[2]?.revisitOf, 0);
+});
+
+test("workflow explorer names correction and failure signals without inventing backtracking", () => {
+  const variant: WorkflowVariant = {
+    id: "variant.signal",
+    name: "Lead form journey",
+    description: "One captured journey.",
+    cases: 1,
+    share: 1,
+    durationSeconds: 12,
+    durationLabel: "Average time",
+    stepCount: 3,
+    stepLabel: "Journey steps",
+    outcomeRate: 0,
+    tone: "friction",
+    steps: [
+      { id: "route.lead", label: "Lead" },
+      { id: "action.save", label: "Save" },
+      { id: "route.lead", label: "Lead" },
+    ],
+  };
+  const expectations: Array<[OpportunitySignalKind, string]> = [
+    ["failure-cluster", "Interaction failures"],
+    ["rework-loop", "Correction pattern"],
+  ];
+
+  for (const [signalKind, label] of expectations) {
+    const html = renderToStaticMarkup(
+      createElement(WorkflowExplorer, {
+        defaultVariantId: variant.id,
+        evidenceCases: [],
+        signalKind,
+        variants: [variant],
+      }),
+    );
+
+    assert.match(html, new RegExp(label));
+    assert.match(html, /1 repeated journey step/);
+    assert.doesNotMatch(html, /backtracking/i);
+  }
 });
 
 test("product map reports manifest and explorable node counts separately", () => {

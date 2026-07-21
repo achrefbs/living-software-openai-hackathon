@@ -109,7 +109,13 @@ test("passes the detector's exact evidence bundle to the intelligence boundary",
 
   assert.equal(received.manifest.appId, "sample.operations-console");
   assert.equal(received.opportunity.evidence.dataOrigin, "synthetic");
-  assert.equal(received.evidenceEvents.length, 24);
+  assert.equal(received.evidenceEvents.length, 27);
+  assert.equal(
+    received.evidenceEvents.filter(
+      (event) => event.metadata.signal === "correction",
+    ).length,
+    3,
+  );
   assert.equal(new Set(received.evidenceEvents.map((event) => event.sessionId)).size, 3);
   assert.equal(result.provenance.responseId, "offline-test");
 });

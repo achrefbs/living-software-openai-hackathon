@@ -104,6 +104,20 @@
     { "name": "history.viewed", "kind": "navigation" },
     { "name": "draft.resumed", "kind": "action" },
     { "name": "history.reviewed", "kind": "action" },
+    {
+      "name": "draft.corrected",
+      "kind": "outcome",
+      "metadataSchema": {
+        "type": "object",
+        "properties": {
+          "signal": {
+            "type": "string",
+            "enum": ["correction"]
+          }
+        },
+        "additionalProperties": false
+      }
+    },
     { "name": "draft.saved", "kind": "action" },
     { "name": "work.completed", "kind": "outcome" }
   ],

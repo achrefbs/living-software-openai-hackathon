@@ -6,15 +6,32 @@ import { Badge, EvidenceRef } from "@/components/ui";
 import { formatDuration, formatPercent } from "@/lib/format";
 import type {
   EvidenceCase,
+  OpportunitySignalKind,
   WorkflowStep,
   WorkflowVariant,
 } from "@/lib/studio-types";
+import {
+  journeyRepeatSummary,
+  workflowSignalCopy,
+} from "@/lib/workflow-signal";
 
 const toneCopy = {
   healthy: { label: "Direct path", badge: "positive" as const },
   watch: { label: "Under review", badge: "warning" as const },
-  friction: { label: "Backtracking", badge: "critical" as const },
 };
+
+function variantToneCopy(
+  tone: WorkflowVariant["tone"],
+  signalKind: OpportunitySignalKind | null,
+) {
+  if (tone === "friction") {
+    return {
+      label: workflowSignalCopy(signalKind).badge,
+      badge: "critical" as const,
+    };
+  }
+  return toneCopy[tone];
+}
 
 function outcomeSentence(variant: WorkflowVariant): string {
   if (variant.cases === 1) {
@@ -42,10 +59,12 @@ export function WorkflowExplorer({
   variants,
   evidenceCases,
   defaultVariantId,
+  signalKind,
 }: {
   variants: WorkflowVariant[];
   evidenceCases: EvidenceCase[];
   defaultVariantId: string;
+  signalKind: OpportunitySignalKind | null;
 }) {
   const [selectedId, setSelectedId] = useState(defaultVariantId);
   const selected =
@@ -71,7 +90,7 @@ export function WorkflowExplorer({
         role="group"
       >
         {variants.map((variant) => {
-          const tone = toneCopy[variant.tone];
+          const tone = variantToneCopy(variant.tone, signalKind);
           const active = variant.id === selected.id;
           return (
             <button
@@ -113,13 +132,11 @@ export function WorkflowExplorer({
             <p className="sequence-subtitle">
               One captured journey shape · {selected.stepCount} steps ·{" "}
               {formatDuration(selected.durationSeconds)} ·{" "}
-              {revisits.length === 0
-                ? "no backtracking"
-                : `${revisits.length} backtracking step${revisits.length === 1 ? "" : "s"}`}
+              {journeyRepeatSummary(signalKind, revisits.length)}
             </p>
           </div>
-          <Badge tone={toneCopy[selected.tone].badge}>
-            {toneCopy[selected.tone].label}
+          <Badge tone={variantToneCopy(selected.tone, signalKind).badge}>
+            {variantToneCopy(selected.tone, signalKind).label}
           </Badge>
         </div>
 

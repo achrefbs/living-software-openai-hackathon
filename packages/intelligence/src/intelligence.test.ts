@@ -262,6 +262,64 @@ function fixture(nodeCount = 2) {
   return { productManifest, events, detectedOpportunity };
 }
 
+function decoyHeavyFixture(decoyCount = PRODUCT_CONTEXT_LIMITS.nodes + 15) {
+  const provenance = (path: string) => ({
+    origin: "scanned" as const,
+    confidence: 1,
+    sources: [{ path, revision: "decoy-heavy-revision" }],
+  });
+  const decoyNodes = Array.from({ length: decoyCount }, (_, index) => ({
+    id: `aaa-decoy-${String(index).padStart(3, "0")}`,
+    kind: "surface" as const,
+    displayName: `Decoy ${index}`,
+    provenance: provenance(`src/decoy-${index}.tsx`),
+  }));
+  const content = {
+    schemaVersion: "living.product-manifest/v1" as const,
+    appId: "decoy-heavy-app",
+    release: { revision: "decoy-heavy-revision" },
+    generatedAt: "2026-07-19T12:00:00.000Z",
+    generators: [{ adapterId: "nextjs", adapterVersion: "0.1.0" }],
+    nodes: [
+      ...decoyNodes,
+      {
+        id: "zzz-evidence-surface",
+        kind: "surface" as const,
+        displayName: "Evidence surface",
+        provenance: provenance("src/evidence.tsx"),
+      },
+      {
+        id: "zzz-direct-neighbor",
+        kind: "action" as const,
+        displayName: "Direct neighbor",
+        provenance: provenance("src/neighbor.tsx"),
+      },
+    ],
+    edges: [
+      {
+        from: "zzz-evidence-surface",
+        to: "zzz-direct-neighbor",
+        relation: "renders" as const,
+        provenance: provenance("src/evidence.tsx"),
+      },
+    ],
+  };
+  const { generatedAt: _generatedAt, ...semanticContent } = content;
+  const productManifest: ProductManifest = {
+    ...content,
+    contentHash: hashContent(semanticContent),
+  };
+  const events = evidenceEvents(productManifest).map((event) => ({
+    ...event,
+    product: {
+      manifestHash: productManifest.contentHash,
+      nodeId: "zzz-evidence-surface",
+    },
+  }));
+  const detectedOpportunity = opportunity(events, productManifest);
+  return { productManifest, events, detectedOpportunity };
+}
+
 test("constructs a deterministic, governed GPT-5.6 request with bounded output", () => {
   const { productManifest, events, detectedOpportunity } = fixture();
   const context = boundProductContext(productManifest, detectedOpportunity, events);
@@ -454,6 +512,116 @@ test("bounds and deterministically orders manifest and normalized event context"
   assert.equal(context.included.nodes.length, PRODUCT_CONTEXT_LIMITS.nodes);
   assert.equal(context.included.nodes[0]!.id, "node-000");
   assert.deepEqual(context.included.evidenceEvents.map((event) => event.citationAlias), ["evidence-001", "evidence-002"]);
+  assert.ok(Buffer.byteLength(JSON.stringify(context), "utf8") <= PRODUCT_CONTEXT_LIMITS.bytes);
+});
+
+test("keeps evidence-linked nodes and direct neighbors ahead of lexical decoys", () => {
+  const base = decoyHeavyFixture();
+  const context = boundProductContext(
+    base.productManifest,
+    base.detectedOpportunity,
+    base.events,
+  );
+  const includedIds = context.included.nodes.map((node) => node.id);
+
+  assert.equal(context.included.nodes.length, PRODUCT_CONTEXT_LIMITS.nodes);
+  assert.ok(includedIds.includes("zzz-evidence-surface"));
+  assert.ok(includedIds.includes("zzz-direct-neighbor"));
+  assert.ok(!includedIds.includes("aaa-decoy-134"));
+  assert.deepEqual(context.relevantProductNodeIds, [
+    "zzz-direct-neighbor",
+    "zzz-evidence-surface",
+  ]);
+
+  const permutedManifest = structuredClone(base.productManifest);
+  permutedManifest.nodes.reverse();
+  permutedManifest.edges.reverse();
+  const permuted = boundProductContext(
+    permutedManifest,
+    base.detectedOpportunity,
+    [...base.events].reverse(),
+  );
+  assert.deepEqual(permuted.included, context.included);
+  assert.deepEqual(permuted.relevantProductNodeIds, context.relevantProductNodeIds);
+});
+
+test("never removes an evidence-linked node to satisfy the hard byte limit", () => {
+  const identifier = (prefix: string, index: number) => {
+    const start = `${prefix}-${String(index).padStart(3, "0")}-`;
+    return start + "x".repeat(160 - start.length);
+  };
+  const evidenceNodeId = identifier("evidence", 0);
+  const neighborIds = Array.from(
+    { length: PRODUCT_CONTEXT_LIMITS.nodes - 1 },
+    (_, index) => identifier("neighbor", index),
+  );
+  const provenance = {
+    origin: "scanned" as const,
+    confidence: 1,
+    sources: [{ path: "src/wide.tsx", revision: "wide-revision" }],
+  };
+  const content = {
+    schemaVersion: "living.product-manifest/v1" as const,
+    appId: "wide-context-app",
+    release: { revision: "wide-revision" },
+    generatedAt: "2026-07-19T12:00:00.000Z",
+    generators: [{ adapterId: "nextjs", adapterVersion: "0.1.0" }],
+    nodes: [evidenceNodeId, ...neighborIds].map((id) => ({
+      id,
+      kind: "surface" as const,
+      displayName: id,
+      provenance,
+    })),
+    edges: neighborIds.flatMap((id) => ([
+      { from: evidenceNodeId, to: id, relation: "renders" as const, provenance },
+      { from: evidenceNodeId, to: id, relation: "calls" as const, provenance },
+    ])),
+    hostInterface: {
+      schemaVersion: "living.host-interface/v1" as const,
+      appId: "wide-context-app",
+      version: "1.0.0",
+      extensionPoints: neighborIds.slice(0, PRODUCT_CONTEXT_LIMITS.extensionPoints).map((id) => ({
+        id,
+        surfaceNodeId: evidenceNodeId,
+        presentation: "panel" as const,
+      })),
+      operations: Array.from({ length: PRODUCT_CONTEXT_LIMITS.operations }, (_, index) => ({
+        id: identifier("operation", index),
+        version: "1.0.0",
+        effect: "read" as const,
+        inputSchema: { type: "object", additionalProperties: false },
+        outputSchema: { type: "object", additionalProperties: false },
+        idempotency: "none" as const,
+        requiresUserConfirmation: false,
+      })),
+      contentHash: HASH_B,
+    },
+  };
+  const { generatedAt: _generatedAt, ...semanticContent } = content;
+  const productManifest: ProductManifest = {
+    ...content,
+    contentHash: hashContent(semanticContent),
+  };
+  const seed = evidenceEvents(productManifest)[0]!;
+  const longEventName = `event.${"x".repeat(154)}`;
+  const longSurfaceId = identifier("surface", 0);
+  const events = Array.from({ length: PRODUCT_CONTEXT_LIMITS.evidenceEvents }, (_, index) => ({
+    ...seed,
+    eventId: `wide-event-${String(index).padStart(3, "0")}`,
+    sequence: index,
+    name: longEventName,
+    product: {
+      manifestHash: productManifest.contentHash,
+      nodeId: evidenceNodeId,
+      surfaceId: longSurfaceId,
+    },
+  }));
+  const detectedOpportunity = opportunity(events, productManifest);
+  const context = boundProductContext(productManifest, detectedOpportunity, events);
+
+  assert.ok(context.included.nodes.length < PRODUCT_CONTEXT_LIMITS.nodes);
+  assert.ok(context.included.nodes.some((node) => node.id === evidenceNodeId));
+  assert.ok(context.relevantProductNodeIds.includes(evidenceNodeId));
   assert.ok(Buffer.byteLength(JSON.stringify(context), "utf8") <= PRODUCT_CONTEXT_LIMITS.bytes);
 });
 
@@ -712,6 +880,41 @@ test("rejects invented references and authority escalation", async (t) => {
   await t.test("approval injection", () => rejects({ ...brief(base.detectedOpportunity, base.productManifest), approved: true }));
   await t.test("activation", () => rejects({ ...brief(base.detectedOpportunity, base.productManifest), governance: { status: "approved", humanApprovalRequired: false, activationAllowed: true } }));
   await t.test("synthetic production generalization", () => rejects(brief(base.detectedOpportunity, base.productManifest, { evidenceScope: { origin: "synthetic", claimScope: "observed-window-only", productionGeneralizationAllowed: false } })));
+});
+
+test("limits model-authored affected nodes to evidence-linked nodes and direct neighbors", async (t) => {
+  const base = fixture(4);
+  const input = {
+    opportunity: base.detectedOpportunity,
+    manifest: base.productManifest,
+    evidenceEvents: base.events,
+  };
+  const withAffectedNode = (nodeId: string) => brief(
+    base.detectedOpportunity,
+    base.productManifest,
+    {
+      proposedChange: {
+        ...brief(base.detectedOpportunity, base.productManifest).proposedChange,
+        affectedProductNodeIds: [nodeId],
+      },
+    },
+  );
+
+  await t.test("accepts a direct manifest neighbor", async () => {
+    const client = createIntelligenceClient(mockTransport(responseFor(withAffectedNode("node-002"))));
+    const result = await client.draftEvolutionBrief(input);
+    assert.deepEqual(result.draft.proposedChange.affectedProductNodeIds, ["node-002"]);
+  });
+  await t.test("rejects an included but two-hop lexical context node", async () => {
+    const client = createIntelligenceClient(mockTransport(responseFor(withAffectedNode("node-003"))));
+    await assert.rejects(
+      client.draftEvolutionBrief(input),
+      (error: unknown) =>
+        error instanceof IntelligenceResponseError &&
+        error.code === "invalid_brief" &&
+        /affectedProductNodeIds/u.test(error.message),
+    );
+  });
 });
 
 test("HTTP transport reads API key at send time, passes abort signal, and targets /v1/responses", async () => {
