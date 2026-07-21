@@ -37,6 +37,8 @@ Checked against the Devpost hackathon information and official rules on **July 2
 - Windows 11, Node.js 22+ and npm 10+ are the verified platform family.
 - Final package JavaScript is committed as a platform-neutral terminal distribution. After npm ci, npm run judge:neutral runs the credential-free proof without compiling TypeScript or rebuilding Studio.
 - The current full gate passes 261 product tests plus 21 integration tests; one read-only-filesystem lifecycle test is intentionally skipped on Windows. Every workspace typecheck, the current neutral demo, and the Studio production build pass.
+- A disposable fresh clone of implementation commit `2659d51e396821a6ce23a6e192850f26233f1c6c` passed `npm ci` and `npm run judge:neutral` on Windows 11 with Node.js 24.14.1 and npm 11.11.0. The committed package JavaScript was used directly; no TypeScript or Studio build ran in that judge proof.
+- `npm ci` currently reports two moderate audit entries representing one transitive PostCSS advisory through stable Next.js 16.2.10. There are no high or critical entries. npm's offered automatic fix downgrades Next.js to 9.3.3 and was not applied; update to a compatible patched stable Next.js release when available.
 - The required primary Codex `/feedback` Session ID is pending.
 
 ## Material OpenAI use
@@ -87,7 +89,6 @@ For the API path, set `OPENAI_API_KEY` at runtime and replace `--provider codex`
 ## Open compliance gates
 
 - Record the real primary `/feedback` Session ID.
-- Verify npm ci and npm run judge:neutral from a fresh clone of the exact final commit.
 - Reproduce or preserve the live generic path from the exact final submission commit; the July 21 run occurred from the corrected working tree before the final documentation commit.
 - Do not claim a closed improvement loop until post-change capture and measurement exist.
 - Record and verify the public video URL.

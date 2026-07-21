@@ -71,9 +71,8 @@ The preserved [`docs/proof/gpt56-live-codex-cli.json`](proof/gpt56-live-codex-cl
 ## Next evidence milestones
 
 1. Reproduce or preserve the live generic path from the exact final submission commit.
-2. Verify the fresh-clone path and required no-rebuild judge distribution.
-3. Record the public under-three-minute demo against the exact submission commit.
-4. Add automatic post-change capture and before/after measurement only as future work; do not claim a closed improvement loop today.
+2. Record the public under-three-minute demo against the exact submission commit.
+3. Add automatic post-change capture and before/after measurement only as future work; do not claim a closed improvement loop today.
 
 ## Explicit non-claims
 

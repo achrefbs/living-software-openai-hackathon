@@ -661,7 +661,8 @@ Replace this only with the real ID from the task where the majority of core func
 - Full hashes, model threads, opportunity facts, defects and limitations are recorded in [docs/proof/gpt56-live-stress-evolutions.md](docs/proof/gpt56-live-stress-evolutions.md).
 - The repaired neutral proof now uses backtracking v1.2 with one explicit correction signal in each of three affected cases. Both `npm run demo:neutral` and the committed-output `npm run judge:neutral` path pass without weakening the detector.
 - The final repository gate passed 282 tests with one intentional Windows skip: 261 product tests passed, one read-only-filesystem product test was skipped on Windows, and 21 integration tests passed. Every workspace typecheck and the Studio production build also passed.
-- These live runs predate the final documentation commit. Fresh-clone verification of the committed no-build distribution, the final-commit recorded run, public video, `/feedback` Session ID and Devpost submission remain open.
+- A disposable clone of committed implementation `2659d51` passed `npm ci` and `npm run judge:neutral` on Windows 11 with Node.js 24.14.1 and npm 11.11.0 without compiling TypeScript or Studio. The install reported one moderate transitive PostCSS advisory as two audit entries through stable Next.js 16.2.10; npm's incompatible Next.js 9 downgrade was rejected and the limitation is disclosed.
+- The final-commit live GPT run, public video, `/feedback` Session ID and Devpost submission remain open.
 
 ---
 

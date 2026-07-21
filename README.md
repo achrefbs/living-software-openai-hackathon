@@ -230,8 +230,9 @@ npm run living -- rollback --root ../crm-workflow-lab --evolution <id> --actor j
 Use `--provider api` only with an entrant-supplied runtime API key. Never claim runtime success or improvement measurement without showing that separate evidence.
 
 The checked-in package distribution provides the no-rebuild terminal path.
-Fresh-clone verification against the exact final commit remains a submission
-gate until recorded in [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
+A disposable Windows clone passed `npm ci` and `npm run judge:neutral`
+without compiling TypeScript or rebuilding Studio; the exact verification
+environment is recorded in [HACKATHON_COMPLIANCE.md](HACKATHON_COMPLIANCE.md).
 
 ## How Codex and GPT-5.6 are being used
 

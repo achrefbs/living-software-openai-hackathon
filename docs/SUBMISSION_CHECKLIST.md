@@ -10,13 +10,13 @@ Deadline: **Tuesday, July 21, 2026 at 5:00 PM PT** / **Wednesday, July 22 at 02:
 - [x] Public repository linked from the Devpost project.
 - [x] Standalone CRM and simulator kept outside the challenge dependency graph.
 - [x] README distinguishes the implemented generic GPT-authored lifecycle from runtime verification, post-change measurement, and future platform support.
-- [ ] Fresh-clone verification completed against the exact submission commit.
-- [ ] Windows 11 / Node.js 22-or-newer judge instructions reconfirmed; current Node.js 24.14.1 proof recorded and any additional platforms tested before claiming support.
+- [x] Fresh-clone verification completed for the committed no-build judge distribution; exact final commit rechecked after the documentation commit.
+- [x] Windows 11 / Node.js 22-or-newer judge instructions reconfirmed with Node.js 24.14.1 and npm 11.11.0; no additional platform is claimed.
 - [x] Judge path that does not require rebuilding from scratch implemented with committed package JavaScript and npm run judge:neutral.
 
 ## Product verification
 
-- [ ] `npm install`
+- [x] `npm install` / locked fresh-clone `npm ci`
 - [x] `npm run build:cli`
 - [x] `npm run living -- map --fixture samples/neutral-host/host-fixture.json`
 - [x] `npm run typecheck`

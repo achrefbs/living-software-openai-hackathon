@@ -94,6 +94,7 @@ An existing target file is a conflict. Repeating an identical installation is a 
 - The collector and Studio broker are local development proof surfaces, not authenticated multi-instance production services.
 - Evolution/application locks use a fixed 60-second local lease without heartbeat; an unusually long or stalled transition may be treated as stale and should be retried only after inspecting the ledger and host source.
 - Model output is not a substitute for code review, typechecking, tests, accessibility review or runtime verification.
+- The locked fresh-clone audit currently reports one moderate transitive PostCSS advisory as two dependency entries through stable Next.js 16.2.10. npm offers only an incompatible Next.js 9.3.3 downgrade. No override is claimed; monitor stable Next.js releases and update when a compatible patched dependency is available.
 - Source application is not evidence that the product improved.
 - Automatic post-change capture and before/after measurement are not implemented.
 - Studio sync is explicit, not continuous live ingestion.
