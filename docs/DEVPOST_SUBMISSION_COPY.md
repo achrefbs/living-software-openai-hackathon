@@ -79,7 +79,17 @@ npm run test
 
 ### Connected live path
 
-With a separate supported Next.js host already running on port 3000:
+The optional public reference host is https://github.com/achrefbs/crm-workflow-lab.git. The recorded demo starts from commit `545136b` (`545136b96cf0a6d3fdd9ddcae7733b3eeda8a6a8`). From the directory beside the Living repository:
+
+```bash
+git clone https://github.com/achrefbs/crm-workflow-lab.git
+cd crm-workflow-lab
+git checkout 545136b
+npm ci
+npm run dev
+```
+
+With that host running on port 3000, use a second terminal in the Living repository:
 
 ```bash
 npm run studio:live -- --root ../crm-workflow-lab --host-url http://127.0.0.1:3000 --port 3001 --new-session
